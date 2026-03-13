@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    :root {
+      --primary: #1A365D; /* 신뢰의 네이비 */
+      --secondary: #2B6CB0; /* 활기찬 블루 */
+      --accent: #FEE500; /* 카카오톡 옐로우 */
+      --background: #F7FAFC;
+      --surface: #FFFFFF;
+      --text-main: #2D3748;
+      --text-sub: #718096;
+      --border: #E2E8F0;
+    }
+
+    * { box-sizing: border-box; font-family: 'Pretendard', sans-serif; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--background);
+      color: var(--text-main);
+      padding: 2rem 1rem;
+      line-height: 1.6;
+    }
+
+    .header { text-align: center; margin-bottom: 2.5rem; }
+    .header img { width: 60px; height: 60px; margin-bottom: 10px; }
+    .header h1 { font-size: 1.75rem; color: var(--primary); font-weight: 700; letter-spacing: -0.5px; }
+    .header p { color: var(--text-sub); font-size: 0.95rem; margin-top: 5px; }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+      border: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+    .input-field {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: all 0.2s;
+      background-color: #F8FAFC;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: var(--secondary);
+      background-color: #FFF;
+      box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.1);
+    }
+
+    /* 동적 섹션 애니메이션 처리 */
+    .dynamic-section {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+      background: #F8FAFC;
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px dashed #CBD5E0;
+      margin-top: 10px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #output-message {
+      width: 100%;
+      height: 400px; /* 내용이 길어져서 높이 증가 */
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background-color: #FAFCFE;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--text-main);
+      resize: vertical;
+    }
+
+    .button-group { display: flex; gap: 12px; margin-top: 1.5rem; }
+    .btn {
+      flex: 1; padding: 1rem; border: none; border-radius: 12px;
+      font-weight: 700; font-size: 1rem; cursor: pointer;
+      transition: transform 0.1s, filter 0.2s;
+      display: flex; justify-content: center; align-items: center; gap: 8px;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:hover { filter: brightness(0.95); }
+    
+    .btn-copy { background-color: #EDF2F7; color: var(--text-main); }
+    .btn-kakao { background-color: var(--accent); color: #391B1B; }
+
+    @media (max-width: 768px) {
+      body { padding: 1rem; }
+      .dashboard { grid-template-columns: 1fr; gap: 16px; }
+      .card { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png" alt="Prime Asset Icon">
+    <h1>프라임에셋 스마트 알림톡</h1>
+    <p>고객의 마음을 여는 첫걸음, 완벽한 메시지로 시작하세요.</p>
+  </div>
+
+  <div class="dashboard">
+    <div class="card">
+      <div class="card-title">📝 상담 정보 입력</div>
+      
+      <div class="form-group">
+        <label for="customerName">고객명</label>
+        <input type="text" id="customerName" class="input-field" placeholder="고객의 이름을 입력하세요">
+      </div>
+
+      <div class="form-group">
+        <label for="messageTemplate">발송 상황 선택</label>
+        <select id="messageTemplate" class="input-field">
+          <option value="" disabled selected>상황을 선택해 주세요</option>
+          <option value="intro">👋 1. 자기소개 및 인사</option>
+          <option value="schedule">✅ 2. 상담 진행일정 안내</option>
+          <option value="info">📺 3. 보험 자료 안내</option>
+          <option value="finish">🎁 4. 상담종료 인사와 소개</option>
+        </select>
+      </div>
+
+      <div id="scheduleSection" class="dynamic-section">
+        <div class="form-group">
+          <label for="consultMethod">상담 방법</label>
+          <select id="consultMethod" class="input-field">
+            <option value="대면상담">🤝 대면상담</option>
+            <option value="전화상담">📞 전화상담</option>
+            <option value="카톡상담">💬 카톡상담</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="consultDate">상담 예정일시</label>
+          <input type="datetime-local" id="consultDate" class="input-field">
+        </div>
+
+        <div id="meetSection">
+          <div class="form-group">
+            <label for="meetRegion">대면장소 지역</label>
+            <select id="meetRegion" class="input-field">
+              <option value="서울">서울</option>
+              <option value="경기">경기</option>
+              <option value="인천">인천</option>
+              <option value="강원">강원</option>
+              <option value="충청">충청</option>
+              <option value="전라">전라</option>
+              <option value="경상">경상</option>
+              <option value="제주">제주</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="meetDetail">세부장소</label>
+            <input type="text" id="meetDetail" class="input-field" placeholder="예: 강남역 1번 출구 스타벅스">
+          </div>
+        </div>
+      </div>
+
+      <div id="infoSection" class="dynamic-section">
+        <div class="form-group">
+          <label for="infoType">보험 종류 선택</label>
+          <select id="infoType" class="input-field">
+            <option value="기본구성안내">기본구성 안내</option>
+            <option value="종합보험안내">종합보험 안내</option>
+            <option value="암보험안내">암보험 안내</option>
+            <option value="운전자보험안내">운전자보험 안내</option>
+            <option value="연금보험안내">연금보험 안내</option>
+          </select>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card">
+      <div class="card-title">📱 전송 메시지 미리보기</div>
+      
+      <textarea id="output-message" class="input-field" placeholder="왼쪽에서 정보를 입력하면 메시지가 자동으로 완성됩니다."></textarea>
+
+      <div class="button-group">
+        <button class="btn btn-copy" onclick="copyMessage()">
+          📄 내용 복사하기
+        </button>
+        <button class="btn btn-kakao" onclick="sendKakao()">
+          💬 카카오톡 보내기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM 요소
+    const nameInput = document.getElementById('customerName');
+    const templateSelect = document.getElementById('messageTemplate');
+    const outputArea = document.getElementById('output-message');
+    
+    // 동적 섹션들
+    const scheduleSection = document.getElementById('scheduleSection');
+    const infoSection = document.getElementById('infoSection');
+    const meetSection = document.getElementById('meetSection');
+    
+    // 세부 입력 필드들
+    const consultMethod = document.getElementById('consultMethod');
+    const consultDate = document.getElementById('consultDate');
+    const meetRegion = document.getElementById('meetRegion');
+    const meetDetail = document.getElementById('meetDetail');
+    const infoType = document.getElementById('infoType');
+
+    // 보험 자료 리스트 (유튜브/블로그 썸네일 느낌)
+    const infoLinks = {
+      '기본구성안내': "📌 [기본 구성 가이드]\n- 내게 맞는 완벽한 기본 보험 세팅법\n- 실손의료비 100% 활용하는 꿀팁",
+      '종합보험안내': "📌 [종합보험 가이드]\n- 종합보험 가입하는 요령, 이것만 아세요!\n- 내 나이에 맞는 납입기간은 어떻게 설정할까?",
+      '암보험안내': "📌 [암보험 가이드]\n- 암보험, 면책기간과 감액기간의 진실\n- 표적항암치료비 특약, 과연 필수일까?",
+      '운전자보험안내': "📌 [운전자보험 가이드]\n- 운전자보험 필수 특약 3가지 완벽 정리\n- 자동차보험과 운전자보험의 결정적 차이",
+      '연금보험안내': "📌 [연금보험 가이드]\n- 든든한 노후를 위한 연금보험 기초\n- 숨어있는 비과세 혜택 완벽하게 챙기기"
+    };
+
+    // UI 상태 업데이트 함수
+    function updateUI() {
+      const type = templateSelect.value;
+      
+      // 섹션 초기화
+      scheduleSection.style.display = 'none';
+      infoSection.style.display = 'none';
+      
+      if (type === 'schedule') {
+        scheduleSection.style.display = 'block';
+        // 대면상담일 때만 장소 입력 표시
+        meetSection.style.display = (consultMethod.value === '대면상담') ? 'block' : 'none';
+      } else if (type === 'info') {
+        infoSection.style.display = 'block';
+      }
+      
+      renderMessage();
+    }
+
+    // 날짜 포맷팅 함수
+    function formatDate(dateStr) {
+      if (!dateStr) return "[일시 미정]";
+      const d = new Date(dateStr);
+      const yy = d.getFullYear().toString().slice(-2);
+      const mm = d.getMonth() + 1;
+      const dd = d.getDate();
+      const hh = d.getHours();
+      const min = d.getMinutes();
+      const ampm = hh >= 12 ? '오후' : '오전';
+      const displayHour = hh % 12 || 12;
+      return `${yy}년 ${mm}월 ${dd}일 ${ampm} ${displayHour}시 ${min === 0 ? '00' : min}분`;
+    }
+
+    // 메시지 생성 함수
+    function renderMessage() {
+      const name = nameInput.value || "OOO";
+      const type = templateSelect.value;
+      let rawText = "";
+
+      if (!type) {
+        outputArea.value = "";
+        return;
+      }
+
+      switch(type) {
+        case 'intro':
+          rawText = "[전문가 소개 및 인사]\n안녕하세요! 매달 33개 생명/손해보험사의 상품을 꼼꼼하게 비교 분석하는 방송팀 소속이자, 16년 차 보험 전문가 프라임에셋 김예준 본부장입니다.\n\n" + name + " 고객님, 저를 믿고 문의해 주셔서 진심으로 감사합니다. 단순한 가입을 넘어, 고객님의 라이프스타일과 상황에 맞는 가장 객관적이고 최적화된 맞춤형 플랜을 안내해 드리겠습니다.";
+          break;
+
+        case 'schedule':
+          const method = consultMethod.value;
+          const dateStr = formatDate(consultDate.value);
+          let placeStr = "";
+          
+          if (method === '대면상담') {
+            const region = meetRegion.value;
+            const detail = meetDetail.value || "[세부장소 미정]";
+            placeStr = `\n■ 대면 장소 : [${region}] ${detail}`;
+          }
+
+          rawText = "[상담 일정 안내]\n프라임에셋 김예준 본부장입니다.\n" + name + " 고객님의 맞춤형 보험 상담 일정이 확정되었습니다.\n\n■ 상담 방식 : " + method + "\n■ 예정 일시 : " + dateStr + placeStr + "\n\n편안하고 유익한 상담을 위해 꼼꼼히 분석하여 준비하고 있겠습니다. 일정 변경이 필요하시면 언제든 편하게 말씀해 주세요!";
+          break;
+
+        case 'info':
+          const selectedInfo = infoType.value;
+          const links = infoLinks[selectedInfo];
+          
+          rawText = "[맞춤형 보험 정보 안내]\n" + name + " 고객님, 안녕하세요! 프라임에셋 김예준 본부장입니다.\n\n상담에 앞서, 고객님께서 궁금해하실 [" + selectedInfo.replace('안내', '') + "]에 대한 핵심 정보를 미리 준비했습니다. 아래 내용을 가볍게 확인해 보시면 앞으로의 상담에 큰 도움이 됩니다!\n\n" + links + "\n\n꼼꼼히 살펴보시고 궁금한 점은 상담 때 모두 속 시원히 해결해 드리겠습니다.😊";
+          break;
+
+        case 'finish':
+          // 사용자가 요청한 텍스트 그대로 적용
+          rawText = "https://litt.ly/withprime100\n\n저는 16년차 보험설계사이자\n50명의 전문 설계사를 총괄하는\n프라임에셋 김예준 본부장입니다.\n\n매년 1분기에는 고객분들의\n고객정보(주소변경, 직업변경, 검진)를\n꼼꼼하게 체크하여 변경을 도와드리고\n중요한 보험 이슈를 안내해드리고 있습니다\n\n보장분석 프로그램과 노션을 활용한\n전문 온라인 상담에 만족하셨다면\n많은 분들이 손해보지 않으시도록\n소개도 부탁드려요 :)\n\n상담에 친절하게 응해주셔서 감사드리고\n[보험금청구] 상황 발생시\n언제든 편하게 전화나 톡으로\n문의주세요😊";
+          break;
+      }
+
+      outputArea.value = rawText;
+    }
+
+    // 이벤트 리스너 등록
+    nameInput.addEventListener('input', renderMessage);
+    templateSelect.addEventListener('change', updateUI);
+    consultMethod.addEventListener('change', updateUI);
+    consultDate.addEventListener('input', renderMessage);
+    meetRegion.addEventListener('change', renderMessage);
+    meetDetail.addEventListener('input', renderMessage);
+    infoType.addEventListener('change', renderMessage);
+
+    // 복사 기능
+    function copyMessage() {
+      if(!outputArea.value) {
+        alert('먼저 발송 상황을 선택해주세요.');
+        return;
+      }
+      outputArea.select();
+      document.execCommand('copy');
+      alert('메시지가 깔끔하게 복사되었습니다!\n카카오톡 대화창에 바로 붙여넣기 하세요.');
+    }
+
+    // 카카오톡 전송 기능
+    function sendKakao() {
+      if(!outputArea.value) {
+        alert('먼저 발송 상황을 선택해주세요.');
+        return;
+      }
+      copyMessage();
+      alert('현재는 보안상 내용 복사 후 카카오톡으로 직접 이동하여 붙여넣어 주시면 됩니다.\n(모바일 기기에서는 자동으로 카카오톡 앱을 호출하도록 추후 API 연동이 가능합니다.)');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,470 @@
+// 1. 웹 앱 접속 시 화면을 렌더링하는 함수
+function doGet(e) {
+  const template = HtmlService.createTemplateFromFile('index');
+  
+  // URL 파라미터로 넘어온 이름과 연락처를 템플릿에 전달 (없으면 빈 칸)
+  template.customerName = e.parameter.name || '';
+  template.customerPhone = e.parameter.phone || '';
+  
+  return template.evaluate()
+    .setTitle('프리미엄 보험 상담 사전 설문') // 브라우저 탭 이름
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// 2. 고객이 제출한 데이터를 시트에 저장하는 함수
+function submitSurveyData(formData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName("고객데이터");
+    
+    // 배열 형태로 넘어온 다중 선택 항목을 콤마(,)로 연결
+    const assetsStr = formData.assets ? formData.assets.join(', ') : '';
+    const interestsStr = formData.interests ? formData.interests.join(', ') : '';
+    
+    // 시트 헤더 순서에 맞게 데이터 배열 생성
+    const rowData = [
+      new Date(),              // A: 접수일시
+      formData.name,           // B: 고객명
+      formData.phone,          // C: 연락처
+      "알림톡 발송됨",           // D: 알림톡발송 (링크를 타고 왔으므로)
+      formData.dob,            // E: 생년월일
+      formData.job,            // F: 직업
+      formData.address,        // G: 주소
+      formData.family,         // H: 가족관계
+      assetsStr,               // I: 보유현황
+      formData.consultType,    // J: 희망상담
+      interestsStr,            // K: 보험관심사
+      formData.privacy ? "동의함" : "미동의", // L: 개인정보동의
+      "신규접수"                 // M: 진행상태
+    ];
+    
+    // 시트 마지막 줄에 데이터 추가
+    sheet.appendRow(rowData);
+    
+    return { success: true, message: "상담 신청이 성공적으로 접수되었습니다." };
+  } catch (error) {
+    return { success: false, message: "오류가 발생했습니다: " + error.message };
+  }
+}
+
+--------------
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>상담 사전 안내</title>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/variable/pretendardvariable.css" />
+  
+  <style>
+    :root {
+      --primary-color: #1e3a8a; /* 신뢰감을 주는 딥 블루 */
+      --primary-light: #eff6ff;
+      --text-main: #1e293b;
+      --text-sub: #64748b;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 24px 20px 100px 20px; /* 하단 버튼 고정을 위한 여백 */
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+      padding-top: 20px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 15px;
+      color: var(--text-sub);
+      margin: 0;
+    }
+
+    /* 노션 스타일의 카드형 UI */
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 20px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+
+    input[type="text"],
+    input[type="tel"],
+    input[type="date"] {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 16px; /* iOS 자동 확대 방지 */
+      transition: border-color 0.2s;
+      background-color: #fcfcfc;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      background-color: #fff;
+    }
+
+    input[readonly] {
+      background-color: #f1f5f9;
+      color: var(--text-sub);
+      cursor: not-allowed;
+    }
+
+    /* 세련된 버튼형 라디오/체크박스 */
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip-label {
+      cursor: pointer;
+      position: relative;
+    }
+
+    .chip-label input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .chip-text {
+      display: inline-block;
+      padding: 10px 18px;
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-sub);
+      transition: all 0.2s;
+    }
+
+    .chip-label input:checked ~ .chip-text {
+      background-color: var(--primary-light);
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+
+    /* 개인정보 동의 영역 */
+    .privacy-box {
+      background: #f8fafc;
+      padding: 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-bottom: 12px;
+      height: 80px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--primary-color);
+    }
+
+    /* 하단 고정 제출 버튼 */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border-color);
+      box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+      z-index: 100;
+    }
+
+    .btn-submit {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      display: block;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .btn-submit:hover {
+      background-color: #1e40af;
+    }
+
+    .btn-submit:disabled {
+      background-color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    /* 로딩 스피너 */
+    .loader {
+      display: none;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1>맞춤형 보험 상담 신청</h1>
+      <p>정확하고 원활한 상담을 위해 아래 정보를 입력해 주세요.</p>
+    </div>
+
+    <form id="surveyForm" onsubmit="handleFormSubmit(event)">
+      
+      <div class="section-card">
+        <h2 class="section-title">👤 기본 정보</h2>
+        
+        <div class="form-group">
+          <label for="name">이름</label>
+          <input type="text" id="name" name="name" value="<?= customerName ?>" required placeholder="홍길동">
+        </div>
+        
+        <div class="form-group">
+          <label for="phone">연락처</label>
+          <input type="tel" id="phone" name="phone" value="<?= customerPhone ?>" readonly required>
+        </div>
+        
+        <div class="form-group">
+          <label for="dob">생년월일</label>
+          <input type="date" id="dob" name="dob" required>
+        </div>
+
+        <div class="form-group">
+          <label for="job">직업 (구체적으로)</label>
+          <input type="text" id="job" name="job" required placeholder="예: 사무직, 현장직, 주부 등">
+        </div>
+
+        <div class="form-group">
+          <label for="address">거주지 주소 (동/호수 제외)</label>
+          <input type="text" id="address" name="address" required placeholder="예: 서울시 강남구 역삼동">
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h2 class="section-title">🏠 라이프스타일 및 자산</h2>
+        
+        <div class="form-group">
+          <label>가족 관계 (단일 선택)</label>
+          <div class="chip-group">
+            <label class="chip-label"><input type="radio" name="family" value="미혼" required><span class="chip-text">미혼</span></label>
+            <label class="chip-label"><input type="radio" name="family" value="부부"><span class="chip-text">부부</span></label>
+            <label class="chip-label"><input type="radio" name="family" value="부부+자녀"><span class="chip-text">부부+자녀</span></label>
+            <label class="chip-label"><input type="radio" name="family" value="기타"><span class="chip-text">기타</span></label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>보유 현황 (다중 선택 가능)</label>
+          <div class="chip-group">
+            <label class="chip-label"><input type="checkbox" name="assets" value="자가보유"><span class="chip-text">자가보유</span></label>
+            <label class="chip-label"><input type="checkbox" name="assets" value="자동차보유"><span class="chip-text">자동차보유</span></label>
+            <label class="chip-label"><input type="checkbox" name="assets" value="반려견"><span class="chip-text">반려견</span></label>
+            <label class="chip-label"><input type="checkbox" name="assets" value="개인연금"><span class="chip-text">개인연금 보유</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h2 class="section-title">💡 상담 희망 내용</h2>
+        
+        <div class="form-group">
+          <label>희망 상담 방향 (단일 선택)</label>
+          <div class="chip-group">
+            <label class="chip-label"><input type="radio" name="consultType" value="기존보험 보장분석" required><span class="chip-text">기존보험 보장분석</span></label>
+            <label class="chip-label"><input type="radio" name="consultType" value="신규상품 가입문의"><span class="chip-text">신규상품 가입문의</span></label>
+            <label class="chip-label"><input type="radio" name="consultType" value="보험 전체 리모델링"><span class="chip-text">보험 전체 리모델링</span></label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>주요 관심사 (다중 선택 가능)</label>
+          <div class="chip-group">
+            <label class="chip-label"><input type="checkbox" name="interests" value="종합보험"><span class="chip-text">종합보험</span></label>
+            <label class="chip-label"><input type="checkbox" name="interests" value="암보험"><span class="chip-text">암보험</span></label>
+            <label class="chip-label"><input type="checkbox" name="interests" value="2대(뇌/심장)보험"><span class="chip-text">2대(뇌/심장)보험</span></label>
+            <label class="chip-label"><input type="checkbox" name="interests" value="실손의료비"><span class="chip-text">실손의료비</span></label>
+            <label class="chip-label"><input type="checkbox" name="interests" value="수술비/입원비"><span class="chip-text">수술/입원비</span></label>
+            <label class="chip-label"><input type="checkbox" name="interests" value="운전자/자동차"><span class="chip-text">운전자/자동차</span></label>
+            <label class="chip-label"><input type="checkbox" name="interests" value="치매/간병인"><span class="chip-text">치매/간병인</span></label>
+            <label class="chip-label"><input type="checkbox" name="interests" value="치아보험"><span class="chip-text">치아보험</span></label>
+            <label class="chip-label"><input type="checkbox" name="interests" value="펫보험"><span class="chip-text">펫보험</span></label>
+            <label class="chip-label"><input type="checkbox" name="interests" value="사망/연금"><span class="chip-text">사망/연금</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h2 class="section-title">🔒 개인정보 수집 및 이용 동의</h2>
+        <div class="privacy-box">
+          1. 수집 목적: 보험 상담 및 맞춤형 상품 안내<br>
+          2. 수집 항목: 성명, 연락처, 생년월일, 직업, 자산현황 등<br>
+          3. 보유 기간: 상담 종료 후 1년 또는 고객 파기 요청 시까지<br>
+          * 귀하는 동의를 거부할 권리가 있으며, 동의 거부 시 원활한 상담이 제한될 수 있습니다.
+        </div>
+        <label class="checkbox-label">
+          <input type="checkbox" name="privacy" required>
+          위 개인정보 수집 및 이용에 동의합니다. (필수)
+        </label>
+      </div>
+
+      <div class="bottom-bar">
+        <button type="submit" id="submitBtn" class="btn-submit">
+          <span id="btnText">상담 진행 요청하기</span>
+          <div id="btnLoader" class="loader"></div>
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <script>
+    function handleFormSubmit(event) {
+      event.preventDefault(); // 기본 폼 제출 방지
+      
+      const form = event.target;
+      const submitBtn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+      const btnLoader = document.getElementById('btnLoader');
+      
+      // 폼 데이터 수집
+      const formData = {
+        name: form.name.value,
+        phone: form.phone.value,
+        dob: form.dob.value,
+        job: form.job.value,
+        address: form.address.value,
+        family: form.family.value,
+        consultType: form.consultType.value,
+        privacy: form.privacy.checked,
+        // 다중 선택(체크박스) 데이터 수집
+        assets: Array.from(form.querySelectorAll('input[name="assets"]:checked')).map(cb => cb.value),
+        interests: Array.from(form.querySelectorAll('input[name="interests"]:checked')).map(cb => cb.value)
+      };
+
+      // 버튼 상태 변경 (로딩 중)
+      submitBtn.disabled = true;
+      btnText.style.display = 'none';
+      btnLoader.style.display = 'block';
+
+      // 서버(Code.gs)로 데이터 전송
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if(response.success) {
+            alert('감사합니다! 성공적으로 접수되었습니다. 곧 연락드리겠습니다.');
+            // 제출 성공 시 화면 초기화 또는 감사 페이지 이동 가능
+            form.reset();
+            submitBtn.disabled = false;
+            btnText.style.display = 'block';
+            btnLoader.style.display = 'none';
+            btnText.innerText = "제출 완료되었습니다";
+            submitBtn.style.backgroundColor = "#10b981"; // 성공 색상으로 변경
+          } else {
+            alert('오류: ' + response.message);
+            resetButton();
+          }
+        })
+        .withFailureHandler(function(error) {
+          alert('서버와 통신 중 문제가 발생했습니다.');
+          resetButton();
+        })
+        .submitSurveyData(formData);
+        
+      function resetButton() {
+        submitBtn.disabled = false;
+        btnText.style.display = 'block';
+        btnLoader.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+      .setTitle('고객 맞춤형 보험 상담 관리 앱')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+----------------------------
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>보험 상담 및 고객관리 앱</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; font-family: 'Noto Sans KR', sans-serif; }
+    body { background-color: #f0f4f8; margin: 0; padding: 0; color: #333; }
+    
+    .header-bar { background-color: #1a365d; color: white; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; }
+    .header-bar h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+
+    .container { display: flex; gap: 25px; max-width: 1200px; margin: 0 auto; padding: 0 20px 40px 20px; }
+    .panel { background: #ffffff; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); flex: 1; display: flex; flex-direction: column; }
+    .panel h2 { color: #2c5282; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-top: 0; font-size: 20px; display: flex; align-items: center; gap: 8px; }
+
+    .form-group { margin-bottom: 20px; }
+    label { font-size: 14px; font-weight: 600; color: #4a5568; display: block; margin-bottom: 8px; }
+    input[type="text"], input[type="number"], select { width: 100%; padding: 14px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 15px; color: #2d3748; transition: all 0.3s ease; background-color: #f8fafc; }
+    input[type="text"]:focus, select:focus { outline: none; border-color: #3182ce; background-color: #fff; box-shadow: 0 0 0 3px rgba(49,130,206,0.1); }
+    
+    .highlight-box { background-color: #ebf4ff; padding: 20px; border-radius: 12px; border: 1px solid #bee3f8; margin-top: 10px; transition: all 0.3s; }
+    .claim-box { background-color: #fffaf0; border-color: #fbd38d; } /* 청구 서류용 강조 박스 */
+
+    .radio-group { display: flex; gap: 20px; margin-bottom: 10px; }
+    .radio-group label { font-weight: 500; font-size: 15px; display: flex; align-items: center; cursor: pointer; }
+    .radio-group input[type="radio"] { margin-right: 8px; width: 18px; height: 18px; cursor: pointer; }
+
+    .checkbox-group { display: flex; align-items: center; margin-top: 20px; padding: 10px 0; }
+    .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; margin-right: 10px; cursor: pointer; }
+    .checkbox-group label { margin-bottom: 0; cursor: pointer; font-size: 15px; }
+
+    /* 다중 서류 선택을 위한 그리드 레이아웃 */
+    .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 5px; }
+    .checkbox-grid label { display: flex; align-items: center; font-weight: 400; font-size: 14px; margin-bottom: 0; cursor: pointer; }
+    .checkbox-grid input[type="checkbox"] { margin-right: 8px; width: 16px; height: 16px; }
+
+    #previewText { flex-grow: 1; width: 100%; min-height: 400px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; resize: vertical; font-size: 15px; line-height: 1.6; background-color: #f8fafc; color: #1a202c; transition: all 0.3s; }
+    #previewText:focus { outline: none; border-color: #3182ce; background-color: #fff; }
+
+    .btn-group { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .btn { width: 100%; padding: 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 16px; transition: transform 0.1s, box-shadow 0.2s; text-align: center; }
+    .btn:active { transform: scale(0.98); }
+    .btn-kakao { background-color: #FEE500; color: #191919; }
+    .btn-kakao:hover { background-color: #ebd300; box-shadow: 0 4px 12px rgba(254,229,0,0.3); }
+    .btn-copy { background-color: #edf2f7; color: #4a5568; }
+    .btn-copy:hover { background-color: #e2e8f0; }
+
+    @media (max-width: 768px) { .container { flex-direction: column; padding: 0 15px 30px 15px; } .panel { padding: 20px; } }
+  </style>
+</head>
+<body>
+
+<div class="header-bar">
+  <h1>💼 스마트 보험 상담 & 고객관리 시스템</h1>
+</div>
+
+<div class="container">
+  <div class="panel">
+    <h2>📝 고객 정보 및 안내 설정</h2>
+    
+    <div class="form-group">
+      <label for="customerName">👤 고객 성함</label>
+      <input type="text" id="customerName" placeholder="예: 홍길동" oninput="generatePreview()">
+    </div>
+
+    <div class="form-group">
+      <label for="noticeType">📋 안내 항목 선택</label>
+      <select id="noticeType" onchange="toggleSections(); generatePreview()">
+        <option value="">항목을 선택하세요</option>
+        <option value="보험담당자 변경안내">보험담당자 변경안내</option>
+        <option value="해지안내">해지안내</option>
+        <option value="실효된보험 해지안내">실효된보험 해지안내</option>
+        <option value="보험금 청구서류 안내">보험금 청구서류 안내</option>
+        <option value="자동이체 해지안내">자동이체 해지안내</option>
+      </select>
+    </div>
+
+    <div id="standardInputs" class="highlight-box">
+      <div class="form-group">
+        <label>🏢 대상 보험사 선택 (분류를 먼저 선택하세요)</label>
+        <div class="radio-group">
+          <label><input type="radio" name="insCategory" value="life" onchange="populateCompanies()"> 생명보험사</label>
+          <label><input type="radio" name="insCategory" value="nonlife" onchange="populateCompanies()"> 손해보험사</label>
+        </div>
+        <select id="insuranceCompany" onchange="updatePhoneAndPreview()">
+          <option value="" data-phone="">분류를 선택하시면 목록이 나타납니다</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="insuranceType">📑 보험 종류 (상품명)</label>
+        <input type="text" id="insuranceType" placeholder="예: 무배당 퍼펙트통합보험" oninput="generatePreview()">
+      </div>
+
+      <div class="form-group">
+        <label for="premium">💰 월 보험료 (원)</label>
+        <input type="text" id="premium" placeholder="예: 50,000" oninput="formatPremium(this); generatePreview()">
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 0;">
+        <label for="callCenter">📞 콜센터 번호 (자동입력)</label>
+        <input type="text" id="callCenter" readonly style="background-color: #e2e8f0; color: #4a5568; border-color: transparent;">
+      </div>
+    </div>
+
+    <div id="claimDocsSection" class="highlight-box claim-box" style="display: none;">
+      <label>🏥 보험금 청구 필요 서류 선택</label>
+      <div class="checkbox-grid" id="claimDocsGrid">
+        </div>
+    </div>
+
+    <div id="generalDocsSection">
+      <div class="checkbox-group">
+        <input type="checkbox" id="docReq" onchange="toggleGeneralDocs(); generatePreview()">
+        <label for="docReq">📌 팩스/일반 서류 안내 포함하기</label>
+      </div>
+      <div class="checkbox-grid" id="generalDocsGrid" style="display: none;">
+        </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>📱 메시지 확인 및 발송</h2>
+    <p style="color: #718096; font-size: 13px; margin-top: -5px; margin-bottom: 15px;">
+      입력한 내용이 자동 완성됩니다. 전송 전 아래 창에서 직접 내용을 추가하거나 코멘트를 남길 수 있습니다.
+    </p>
+    
+    <textarea id="previewText" placeholder="이곳에 고객에게 보낼 메시지가 자동 생성됩니다. 직접 자유롭게 수정 가능합니다."></textarea>
+
+    <div class="btn-group">
+      <button class="btn btn-kakao" onclick="sendKakao()">💬 카카오톡(알림톡/링크) 전송</button>
+      <button class="btn btn-copy" onclick="copyText()">📄 메시지 텍스트 복사</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- 데이터베이스 설정 ---
+  const lifeInsurances = [
+    { name: "삼성생명", phone: "1588-3114" }, { name: "한화생명", phone: "1588-6363" }, { name: "교보생명", phone: "1588-1001" },
+    { name: "신한라이프", phone: "1588-5580" }, { name: "농협생명", phone: "1544-4000" }, { name: "동양생명", phone: "1588-0008" },
+    { name: "흥국생명", phone: "1588-2288" }, { name: "미래에셋생명", phone: "1588-0220" }, { name: "KDB생명", phone: "1588-4040" },
+    { name: "DB생명", phone: "1588-3131" }, { name: "메트라이프생명", phone: "1588-9600" }, { name: "라이나생명", phone: "1588-0058" },
+    { name: "푸본현대생명", phone: "1577-3311" }, { name: "AIA생명", phone: "1588-9898" }, { name: "처브라이프", phone: "1599-4600" },
+    { name: "ABL생명", phone: "1588-6500" }, { name: "DGB생명", phone: "1588-4770" }, { name: "KB라이프", phone: "1588-3174" }
+  ];
+
+  const nonLifeInsurances = [
+    { name: "삼성화재", phone: "1588-5114" }, { name: "현대해상", phone: "1588-5656" }, { name: "DB손해보험", phone: "1588-0100" },
+    { name: "KB손해보험", phone: "1544-0114" }, { name: "메리츠화재", phone: "1566-7711" }, { name: "한화손해보험", phone: "1566-8000" },
+    { name: "흥국화재", phone: "1688-1688" }, { name: "롯데손해보험", phone: "1588-3344" }, { name: "MG손해보험", phone: "1588-5959" },
+    { name: "농협손해보험", phone: "1644-9000" }, { name: "AIG손해보험", phone: "1544-2792" }, { name: "에이스손해보험", phone: "1566-5800" },
+    { name: "하나손해보험", phone: "1566-3000" }, { name: "캐롯손해보험", phone: "1566-0300" }, { name: "신한EZ손해보험", phone: "1544-2580" }
+  ];
+
+  const generalDocuments = [
+    "신분증 앞면 사본", "가족관계증명서", "주민등록등본", "인감증명서", "인감도장", 
+    "본인서명사실확인서", "혼인관계증명서", "기본증명서", "환급 계좌번호(통장사본)", "위임장"
+  ];
+
+  const claimDocuments = [
+    "진료비 영수증", "진료비 세부내역서", "진단서", "수술확인서", "입원확인서", 
+    "퇴원확인서", "초진차트", "검사결과기록지", "약제비 영수증", "의사 소견서", "처방전", "응급실 기록지"
+  ];
+
+  // 초기 렌더링 시 서류 체크박스 생성
+  window.onload = function() {
+    renderCheckboxes('generalDocsGrid', generalDocuments, 'general');
+    renderCheckboxes('claimDocsGrid', claimDocuments, 'claim');
+  };
+
+  function renderCheckboxes(containerId, dataArray, prefix) {
+    const container = document.getElementById(containerId);
+    let html = '';
+    dataArray.forEach((item, index) => {
+      html += `<label><input type="checkbox" value="${item}" onchange="generatePreview()"> ${item}</label>`;
+    });
+    container.innerHTML = html;
+  }
+
+  // 생명/손해 카테고리 선택 시 보험사 목록 업데이트
+  function populateCompanies() {
+    const category = document.querySelector('input[name="insCategory"]:checked').value;
+    const select = document.getElementById('insuranceCompany');
+    select.innerHTML = '<option value="" data-phone="">보험사를 선택하세요</option>';
+    
+    const targetArray = category === 'life' ? lifeInsurances : nonLifeInsurances;
+    
+    targetArray.forEach(ins => {
+      const opt = document.createElement('option');
+      opt.value = ins.name;
+      opt.setAttribute('data-phone', ins.phone);
+      opt.innerText = ins.name;
+      select.appendChild(opt);
+    });
+    
+    updatePhoneAndPreview();
+  }
+
+  // 서류 및 항목 토글 제어
+  function toggleSections() {
+    const type = document.getElementById('noticeType').value;
+    const stdInputs = document.getElementById('standardInputs');
+    const claimDocs = document.getElementById('claimDocsSection');
+    const genDocs = document.getElementById('generalDocsSection');
+
+    if (type === '보험금 청구서류 안내') {
+      stdInputs.style.display = 'none';
+      genDocs.style.display = 'none';
+      claimDocs.style.display = 'block';
+    } else {
+      stdInputs.style.display = 'block';
+      genDocs.style.display = 'block';
+      claimDocs.style.display = 'none';
+    }
+  }
+
+  function toggleGeneralDocs() {
+    const isChecked = document.getElementById('docReq').checked;
+    document.getElementById('generalDocsGrid').style.display = isChecked ? 'grid' : 'none';
+  }
+
+  // 편의 기능들
+  function formatPremium(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  function updatePhoneAndPreview() {
+    const sel = document.getElementById('insuranceCompany');
+    const phone = sel.options[sel.selectedIndex]?.getAttribute('data-phone') || '';
+    document.getElementById('callCenter').value = phone;
+    generatePreview();
+  }
+
+  // 핵심 텍스트 자동 완성 로직
+  function generatePreview() {
+    const name = document.getElementById('customerName').value || 'OOO';
+    const type = document.getElementById('noticeType').value;
+    const company = document.getElementById('insuranceCompany').value || 'OO보험사';
+    const insType = document.getElementById('insuranceType').value || 'OO보험';
+    const premium = document.getElementById('premium').value || 'O,OOO';
+    const phone = document.getElementById('callCenter').value || 'OOOO-OOOO';
+    
+    let message = `안녕하세요. 16년차 보험전문가 김예준 본부장입니다.\n\n`;
+
+    // 1. 항목별 안내 멘트 및 "추가로 OO할 수 있는 방법" 동적 멘트 적용
+    if (type === '보험담당자 변경안내') {
+      message += `${name} 고객님, 새롭게 고객님의 담당자가 되었습니다. 앞으로 꼼꼼한 관리 약속드립니다.\n`;
+      message += `추가로 안전하게 담당자 변경 확인 및 점검을 진행할 수 있는 방법을 안내드립니다.\n\n`;
+      message += `[변경 대상 보험 정보]\n`;
+    } else if (type === '해지안내') {
+      message += `${name} 고객님의 요청에 따른 해지 안내입니다.\n`;
+      message += `추가로 원활하게 해지 처리를 하고 환급금을 수령할 수 있는 방법을 안내드립니다. 아래 보험사에 연락하시어 진행해 주시기 바랍니다.\n\n`;
+      message += `[해지해야 할 보험 정보]\n`;
+    } else if (type === '실효된보험 해지안내') {
+      message += `${name} 고객님, 현재 실효 상태인 보험의 최종 해지 및 해약환급금 수령을 위한 안내입니다.\n`;
+      message += `추가로 실효된 보험을 안전하게 해지할 수 있는 방법을 안내드립니다.\n\n`;
+      message += `[실효된 보험 정보]\n`;
+    } else if (type === '자동이체 해지안내') {
+      message += `${name} 고객님, 보험 자동이체 해지 관련 안내입니다.\n`;
+      message += `추가로 간편하게 자동이체를 해지할 수 있는 방법을 안내드립니다.\n`;
+      message += `💡 안내: 자동이체 해지는 두 달 동안 납입이 되지 않아도, 정상적으로 보험 혜택을 받을 수 있습니다.\n\n`;
+    } else if (type === '보험금 청구서류 안내') {
+      message += `${name} 고객님, 요청하신 보험금 청구를 위한 안내입니다.\n`;
+      message += `추가로 빠르고 정확하게 보험금을 청구할 수 있는 방법을 안내드립니다.\n\n`;
+    } else {
+      message += `${name} 고객님을 위한 맞춤형 안내입니다.\n\n`;
+    }
+
+    // 2. 입력 박스 정보 (청구 안내가 아닐 때만 포함)
+    if (type !== '보험금 청구서류 안내' && type !== '') {
+      message += `▪ 보험사 : ${company}\n`;
+      message += `▪ 상품명 : ${insType}\n`;
+      message += `▪ 보험료 : ${premium}원\n`;
+      message += `📞 콜센터 : ${phone}\n\n`;
+    }
+
+    // 3. 서류 리스트 삽입
+    if (type === '보험금 청구서류 안내') {
+      // 청구 서류 체크박스 내역 가져오기
+      const checkedClaims = Array.from(document.querySelectorAll('#claimDocsGrid input:checked')).map(cb => cb.value);
+      if(checkedClaims.length > 0) {
+        message += `[📌 필수 준비 서류 안내 (보험금 청구용)]\n`;
+        checkedClaims.forEach(doc => { message += `- ${doc}\n`; });
+        message += `\n`;
+      } else {
+        message += `(안내하실 청구 서류를 좌측에서 체크해 주세요)\n\n`;
+      }
+    } else {
+      // 일반 서류 체크박스 내역 가져오기
+      if (document.getElementById('docReq').checked) {
+        const checkedGenerals = Array.from(document.querySelectorAll('#generalDocsGrid input:checked')).map(cb => cb.value);
+        if(checkedGenerals.length > 0) {
+          message += `[📌 추가 준비 서류 안내]\n`;
+          checkedGenerals.forEach(doc => { message += `- ${doc}\n`; });
+          message += `- (콜센터 상담원 안내에 따라 팩스로 전송해 주시면 됩니다.)\n\n`;
+        }
+      }
+    }
+
+    message += `진행하시면서 궁금한 점이 있으시거나, 제가 도와드릴 부분이 있다면 언제든지 편하게 답장 남겨주세요. 감사합니다.`;
+
+    document.getElementById('previewText').value = message;
+  }
+
+  // 복사 및 카카오 버튼 (저장 버튼은 삭제됨!)
+  function copyText() {
+    const text = document.getElementById('previewText').value;
+    if(!text) { alert('복사할 내용이 없습니다.'); return; }
+    navigator.clipboard.writeText(text).then(() => {
+      alert('메시지가 성공적으로 복사되었습니다. 카카오톡이나 문자에 붙여넣기 하세요!');
+    });
+  }
+
+  function sendKakao() {
+    alert('이 버튼은 향후 카카오 알림톡 API(또는 카카오 링크) 연동을 통해 고객에게 즉시 발송되도록 구현될 예정입니다.');
+  }
+</script>
+
+</body>
+</html>

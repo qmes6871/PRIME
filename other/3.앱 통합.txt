@@ -1,0 +1,597 @@
+// 본부장님의 구글 스프레드시트 ID (절대 건드리지 마세요!)
+const SHEET_ID = '1fcHUczhabOfcgdbZyLSnziIh0vDd4qZlC2PsnTkSack'; 
+
+function doGet(e) {
+  // 1. 고객이 카톡 링크를 타고 들어왔을 때 (우측 제안서 화면만 보여줌)
+  if (e.parameter.id) {
+    const sheet = SpreadsheetApp.openById(SHEET_ID).getActiveSheet();
+    const data = sheet.getDataRange().getValues();
+    let savedHtml = "<div style='text-align:center; padding:50px; font-family:sans-serif;'>데이터를 찾을 수 없거나 삭제되었습니다.</div>";
+
+    // 시트에서 해당 링크의 화면 데이터 찾기
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == e.parameter.id) {
+        savedHtml = data[i][1];
+        break;
+      }
+    }
+
+    // 고객에게 보여줄 "모바일 전용" 껍데기 디자인 (프리미엄 뷰)
+    const htmlOutput = `
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+      <title>프라임에셋 맞춤 보험 제안서</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+      <style>
+        @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css");
+        body { font-family: "Pretendard", sans-serif; background-color: #e2e8f0; display: flex; justify-content: center; min-height: 100vh; margin: 0; }
+        .mobile-view { width: 100%; max-width: 480px; background: #f8fafc; min-height: 100vh; box-shadow: 0 20px 40px rgba(0,0,0,0.1); position: relative; overflow-x: hidden; }
+        .bookmark-card { display: flex; height: 80px; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; overflow: hidden; margin-top: 12px; text-decoration: none; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .bookmark-content { flex: 1; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; }
+        .bookmark-title { font-size: 13px; font-weight: 700; color: #1e293b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .bookmark-url { font-size: 11px; color: #94a3b8; margin-top: 4px; display: flex; align-items: center; }
+        .bookmark-img { width: 80px; height: 80px; background: #f1f5f9; object-fit: cover; }
+      </style>
+    </head>
+    <body>
+      <div class="mobile-view pb-10">
+        ${savedHtml}
+      </div>
+    </body>
+    </html>
+    `;
+    return HtmlService.createHtmlOutput(htmlOutput)
+      .setTitle('고객 맞춤 보험 제안서')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1');
+      
+  } else {
+    // 2. 관리자가 처음 접속했을 때 (통합 SPA 화면)
+    return HtmlService.createTemplateFromFile('index')
+      .evaluate()
+      .setTitle('스마트 보험 상담 시스템 Pro')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+}
+
+// 화면 데이터를 스프레드시트에 저장하는 함수 (제안서 시스템용)
+function saveConsultationData(htmlContent) {
+  try {
+    const sheet = SpreadsheetApp.openById(SHEET_ID).getActiveSheet();
+    const uniqueId = Math.random().toString(36).substr(2, 6); 
+    const date = new Date();
+    sheet.appendRow([uniqueId, htmlContent, date]);
+    const webAppUrl = ScriptApp.getService().getUrl();
+    const shareUrl = webAppUrl + "?id=" + uniqueId;
+    return { success: true, url: shareUrl };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// 홈 화면용 초기 데이터 로드 (고객 목록)
+function getInitialData() {
+  return {
+    dashboard: { statusBefore: 1, statusDoing: 1, statusDone: 1, sangryungAlert: 1, birthdayAlert: 0 },
+    customers: [
+      { id: 'C001', name: '홍길동', dob: '1985-03-15', phone: '010-1234-5678', address: '서울시 강남구', job: '회사원', lastUpdate: '2026-02-22', status: '상담중' },
+      { id: 'C002', name: '이순신', dob: '1990-11-20', phone: '010-9876-5432', address: '인천시 연수구', job: '자영업', lastUpdate: '2026-02-21', status: '상담전' },
+      { id: 'C003', name: '강감찬', dob: '1978-05-05', phone: '010-5555-7777', address: '경기도 성남시', job: '공무원', lastUpdate: '2026-02-20', status: '상담완료' }
+    ]
+  };
+}
+
+---------------
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>스마트 보험 관리 시스템</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <style>
+    @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css");
+    body { font-family: "Pretendard", sans-serif; background-color: #f8fafc; overflow: hidden; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    
+    /* 네비게이션 활성화 상태 */
+    .nav-item.active { background-color: #1e293b; border-left: 4px solid #3b82f6; color: white; }
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* 제안서 모바일 프레임 (본부장님 코드 유지) */
+    .mobile-frame { border: 14px solid #0f172a; border-radius: 40px; overflow: hidden; position: relative; background: #f8fafc; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3), 0 0 0 2px #cbd5e1 inset; }
+    .mobile-notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 140px; height: 28px; background: #0f172a; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; z-index: 50; display: flex; justify-content: center; align-items: center; gap: 8px;}
+    .notch-camera { width: 10px; height: 10px; background: #1e293b; border-radius: 50%; border: 2px solid #020617; }
+    .notch-speaker { width: 40px; height: 6px; background: #1e293b; border-radius: 10px; }
+    .premium-shadow { box-shadow: 0 8px 30px rgba(0,0,0,0.04); }
+    .bookmark-card { display: flex; height: 80px; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; overflow: hidden; margin-top: 12px; text-decoration: none; transition: all 0.2s; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+    .bookmark-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .bookmark-content { flex: 1; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; }
+    .bookmark-title { font-size: 13px; font-weight: 700; color: #1e293b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .bookmark-url { font-size: 11px; color: #94a3b8; margin-top: 4px; display: flex; align-items: center; }
+    .bookmark-img { width: 80px; height: 80px; background: #f1f5f9; object-fit: cover; }
+    .loader { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #ffffff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="text-slate-800 flex h-screen">
+
+  <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 z-20 shadow-xl">
+    <div class="p-6 border-b border-slate-800">
+      <h1 class="text-xl font-extrabold text-white flex items-center gap-2 tracking-tight">
+        <i class="fas fa-shield-alt text-blue-500"></i> 스마트 고객관리
+      </h1>
+      <p class="text-xs text-slate-500 mt-2">지점 실적 향상 프로젝트 대시보드</p>
+    </div>
+    <nav class="flex-1 py-4 space-y-1">
+      <button onclick="switchTab('tab-home', this)" class="nav-item active w-full flex items-center px-6 py-3.5 text-sm font-semibold hover:bg-slate-800 transition text-left">
+        <i class="fas fa-home w-6 text-center mr-2"></i> 홈 (고객목록)
+      </button>
+      <button onclick="switchTab('tab-consult', this)" class="nav-item w-full flex items-center px-6 py-3.5 text-sm font-semibold hover:bg-slate-800 transition text-left">
+        <i class="fas fa-laptop-medical w-6 text-center mr-2"></i> 상담진행 (제안서)
+      </button>
+      <button onclick="switchTab('tab-message', this)" class="nav-item w-full flex items-center px-6 py-3.5 text-sm font-semibold hover:bg-slate-800 transition text-left">
+        <i class="fas fa-paper-plane w-6 text-center mr-2"></i> 프롬프트 메시지
+      </button>
+    </nav>
+    <div class="p-6 border-t border-slate-800 text-xs text-slate-500 text-center">
+      © 2026 Prime Asset
+    </div>
+  </aside>
+
+  <main class="flex-1 overflow-hidden relative bg-slate-50">
+    
+    <div id="tab-home" class="view-panel h-full overflow-y-auto p-8 fade-in">
+      <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-900">대시보드 및 고객목록</h2>
+            <p class="text-sm text-slate-500 mt-1">고객 정보를 한눈에 관리하고 상태를 변경하세요.</p>
+          </div>
+          <button onclick="openRegModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-md flex items-center">
+            <i class="fas fa-user-plus mr-2"></i> 신규 고객 등록
+          </button>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm"><h3 class="text-sm text-slate-500 font-bold mb-1">🔴 상담전</h3><div class="text-2xl font-black text-slate-800" id="dash-before">0명</div></div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm"><h3 class="text-sm text-slate-500 font-bold mb-1">🟡 상담중</h3><div class="text-2xl font-black text-blue-600" id="dash-doing">0명</div></div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm"><h3 class="text-sm text-slate-500 font-bold mb-1">🟢 상담완료</h3><div class="text-2xl font-black text-emerald-600" id="dash-done">0명</div></div>
+          <div class="bg-red-50 p-5 rounded-2xl border border-red-100 shadow-sm"><h3 class="text-sm text-red-500 font-bold mb-1">🎯 상령일 임박 (1달내)</h3><div class="text-2xl font-black text-red-600" id="dash-sangryung">0명</div></div>
+          <div class="bg-amber-50 p-5 rounded-2xl border border-amber-100 shadow-sm"><h3 class="text-sm text-amber-600 font-bold mb-1">🎂 생일 임박 (1달내)</h3><div class="text-2xl font-black text-amber-600" id="dash-birthday">0명</div></div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-wrap gap-4 items-center justify-between">
+          <div class="flex-1 min-w-[250px] relative">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="searchInput" placeholder="고객명 또는 연락처로 검색..." onkeyup="filterTable()" class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500">
+          </div>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700"><input type="checkbox" value="상담전" checked onchange="filterTable()" class="w-4 h-4 rounded text-blue-600"> 상담전</label>
+            <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700"><input type="checkbox" value="상담중" checked onchange="filterTable()" class="w-4 h-4 rounded text-blue-600"> 상담중</label>
+            <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700"><input type="checkbox" value="상담완료" checked onchange="filterTable()" class="w-4 h-4 rounded text-blue-600"> 상담완료</label>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-sm font-bold text-slate-500">
+                  <th class="p-4">이름</th><th class="p-4">생년월일</th><th class="p-4">연락처</th><th class="p-4">주소</th><th class="p-4">직업</th><th class="p-4">최근수정일자</th><th class="p-4 text-center">진행상태 변경</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody" class="text-sm">
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-consult" class="view-panel h-full hidden fade-in">
+      <div class="flex flex-col xl:flex-row h-full overflow-hidden">
+        
+        <div class="w-full xl:w-7/12 h-full overflow-y-auto p-6 lg:p-10 bg-white border-r border-slate-200">
+          <header class="mb-8">
+            <span class="inline-block bg-indigo-100 text-indigo-700 text-xs px-3 py-1 rounded-full font-bold mb-3">Premium Workspace</span>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">상담 제안서 시스템</h1>
+          </header>
+
+          <form id="consultForm" class="space-y-6 pb-24">
+            
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-200 transition">
+              <h2 class="text-lg font-bold mb-4 flex items-center"><i class="fas fa-user-circle text-blue-500 mr-2"></i> 고객 기본 정보</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label class="block text-sm font-semibold text-slate-700 mb-1">고객명</label><input type="text" class="w-full p-2.5 rounded-lg border border-slate-200 focus:border-blue-500 outline-none" oninput="updatePreview('name', this.value)"></div>
+                <div><label class="block text-sm font-semibold text-slate-700 mb-1">직업</label>
+                  <select class="w-full p-2.5 rounded-lg border border-slate-200 focus:border-blue-500 outline-none" onchange="updatePreview('job', this.value)"><option value="직업 미등록">선택</option><option value="사무직">사무직</option><option value="현장직">현장직</option><option value="자영업">자영업</option><option value="주부">주부</option><option value="학생">학생</option></select>
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-semibold text-slate-700 mb-1">총 월 납입 보험료</label>
+                  <input type="text" class="w-full p-2.5 rounded-lg border border-slate-200 outline-none" placeholder="숫자 입력" oninput="let formatted = formatNumberWithCommas(this); updatePreview('premium', formatted ? formatted + '원' : '')">
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-semibold text-slate-700 mb-1">전문가 코멘트</label>
+                  <textarea class="w-full p-3 rounded-lg border border-slate-200 h-24 outline-none" placeholder="분석 코멘트" oninput="updatePreview('analysis', this.value)"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" onclick="generateShareLink()" id="saveBtn" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg hover:-translate-y-1 transition-all shadow-lg flex items-center justify-center">
+              <span id="saveBtnText">상담 내역 저장 및 링크 발급하기 ✨</span>
+              <div id="saveBtnLoader" class="loader ml-3 hidden"></div>
+            </button>
+          </form>
+        </div>
+
+        <div class="hidden xl:flex xl:w-5/12 bg-slate-200 items-center justify-center p-8 relative bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+          <div class="mobile-frame w-[390px] h-[844px] z-10 flex flex-col overflow-hidden">
+            <div class="mobile-notch"><div class="notch-camera"></div><div class="notch-speaker"></div></div>
+            <div id="captureArea" class="flex-1 overflow-y-auto bg-[#f8fafc] pb-24 relative">
+              
+              <div class="bg-gradient-to-b from-[#0f172a] via-[#1e293b] to-[#1e3a8a] relative pb-10 pt-16 px-6 rounded-b-[2rem] shadow-xl text-center">
+                <div class="relative z-10">
+                  <h2 class="text-2xl font-extrabold text-white tracking-tight mb-1">김예준 본부장</h2>
+                  <p class="text-blue-200 text-sm font-medium mb-4">16년차 프리미엄 보험 전문가</p>
+                  <div class="flex justify-center gap-3">
+                    <a href="http://pf.kakao.com/_KesAG/chat" target="_blank" class="flex flex-col items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-[#FEE500] hover:text-[#191919] transition"><i class="fas fa-comment text-lg"></i></a>
+                    <a href="tel:01062481591" class="flex flex-col items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-blue-500 transition"><i class="fas fa-phone-alt text-lg"></i></a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="px-5 -mt-4 relative z-10 space-y-4">
+                <div class="bg-white p-5 rounded-2xl premium-shadow">
+                  <h3 class="font-extrabold text-slate-800 text-lg leading-tight"><span id="viewName" class="text-indigo-600 bg-indigo-50 px-1 rounded">OOO</span>고객님을 위한<br>맞춤 컨설팅 리포트</h3>
+                  <div class="mt-2 bg-slate-100 text-slate-600 inline-block px-2.5 py-1 rounded-lg text-xs font-bold" id="viewJob">직업 미등록</div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl premium-shadow border border-slate-100">
+                  <h4 class="font-bold text-slate-800 text-base mb-3 flex items-center"><div class="w-6 h-6 rounded-full bg-amber-50 flex items-center justify-center mr-2"><i class="fas fa-chart-pie text-amber-500 text-xs"></i></div> 현재 보험 점검</h4>
+                  <div class="bg-slate-800 p-3 rounded-xl mb-3 flex justify-between items-center text-white">
+                    <span class="text-xs text-slate-300">월 납입료</span>
+                    <span class="font-bold text-base" id="viewPremium">-</span>
+                  </div>
+                  <div class="text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100" id="viewAnalysis">전문가 코멘트 대기중...</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-message" class="view-panel h-full overflow-y-auto p-8 fade-in hidden">
+      <div class="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6">
+        
+        <div class="w-full lg:w-1/2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <h2 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-5 flex items-center gap-2">
+            <i class="fas fa-cog text-blue-500"></i> 고객 정보 및 안내 설정
+          </h2>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">👤 고객 성함</label>
+              <input type="text" id="msgCustomerName" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none" placeholder="예: 홍길동" oninput="generateMsgPreview()">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">📋 안내 항목 선택</label>
+              <select id="noticeType" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 outline-none" onchange="toggleSections(); generateMsgPreview()">
+                <option value="">항목을 선택하세요</option>
+                <option value="보험담당자 변경안내">보험담당자 변경안내</option>
+                <option value="해지안내">해지안내</option>
+                <option value="보험금 청구서류 안내">보험금 청구서류 안내</option>
+              </select>
+            </div>
+            
+            <div id="standardInputs" class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">🏢 대상 보험사 선택</label>
+                <div class="flex gap-4 mb-2">
+                  <label class="text-sm cursor-pointer flex items-center"><input type="radio" name="insCategory" value="life" onchange="populateCompanies()" class="mr-1"> 생명보험</label>
+                  <label class="text-sm cursor-pointer flex items-center"><input type="radio" name="insCategory" value="nonlife" onchange="populateCompanies()" class="mr-1"> 손해보험</label>
+                </div>
+                <select id="insuranceCompany" class="w-full p-3 border border-slate-200 rounded-xl bg-white outline-none" onchange="updatePhoneAndPreview()">
+                  <option value="" data-phone="">분류를 선택하세요</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">보험 종류</label>
+                  <input type="text" id="insuranceType" class="w-full p-2.5 border border-slate-200 rounded-lg outline-none" oninput="generateMsgPreview()">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">월 보험료</label>
+                  <input type="text" id="msgPremium" class="w-full p-2.5 border border-slate-200 rounded-lg outline-none" oninput="formatPremium(this); generateMsgPreview()">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">📞 콜센터 번호 (자동입력)</label>
+                <input type="text" id="callCenter" readonly class="w-full p-2.5 border border-transparent bg-slate-200 rounded-lg text-slate-600 outline-none">
+              </div>
+            </div>
+
+            <div id="claimDocsSection" class="bg-amber-50 p-4 rounded-xl border border-amber-200 hidden">
+              <label class="block text-sm font-bold text-amber-800 mb-2">🏥 청구 필요 서류</label>
+              <div class="grid grid-cols-2 gap-2 text-sm" id="claimDocsGrid"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full lg:w-1/2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+          <h2 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-2 flex items-center gap-2">
+            <i class="fas fa-mobile-alt text-indigo-500"></i> 메시지 확인 및 발송
+          </h2>
+          <p class="text-xs text-slate-500 mb-4">입력한 내용이 자동 완성되며, 텍스트 박스에서 직접 수정 가능합니다.</p>
+          
+          <textarea id="previewText" class="flex-1 w-full p-4 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-500 outline-none resize-none text-sm leading-relaxed" placeholder="이곳에 고객에게 보낼 메시지가 자동 생성됩니다."></textarea>
+          
+          <div class="flex flex-col gap-2 mt-4">
+            <button onclick="alert('카카오 알림톡/링크 연동 준비중입니다.')" class="w-full bg-[#FEE500] text-[#191919] font-bold py-3.5 rounded-xl shadow-sm hover:shadow-md transition">💬 카카오톡 전송</button>
+            <button onclick="copyText()" class="w-full bg-slate-100 text-slate-700 font-bold py-3.5 rounded-xl hover:bg-slate-200 transition">📄 메시지 텍스트 복사</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </main>
+
+  <div id="regModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center backdrop-blur-sm fade-in">
+    <div class="bg-white rounded-2xl p-6 w-[450px] max-w-[90%] shadow-2xl">
+      <h3 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">신규 고객 등록</h3>
+      <div class="space-y-3 mb-6">
+        <div><label class="text-sm font-semibold text-slate-600">이름</label><input type="text" id="regName" class="w-full p-2.5 border rounded-lg outline-none focus:border-blue-500"></div>
+        <div><label class="text-sm font-semibold text-slate-600">생년월일 (YYYY-MM-DD)</label><input type="text" id="regDob" class="w-full p-2.5 border rounded-lg outline-none focus:border-blue-500" placeholder="예: 1985-05-15"></div>
+        <div><label class="text-sm font-semibold text-slate-600">연락처</label><input type="text" id="regPhone" class="w-full p-2.5 border rounded-lg outline-none focus:border-blue-500"></div>
+        <div><label class="text-sm font-semibold text-slate-600">주소</label><input type="text" id="regAddr" class="w-full p-2.5 border rounded-lg outline-none focus:border-blue-500"></div>
+        <div><label class="text-sm font-semibold text-slate-600">직업</label><input type="text" id="regJob" class="w-full p-2.5 border rounded-lg outline-none focus:border-blue-500"></div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="closeRegModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200">취소</button>
+        <button onclick="saveNewCustomer()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">등록하기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 공통 로직 (네비게이션 탭 전환)
+    // ==========================================
+    function switchTab(tabId, btnElement) {
+      // 모든 패널 숨기기
+      document.querySelectorAll('.view-panel').forEach(panel => panel.classList.add('hidden'));
+      // 선택한 패널 보이기
+      document.getElementById(tabId).classList.remove('hidden');
+      
+      // 네비게이션 활성화 스타일 변경
+      document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+      if(btnElement) btnElement.classList.add('active');
+    }
+
+    // ==========================================
+    // 1. 홈 화면 (고객 목록 및 추가, 상태 변경)
+    // ==========================================
+    let allCustomers = [];
+
+    window.onload = function() {
+      // 서버에서 초기 데이터 로드 (홈 화면)
+      google.script.run.withSuccessHandler(renderApp).getInitialData();
+      
+      // 메시지 발송 탭용 체크박스 생성
+      renderCheckboxes('claimDocsGrid', claimDocuments);
+    };
+
+    function renderApp(data) {
+      document.getElementById('dash-before').innerText = data.dashboard.statusBefore + '명';
+      document.getElementById('dash-doing').innerText = data.dashboard.statusDoing + '명';
+      document.getElementById('dash-done').innerText = data.dashboard.statusDone + '명';
+      document.getElementById('dash-sangryung').innerText = data.dashboard.sangryungAlert + '명';
+      document.getElementById('dash-birthday').innerText = data.dashboard.birthdayAlert + '명';
+      allCustomers = data.customers;
+      renderTable(allCustomers);
+    }
+
+    function renderTable(customers) {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      if(customers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center p-6 text-slate-500">조건에 맞는 고객이 없습니다.</td></tr>';
+        return;
+      }
+      customers.forEach(cust => {
+        // 드롭다운(select)을 통해 테이블에서 바로 상태 변경 구현!
+        const tr = document.createElement('tr');
+        tr.className = "border-b border-slate-100 hover:bg-slate-50 transition";
+        tr.innerHTML = `
+          <td class="p-4 font-bold text-slate-800">${cust.name}</td>
+          <td class="p-4 text-slate-600">${cust.dob}</td>
+          <td class="p-4 text-slate-600">${cust.phone}</td>
+          <td class="p-4 text-slate-600">${cust.address}</td>
+          <td class="p-4 text-slate-600">${cust.job}</td>
+          <td class="p-4 text-slate-600">${cust.lastUpdate}</td>
+          <td class="p-4 text-center">
+            <select onchange="changeStatus('${cust.id}', this.value)" class="text-xs font-bold px-3 py-1.5 rounded-lg border outline-none cursor-pointer ${getStatusColor(cust.status)}">
+              <option value="상담전" ${cust.status === '상담전' ? 'selected' : ''}>상담전</option>
+              <option value="상담중" ${cust.status === '상담중' ? 'selected' : ''}>상담중</option>
+              <option value="상담완료" ${cust.status === '상담완료' ? 'selected' : ''}>상담완료</option>
+            </select>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 상태에 따른 드롭다운 컬러 설정
+    function getStatusColor(status) {
+      if(status === '상담전') return 'bg-orange-50 text-orange-600 border-orange-200';
+      if(status === '상담중') return 'bg-blue-50 text-blue-600 border-blue-200';
+      if(status === '상담완료') return 'bg-emerald-50 text-emerald-600 border-emerald-200';
+      return '';
+    }
+
+    function filterTable() {
+      const searchText = document.getElementById('searchInput').value.toLowerCase();
+      const checkboxes = document.querySelectorAll('.bg-white input[type="checkbox"]:checked');
+      const checkedStatuses = Array.from(checkboxes).map(cb => cb.value);
+
+      const filtered = allCustomers.filter(cust => {
+        const matchStatus = checkedStatuses.includes(cust.status);
+        const matchSearch = cust.name.toLowerCase().includes(searchText) || cust.phone.includes(searchText);
+        return matchStatus && matchSearch;
+      });
+      renderTable(filtered);
+    }
+
+    // 신규 고객 등록 모달 로직
+    function openRegModal() { document.getElementById('regModal').classList.remove('hidden'); }
+    function closeRegModal() { document.getElementById('regModal').classList.add('hidden'); }
+    function saveNewCustomer() {
+      const newCust = {
+        id: 'C' + Math.floor(Math.random() * 10000),
+        name: document.getElementById('regName').value,
+        dob: document.getElementById('regDob').value,
+        phone: document.getElementById('regPhone').value,
+        address: document.getElementById('regAddr').value,
+        job: document.getElementById('regJob').value,
+        lastUpdate: new Date().toISOString().split('T')[0],
+        status: '상담전'
+      };
+      if(!newCust.name) return alert('이름을 입력해주세요.');
+      
+      allCustomers.unshift(newCust); // 맨 앞에 추가
+      filterTable();
+      closeRegModal();
+      
+      // 입력창 초기화
+      ['regName', 'regDob', 'regPhone', 'regAddr', 'regJob'].forEach(id => document.getElementById(id).value = '');
+      alert('고객 등록이 완료되었습니다. (현재는 화면에만 반영되며 추후 시트 연동 예정입니다)');
+    }
+
+    // 고객 상태 즉시 변경 로직
+    function changeStatus(id, newStatus) {
+      const custIndex = allCustomers.findIndex(c => c.id === id);
+      if(custIndex > -1) {
+        allCustomers[custIndex].status = newStatus;
+        alert(`${allCustomers[custIndex].name} 고객님의 상태가 '${newStatus}'(으)로 변경되었습니다.`);
+        filterTable(); // 색상 및 목록 업데이트
+      }
+    }
+
+
+    // ==========================================
+    // 2. 상담진행 (제안서 뷰어 로직 요약)
+    // ==========================================
+    function formatNumberWithCommas(input) {
+      let val = input.value.replace(/[^0-9]/g, '');
+      input.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      return input.value;
+    }
+    function updatePreview(id, value) {
+      const target = document.getElementById('view' + id.charAt(0).toUpperCase() + id.slice(1));
+      if(target) { if(id === 'name') target.innerText = value ? value : 'OOO'; else target.innerText = value ? value : '-'; }
+    }
+    function generateShareLink() {
+      const btnText = document.getElementById('saveBtnText');
+      const btnLoader = document.getElementById('saveBtnLoader');
+      const captureAreaHtml = document.getElementById('captureArea').innerHTML;
+      btnText.innerText = "데이터 처리중..."; btnLoader.classList.remove('hidden');
+      
+      google.script.run.withSuccessHandler(function(res) {
+        btnText.innerText = "상담 내역 저장 및 링크 발급하기 ✨"; btnLoader.classList.add('hidden');
+        if (res.success) {
+          prompt("제안서 링크가 발급되었습니다. 복사하여 사용하세요:", res.url);
+        } else { alert("저장 실패: " + res.error); }
+      }).saveConsultationData(captureAreaHtml);
+    }
+
+
+    // ==========================================
+    // 3. 메시지 발송 로직
+    // ==========================================
+    const lifeInsurances = [ {name: "삼성생명", phone: "1588-3114"}, {name: "한화생명", phone: "1588-6363"} ];
+    const nonLifeInsurances = [ {name: "삼성화재", phone: "1588-5114"}, {name: "현대해상", phone: "1588-5656"} ];
+    const claimDocuments = ["진료비 영수증", "진료비 세부내역서", "진단서", "수술확인서", "입원/퇴원확인서", "처방전"];
+
+    function renderCheckboxes(containerId, dataArray) {
+      const container = document.getElementById(containerId);
+      let html = '';
+      dataArray.forEach(item => {
+        html += `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${item}" onchange="generateMsgPreview()" class="w-4 h-4 text-blue-500"> ${item}</label>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function populateCompanies() {
+      const category = document.querySelector('input[name="insCategory"]:checked').value;
+      const select = document.getElementById('insuranceCompany');
+      select.innerHTML = '<option value="" data-phone="">선택하세요</option>';
+      const targetArray = category === 'life' ? lifeInsurances : nonLifeInsurances;
+      targetArray.forEach(ins => {
+        const opt = document.createElement('option'); opt.value = ins.name; opt.setAttribute('data-phone', ins.phone); opt.innerText = ins.name; select.appendChild(opt);
+      });
+      updatePhoneAndPreview();
+    }
+
+    function toggleSections() {
+      const type = document.getElementById('noticeType').value;
+      if (type === '보험금 청구서류 안내') {
+        document.getElementById('standardInputs').classList.add('hidden');
+        document.getElementById('claimDocsSection').classList.remove('hidden');
+      } else {
+        document.getElementById('standardInputs').classList.remove('hidden');
+        document.getElementById('claimDocsSection').classList.add('hidden');
+      }
+    }
+
+    function formatPremium(input) { let val = input.value.replace(/[^0-9]/g, ''); input.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+    function updatePhoneAndPreview() {
+      const sel = document.getElementById('insuranceCompany');
+      document.getElementById('callCenter').value = sel.options[sel.selectedIndex]?.getAttribute('data-phone') || '';
+      generateMsgPreview();
+    }
+
+    function generateMsgPreview() {
+      const name = document.getElementById('msgCustomerName').value || 'OOO';
+      const type = document.getElementById('noticeType').value;
+      const company = document.getElementById('insuranceCompany').value || 'OO보험사';
+      const insType = document.getElementById('insuranceType').value || 'OO보험';
+      const premium = document.getElementById('msgPremium').value || 'O,OOO';
+      const phone = document.getElementById('callCenter').value || 'OOOO-OOOO';
+      
+      let msg = `안녕하세요. 16년차 보험전문가 김예준 본부장입니다.\n\n`;
+
+      if (type === '해지안내') { msg += `${name} 고객님의 요청에 따른 해지 안내입니다.\n추가로 원활하게 해지 처리를 하고 환급금을 수령할 수 있는 방법을 안내드립니다.\n\n[해지 대상 보험 정보]\n`; } 
+      else if (type === '보험금 청구서류 안내') { msg += `${name} 고객님, 요청하신 보험금 청구를 위한 안내입니다.\n\n`; } 
+      else { msg += `${name} 고객님을 위한 맞춤 안내입니다.\n\n`; }
+
+      if (type !== '보험금 청구서류 안내' && type !== '') {
+        msg += `▪ 보험사 : ${company}\n▪ 상품명 : ${insType}\n▪ 보험료 : ${premium}원\n📞 콜센터 : ${phone}\n\n`;
+      } else if (type === '보험금 청구서류 안내') {
+        const checkedClaims = Array.from(document.querySelectorAll('#claimDocsGrid input:checked')).map(cb => cb.value);
+        if(checkedClaims.length > 0) {
+          msg += `[📌 필수 준비 서류]\n`; checkedClaims.forEach(doc => { msg += `- ${doc}\n`; }); msg += `\n`;
+        } else { msg += `(좌측에서 청구 서류를 체크해 주세요)\n\n`; }
+      }
+      
+      msg += `진행하시면서 궁금한 점이 있으시면 언제든지 편하게 연락주세요.`;
+      document.getElementById('previewText').value = msg;
+    }
+
+    function copyText() {
+      const text = document.getElementById('previewText').value;
+      navigator.clipboard.writeText(text).then(() => alert('메시지가 성공적으로 복사되었습니다.'));
+    }
+  </script>
+</body>
+</html>

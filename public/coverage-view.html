@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보장현황 - 프라임에셋</title>
+  <link rel="stylesheet" href="/prime/css/app.css">
+  <style>
+    body { background: #f0f2f5; }
+    .coverage-container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 16px;
+      min-height: 100vh;
+    }
+    .coverage-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="coverage-container" id="coverage-app">
+    <div style="display:flex;align-items:center;justify-content:center;height:60vh;">
+      <div class="loading-spinner"></div>
+    </div>
+  </div>
+
+  <script>
+    async function loadCoverage() {
+      const params = new URLSearchParams(window.location.search);
+      const customerId = params.get('customer');
+      const token = params.get('token');
+
+      if (!customerId || !token) {
+        document.getElementById('coverage-app').innerHTML = '<div class="coverage-card"><div style="text-align:center;padding:40px;color:#6b7280;">유효하지 않은 링크입니다.</div></div>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/prime/api/v1/public/coverage/${customerId}/${token}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          document.getElementById('coverage-app').innerHTML = `<div class="coverage-card"><div style="text-align:center;padding:40px;color:#6b7280;">${data.error}</div></div>`;
+          return;
+        }
+
+        const { customer, coverages } = data;
+
+        // Group by category
+        const groups = {};
+        coverages.forEach(c => {
+          const cat = c.category || '기타';
+          if (!groups[cat]) groups[cat] = [];
+          groups[cat].push(c);
+        });
+
+        const totalPremium = coverages.reduce((s, c) => s + (c.premium || 0), 0);
+
+        let html = `
+          <div class="coverage-card" style="text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#1e3a5f;">보장현황</div>
+            <div style="font-size:14px;color:#6b7280;margin-top:4px;">${escapeHtml(customer.name)}님</div>
+          </div>
+
+          <div class="coverage-card" style="text-align:center;">
+            <div style="font-size:13px;color:#6b7280;">총 월 보험료</div>
+            <div style="font-size:28px;font-weight:700;color:#1e3a5f;margin-top:4px;">${formatMoney(totalPremium)}</div>
+            <div style="font-size:12px;color:#9ca3af;margin-top:4px;">${coverages.length}건 보장</div>
+          </div>
+        `;
+
+        for (const [category, items] of Object.entries(groups)) {
+          html += `<div class="coverage-card">
+            <h3 style="font-size:15px;font-weight:600;color:#1e3a5f;margin-bottom:12px;">${escapeHtml(category)}</h3>`;
+          items.forEach(c => {
+            html += `
+              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:14px;font-weight:500;">${escapeHtml(c.coverage_name || c.product_name || '-')}</span>
+                  <span style="font-size:15px;font-weight:600;color:#3b82f6;">${formatMoneyShort(c.coverage_amount)}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:#9ca3af;">
+                  <span>${escapeHtml(c.insurance_company || '')}</span>
+                  <span>${formatMoney(c.premium)}/월</span>
+                </div>
+              </div>
+            `;
+          });
+          html += '</div>';
+        }
+
+        html += `<div style="text-align:center;font-size:11px;color:#9ca3af;padding:12px;">프라임에셋 보험상담 전산</div>`;
+
+        document.getElementById('coverage-app').innerHTML = html;
+      } catch (err) {
+        document.getElementById('coverage-app').innerHTML = '<div class="coverage-card"><div style="text-align:center;padding:40px;color:#ef4444;">오류가 발생했습니다.</div></div>';
+      }
+    }
+
+    function escapeHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+    function formatMoney(a) { if (!a) return '-'; return new Intl.NumberFormat('ko-KR').format(a) + '원'; }
+    function formatMoneyShort(a) { if (!a) return '-'; if (a >= 100000000) return (a/100000000).toFixed(1)+'억'; if (a >= 10000) return (a/10000).toFixed(0)+'만'; return formatMoney(a); }
+
+    loadCoverage();
+  </script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보험 설문조사 - 프라임에셋</title>
+  <link rel="stylesheet" href="/prime/css/app.css">
+  <style>
+    body { background: #f0f2f5; }
+    .survey-container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 16px;
+      min-height: 100vh;
+    }
+    .survey-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+    .question-card {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .question-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e3a5f;
+      margin-bottom: 8px;
+    }
+    .radio-group label {
+      display: block;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .radio-group label:hover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    .radio-group input[type="radio"]:checked + span {
+      color: #3b82f6;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="survey-container" id="survey-app">
+    <div style="display:flex;align-items:center;justify-content:center;height:60vh;">
+      <div class="loading-spinner"></div>
+    </div>
+  </div>
+
+  <script>
+    let agentId = null;
+
+    async function loadSurvey() {
+      const params = new URLSearchParams(window.location.search);
+      agentId = params.get('agent');
+
+      if (!agentId) {
+        document.getElementById('survey-app').innerHTML = '<div class="survey-card"><div style="text-align:center;padding:40px;color:#6b7280;">유효하지 않은 링크입니다.</div></div>';
+        return;
+      }
+
+      try {
+        const res = await fetch('/prime/api/v1/public/survey-info/' + agentId);
+        const data = await res.json();
+
+        if (!res.ok) {
+          document.getElementById('survey-app').innerHTML = `<div class="survey-card"><div style="text-align:center;padding:40px;color:#6b7280;">${data.error}</div></div>`;
+          return;
+        }
+
+        const { agent, settings } = data;
+
+        document.getElementById('survey-app').innerHTML = `
+          <div class="survey-card" style="text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#1e3a5f;margin-bottom:4px;">
+              ${escapeHtml(settings?.company_name || '프라임에셋')}
+            </div>
+            <div style="font-size:14px;color:#6b7280;">보험 설문조사</div>
+            ${settings?.survey_intro ? `<p style="font-size:13px;color:#6b7280;margin-top:12px;line-height:1.6;">${escapeHtml(settings.survey_intro)}</p>` : ''}
+          </div>
+
+          <form id="survey-form" onsubmit="submitSurvey(event)">
+            <div class="survey-card">
+              <h3 style="font-size:16px;font-weight:600;color:#1e3a5f;margin-bottom:16px;">기본 정보</h3>
+              <div class="form-group">
+                <label class="form-label">이름 *</label>
+                <input type="text" class="form-input" name="respondent_name" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">연락처 *</label>
+                <input type="tel" class="form-input" name="respondent_phone" placeholder="010-0000-0000" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">이메일</label>
+                <input type="email" class="form-input" name="respondent_email">
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                  <label class="form-label">생년월일</label>
+                  <input type="date" class="form-input" name="birth_date">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">성별</label>
+                  <select class="form-input" name="gender">
+                    <option value="">선택</option>
+                    <option value="M">남성</option>
+                    <option value="F">여성</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="survey-card">
+              <h3 style="font-size:16px;font-weight:600;color:#1e3a5f;margin-bottom:16px;">보험 상담 설문</h3>
+
+              <div class="question-card">
+                <div class="question-title">1. 현재 가입하신 보험이 있으신가요?</div>
+                <div class="radio-group">
+                  <label><input type="radio" name="q1" value="있음"> <span>네, 있습니다</span></label>
+                  <label><input type="radio" name="q1" value="없음"> <span>아니요, 없습니다</span></label>
+                  <label><input type="radio" name="q1" value="모름"> <span>잘 모르겠습니다</span></label>
+                </div>
+              </div>
+
+              <div class="question-card">
+                <div class="question-title">2. 보험 상담을 원하시는 이유는?</div>
+                <div class="radio-group">
+                  <label><input type="radio" name="q2" value="신규가입"> <span>신규 보험 가입</span></label>
+                  <label><input type="radio" name="q2" value="보장분석"> <span>현재 보장 분석</span></label>
+                  <label><input type="radio" name="q2" value="보험료절감"> <span>보험료 절감</span></label>
+                  <label><input type="radio" name="q2" value="보험금청구"> <span>보험금 청구 도움</span></label>
+                  <label><input type="radio" name="q2" value="기타"> <span>기타</span></label>
+                </div>
+              </div>
+
+              <div class="question-card">
+                <div class="question-title">3. 관심있는 보장 분야는? (중복 가능)</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  ${['암/중대질병', '실손의료비', '사망보장', '어린이보험', '연금/저축', '운전자보험', '여행자보험', '기타'].map(item =>
+                    `<label style="display:flex;align-items:center;gap:6px;font-size:14px;padding:8px;"><input type="checkbox" name="q3" value="${item}"> ${item}</label>`
+                  ).join('')}
+                </div>
+              </div>
+
+              <div class="question-card">
+                <div class="question-title">4. 월 보험료 예산은?</div>
+                <div class="radio-group">
+                  <label><input type="radio" name="q4" value="10만원미만"> <span>10만원 미만</span></label>
+                  <label><input type="radio" name="q4" value="10-20만원"> <span>10~20만원</span></label>
+                  <label><input type="radio" name="q4" value="20-30만원"> <span>20~30만원</span></label>
+                  <label><input type="radio" name="q4" value="30만원이상"> <span>30만원 이상</span></label>
+                  <label><input type="radio" name="q4" value="미정"> <span>아직 정하지 않았습니다</span></label>
+                </div>
+              </div>
+
+              <div class="question-card">
+                <div class="question-title">5. 추가로 전달하고 싶은 내용</div>
+                <textarea class="form-input" name="q5" rows="3" placeholder="자유롭게 작성해주세요"></textarea>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;">설문 제출하기</button>
+          </form>
+        `;
+      } catch (err) {
+        document.getElementById('survey-app').innerHTML = '<div class="survey-card"><div style="text-align:center;padding:40px;color:#ef4444;">오류가 발생했습니다.</div></div>';
+      }
+    }
+
+    async function submitSurvey(e) {
+      e.preventDefault();
+      const form = document.getElementById('survey-form');
+      const formData = new FormData(form);
+
+      const answers = {
+        q1: formData.get('q1'),
+        q2: formData.get('q2'),
+        q3: formData.getAll('q3'),
+        q4: formData.get('q4'),
+        q5: formData.get('q5')
+      };
+
+      const body = {
+        respondent_name: formData.get('respondent_name'),
+        respondent_phone: formData.get('respondent_phone'),
+        respondent_email: formData.get('respondent_email'),
+        birth_date: formData.get('birth_date') || null,
+        gender: formData.get('gender') || null,
+        answers
+      };
+
+      try {
+        const res = await fetch('/prime/api/v1/public/survey/' + agentId, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+          document.getElementById('survey-app').innerHTML = `
+            <div class="survey-card" style="text-align:center;padding:40px;">
+              <div style="font-size:48px;margin-bottom:16px;">✅</div>
+              <h2 style="color:#1e3a5f;margin-bottom:8px;">설문이 제출되었습니다!</h2>
+              <p style="color:#6b7280;font-size:14px;">빠른 시일 내에 연락드리겠습니다.<br>감사합니다.</p>
+            </div>
+          `;
+        } else {
+          const data = await res.json();
+          alert(data.error || '제출에 실패했습니다.');
+        }
+      } catch (err) {
+        alert('오류가 발생했습니다.');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    loadSurvey();
+  </script>
+</body>
+</html>
