@@ -22,15 +22,29 @@ const CoveragePage = {
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px;">
+        <div class="card" style="margin-bottom:16px;border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;">
           <div style="display:flex;gap:12px;align-items:center;">
-            <div class="form-group" style="flex:1;margin-bottom:0;">
-              <select class="form-input" id="coverage-customer" onchange="CoveragePage.loadCoverages(this.value)">
-                <option value="">고객을 선택하세요</option>
-                ${this.customers.map(c => `
-                  <option value="${c.id}">${c.name} (${Utils.formatPhone(c.phone)})</option>
-                `).join('')}
-              </select>
+            <div class="form-group" style="flex:1;margin-bottom:0;position:relative;" id="coverage-customer-wrapper">
+              <!-- 선택된 고객 표시 -->
+              <div id="cov-selected-customer" style="display:none;">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:10px;background:#eff6ff;border:1.5px solid #93c5fd;">
+                  <div id="cov-selected-avatar" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#4338ca;flex-shrink:0;"></div>
+                  <div style="flex:1;">
+                    <span id="cov-selected-name" style="font-size:14px;font-weight:600;color:var(--gray-800);"></span>
+                    <span id="cov-selected-phone" style="font-size:12px;color:var(--gray-400);margin-left:8px;"></span>
+                  </div>
+                  <span onclick="CoveragePage.clearCustomerSelection()" style="cursor:pointer;color:var(--gray-400);font-size:18px;padding:4px;line-height:1;">×</span>
+                </div>
+              </div>
+              <!-- 검색 입력 -->
+              <div id="cov-search-area">
+                <div style="position:relative;">
+                  <input type="text" class="form-input" id="cov-customer-search" placeholder="이름 또는 연락처로 고객 검색..." oninput="CoveragePage.filterCustomerDropdown(this.value)" onfocus="CoveragePage.showDropdown()" onblur="CoveragePage.hideDropdown()" style="border-radius:10px;padding-left:36px;font-size:13px;">
+                  <svg width="14" height="14" fill="none" stroke="var(--gray-400)" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </div>
+                <div id="cov-customer-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:50;margin-top:4px;max-height:240px;overflow-y:auto;border:1px solid var(--gray-200);border-radius:10px;background:white;box-shadow:0 8px 24px rgba(0,0,0,0.12);padding:4px;">
+                </div>
+              </div>
             </div>
             <button class="btn btn-primary" onclick="CoveragePage.addCoverage()" id="btn-add-coverage" style="display:none;">+ 보장 추가</button>
             <button class="btn btn-success" onclick="CoveragePage.generateReport()" id="btn-report" style="display:none;">📊 리포트</button>
@@ -43,11 +57,110 @@ const CoveragePage = {
             <div class="empty-state-text">고객을 선택하면 보장현황이 표시됩니다</div>
           </div>
         </div>
+
+        <!-- 보험정보방 섹션 -->
+        <div style="margin-top:32px;">
+          <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;overflow:hidden;">
+            <div class="card-header" style="margin-bottom:16px;">
+              <h3 class="card-title" style="display:flex;align-items:center;gap:8px;">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-radius:8px;">
+                  <svg width="14" height="14" fill="none" stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+                </span>
+                보험정보방
+              </h3>
+              <span style="font-size:12px;color:var(--gray-400);">보험 관련 유용한 정보를 한곳에서 확인하세요</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;" id="insurance-info-grid">
+              ${this._renderInfoCards()}
+            </div>
+          </div>
+        </div>
       `;
     } catch (err) {
       showToast(err.message, 'error');
       return '<div class="empty-state"><div class="empty-state-text">데이터를 불러오는 중 오류가 발생했습니다.</div></div>';
     }
+  },
+
+  _dropdownOpen: false,
+
+  showDropdown() {
+    const dropdown = document.getElementById('cov-customer-dropdown');
+    if (dropdown) {
+      dropdown.style.display = '';
+      this._dropdownOpen = true;
+      this.filterCustomerDropdown(document.getElementById('cov-customer-search')?.value || '');
+    }
+  },
+
+  hideDropdown() {
+    setTimeout(() => {
+      const dropdown = document.getElementById('cov-customer-dropdown');
+      if (dropdown) { dropdown.style.display = 'none'; this._dropdownOpen = false; }
+    }, 200);
+  },
+
+  filterCustomerDropdown(search) {
+    const query = (search || '').toLowerCase();
+    const filtered = this.customers.filter(c => {
+      if (!query) return true;
+      return (c.name || '').toLowerCase().includes(query) || (c.phone || '').includes(query);
+    });
+
+    const dropdown = document.getElementById('cov-customer-dropdown');
+    if (!dropdown) return;
+    dropdown.style.display = '';
+    this._dropdownOpen = true;
+
+    if (filtered.length === 0) {
+      dropdown.innerHTML = '<div style="padding:16px;text-align:center;color:var(--gray-400);font-size:13px;">검색 결과가 없습니다</div>';
+      return;
+    }
+
+    dropdown.innerHTML = filtered.map(c => `
+      <div onmousedown="CoveragePage.selectCustomerFromDropdown(${c.id})" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#4338ca;flex-shrink:0;">${Utils.escapeHtml((c.name || '-')[0])}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--gray-800);">${Utils.escapeHtml(c.name)}</div>
+          <div style="font-size:11px;color:var(--gray-400);">${Utils.formatPhone(c.phone)}${c.birth_date ? ' · ' + Utils.formatDate(c.birth_date) : ''}</div>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  selectCustomerFromDropdown(id) {
+    const c = this.customers.find(cu => cu.id === id);
+    if (!c) return;
+
+    // Show selected state
+    const selectedEl = document.getElementById('cov-selected-customer');
+    const searchArea = document.getElementById('cov-search-area');
+    if (selectedEl) {
+      document.getElementById('cov-selected-avatar').textContent = c.name[0];
+      document.getElementById('cov-selected-name').textContent = c.name;
+      document.getElementById('cov-selected-phone').textContent = Utils.formatPhone(c.phone);
+      selectedEl.style.display = '';
+    }
+    if (searchArea) searchArea.style.display = 'none';
+
+    // Load coverages
+    this.loadCoverages(id);
+  },
+
+  clearCustomerSelection() {
+    const selectedEl = document.getElementById('cov-selected-customer');
+    const searchArea = document.getElementById('cov-search-area');
+    if (selectedEl) selectedEl.style.display = 'none';
+    if (searchArea) searchArea.style.display = '';
+    const searchInput = document.getElementById('cov-customer-search');
+    if (searchInput) { searchInput.value = ''; searchInput.focus(); }
+
+    // Reset coverages
+    this.selectedCustomerId = null;
+    document.getElementById('coverage-content').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛡️</div><div class="empty-state-text">고객을 선택하면 보장현황이 표시됩니다</div></div>';
+    document.getElementById('btn-add-coverage').style.display = 'none';
+    document.getElementById('btn-report').style.display = 'none';
   },
 
   async loadCoverages(customerId) {
@@ -350,6 +463,32 @@ const CoveragePage = {
         showToast(err.message, 'error');
       }
     });
+  },
+
+  _renderInfoCards() {
+    const infoCards = [
+      { title: '실손의료비 보험', desc: '실손보험 세대별 차이점, 자기부담금 비교', icon: '🏥', color: '#3b82f6', bg: '#eff6ff' },
+      { title: '암보험 가이드', desc: '일반암/유사암/고액암 진단비 구성 방법', icon: '🎗️', color: '#db2777', bg: '#fdf2f8' },
+      { title: '뇌/심장질환 보장', desc: '뇌혈관·심혈관 질환 보장범위 비교', icon: '🧠', color: '#7c3aed', bg: '#f5f3ff' },
+      { title: '사망보장 설계', desc: '질병사망/상해사망 적정 보장금액 산출', icon: '⚱️', color: '#dc2626', bg: '#fef2f2' },
+      { title: '후유장해 보장', desc: '질병/상해 후유장해 등급별 보장 안내', icon: '🦽', color: '#ea580c', bg: '#fff7ed' },
+      { title: '운전자보험', desc: '교통사고처리지원금, 벌금, 변호사비용', icon: '🚗', color: '#059669', bg: '#ecfdf5' },
+      { title: '어린이보험', desc: '자녀 보장설계 핵심 체크포인트', icon: '👶', color: '#f59e0b', bg: '#fffbeb' },
+      { title: '연금/저축보험', desc: '비과세·세액공제 연금보험 비교', icon: '💰', color: '#8b5cf6', bg: '#f5f3ff' },
+      { title: '보험 청구 가이드', desc: '보험금 청구 절차와 필요 서류 안내', icon: '📋', color: '#0891b2', bg: '#ecfeff' }
+    ];
+
+    return infoCards.map(card => `
+      <div style="padding:16px;border-radius:12px;border:1px solid var(--gray-200);background:white;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='${card.color}40';this.style.boxShadow='0 2px 8px ${card.color}15'" onmouseout="this.style.borderColor='var(--gray-200)';this.style.boxShadow='none'">
+        <div style="display:flex;align-items:start;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:${card.bg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">${card.icon}</div>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:4px;">${card.title}</div>
+            <div style="font-size:12px;color:var(--gray-400);line-height:1.5;">${card.desc}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
   },
 
   generateReport() {

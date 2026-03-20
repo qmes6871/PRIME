@@ -5,6 +5,10 @@ const MessagesPage = {
   companies: [],
   selectedTemplate: null,
   selectedTemplateIndex: -1,
+  _selectedCustomers: [],      // 선택된 고객 목록
+  _selectedCompanies: [],      // 선택된 보험사 목록
+  _customerSearch: '',         // 고객 검색어
+  _manualRecipients: [],       // 수동 입력 수신자
 
   // Template type icons & colors
   _templateMeta: {
@@ -130,55 +134,104 @@ const MessagesPage = {
               사용 변수: ${vars.map(v => `<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:${meta.color}10;color:${meta.color};font-size:11px;font-weight:500;margin:2px 2px;">{{${Utils.escapeHtml(v)}}}</span>`).join(' ')}
             </div>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="MessagesPage.editTemplate()" style="border-radius:8px;border:1px solid var(--gray-200);color:var(--gray-500);display:flex;align-items:center;gap:4px;">
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-            수정
-          </button>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="MessagesPage.resetTemplate()" style="border-radius:8px;border:1px solid #fde68a;color:#d97706;background:#fffbeb;display:flex;align-items:center;gap:4px;" title="기본값으로 복원">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              초기화
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="MessagesPage.editTemplate()" style="border-radius:8px;border:1px solid var(--gray-200);color:var(--gray-500);display:flex;align-items:center;gap:4px;">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              수정
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Form Inputs -->
+      <!-- 고객 선택 (다중 + 검색 + 직접입력) -->
       <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;">
         <div class="card-header" style="margin-bottom:16px;">
           <h3 class="card-title" style="display:flex;align-items:center;gap:8px;">
             <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:linear-gradient(135deg,#dbeafe,#c7d2fe);border-radius:8px;">
               <svg width="14" height="14" fill="none" stroke="#4338ca" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
             </span>
-            수신자 정보
+            고객 정보 및 안내 설정
           </h3>
         </div>
 
-        <div class="grid-2" style="gap:12px;">
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" style="font-size:12px;display:flex;align-items:center;gap:4px;">
-              <svg width="12" height="12" fill="none" stroke="var(--gray-400)" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-              고객 선택
-            </label>
-            <select class="form-input" id="msg-customer" onchange="MessagesPage.updatePreview()" style="border-radius:10px;">
-              <option value="">고객을 선택하세요</option>
-              ${this.customers.map(c => `
-                <option value="${c.id}" data-name="${Utils.escapeHtml(c.name)}" data-phone="${c.phone || ''}">${c.name} (${Utils.formatPhone(c.phone)})</option>
-              `).join('')}
-            </select>
+        <!-- 선택된 고객 태그 -->
+        <div class="form-group">
+          <label class="form-label" style="font-size:12px;">선택된 고객 <span style="color:var(--blue);font-weight:400;">(${this._selectedCustomers.length + this._manualRecipients.length}명)</span></label>
+          <div id="msg-selected-customers" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px;margin-bottom:8px;">
+            ${this._selectedCustomers.map(c => `
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:#e0e7ff;color:#4338ca;font-size:12px;font-weight:500;">
+                ${Utils.escapeHtml(c.name)}
+                <span onclick="MessagesPage.removeCustomer(${c.id})" style="cursor:pointer;font-size:14px;line-height:1;opacity:0.7;">×</span>
+              </span>
+            `).join('')}
+            ${this._manualRecipients.map((r, i) => `
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:#fef3c7;color:#92400e;font-size:12px;font-weight:500;">
+                ${Utils.escapeHtml(r.name)} (${Utils.formatPhone(r.phone)})
+                <span onclick="MessagesPage.removeManualRecipient(${i})" style="cursor:pointer;font-size:14px;line-height:1;opacity:0.7;">×</span>
+              </span>
+            `).join('')}
+            ${(this._selectedCustomers.length + this._manualRecipients.length) === 0 ? '<span style="font-size:12px;color:var(--gray-400);">아래에서 고객을 선택하거나 직접 입력하세요</span>' : ''}
           </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" style="font-size:12px;display:flex;align-items:center;gap:4px;">
-              <svg width="12" height="12" fill="none" stroke="var(--gray-400)" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-              보험사 선택
-            </label>
-            <select class="form-input" id="msg-company" onchange="MessagesPage.updatePreview()" style="border-radius:10px;">
-              <option value="">보험사를 선택하세요</option>
-              <optgroup label="생명보험">
-                ${this.companies.filter(c => c.type === '생명').map(c => `
-                  <option value="${c.id}" data-name="${c.name}" data-phone="${c.phone || ''}">${c.name}</option>
-                `).join('')}
-              </optgroup>
-              <optgroup label="손해보험">
-                ${this.companies.filter(c => c.type === '손해').map(c => `
-                  <option value="${c.id}" data-name="${c.name}" data-phone="${c.phone || ''}">${c.name}</option>
-                `).join('')}
-              </optgroup>
-            </select>
+
+          <!-- 검색 -->
+          <div style="position:relative;margin-bottom:8px;">
+            <input type="text" class="form-input" id="msg-customer-search" placeholder="이름 또는 연락처로 검색..." value="${Utils.escapeHtml(this._customerSearch)}" oninput="MessagesPage.filterCustomers(this.value)" style="border-radius:10px;padding-left:36px;font-size:13px;">
+            <svg width="14" height="14" fill="none" stroke="var(--gray-400)" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          </div>
+
+          <!-- 고객 목록 (체크박스) -->
+          <div id="msg-customer-list" style="max-height:180px;overflow-y:auto;border:1px solid var(--gray-200);border-radius:10px;padding:4px;">
+            ${this._renderCustomerList()}
+          </div>
+
+          <!-- 직접 입력 -->
+          <div style="margin-top:10px;display:flex;gap:6px;align-items:end;">
+            <div style="flex:1;">
+              <label class="form-label" style="font-size:11px;color:var(--gray-400);">직접 입력</label>
+              <input type="text" class="form-input" id="msg-manual-name" placeholder="이름" style="border-radius:10px;font-size:13px;">
+            </div>
+            <div style="flex:1;">
+              <input type="tel" class="form-input" id="msg-manual-phone" placeholder="연락처" oninput="Utils.formatPhoneInput(this)" style="border-radius:10px;font-size:13px;">
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="MessagesPage.addManualRecipient()" style="border-radius:8px;height:38px;white-space:nowrap;">추가</button>
+          </div>
+        </div>
+
+        <!-- 보험사 선택 (다중) -->
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-size:12px;">대상 보험사 선택 (복수 선택 가능)</label>
+          <!-- 선택된 보험사 태그 -->
+          <div id="msg-selected-companies" style="display:flex;flex-wrap:wrap;gap:6px;min-height:28px;margin-bottom:8px;">
+            ${this._selectedCompanies.map(c => `
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:#dcfce7;color:#166534;font-size:12px;font-weight:500;">
+                ${Utils.escapeHtml(c.name)} ${c.phone ? `<span style="color:#16a34a;font-size:10px;">${Utils.formatPhone(c.phone)}</span>` : ''}
+                <span onclick="MessagesPage.removeCompany(${c.id})" style="cursor:pointer;font-size:14px;line-height:1;opacity:0.7;">×</span>
+              </span>
+            `).join('')}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <div style="width:100%;margin-bottom:4px;">
+              <div style="font-size:11px;font-weight:600;color:var(--gray-400);margin-bottom:4px;">생명보험</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                ${this.companies.filter(c => c.type === '생명').map(c => {
+                  const sel = this._selectedCompanies.some(sc => sc.id === c.id);
+                  return `<span onclick="MessagesPage.toggleCompany(${c.id},'${Utils.escapeHtml(c.name)}','${c.phone || ''}')" style="padding:4px 10px;border-radius:8px;font-size:12px;cursor:pointer;transition:all 0.2s;${sel ? 'background:#dcfce7;color:#166534;border:1px solid #86efac;font-weight:600;' : 'background:var(--gray-50);color:var(--gray-500);border:1px solid var(--gray-200);'}">${Utils.escapeHtml(c.name)}</span>`;
+                }).join('')}
+              </div>
+            </div>
+            <div style="width:100%;">
+              <div style="font-size:11px;font-weight:600;color:var(--gray-400);margin-bottom:4px;">손해보험</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                ${this.companies.filter(c => c.type === '손해').map(c => {
+                  const sel = this._selectedCompanies.some(sc => sc.id === c.id);
+                  return `<span onclick="MessagesPage.toggleCompany(${c.id},'${Utils.escapeHtml(c.name)}','${c.phone || ''}')" style="padding:4px 10px;border-radius:8px;font-size:12px;cursor:pointer;transition:all 0.2s;${sel ? 'background:#dcfce7;color:#166534;border:1px solid #86efac;font-weight:600;' : 'background:var(--gray-50);color:var(--gray-500);border:1px solid var(--gray-200);'}">${Utils.escapeHtml(c.name)}</span>`;
+                }).join('')}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -261,7 +314,7 @@ const MessagesPage = {
               <span style="font-size:18px;font-weight:700;color:white;">${Utils.escapeHtml(agentName[0] || 'P')}</span>
             </div>
             <div style="color:white;font-size:15px;font-weight:700;">${Utils.escapeHtml(agentName)}</div>
-            <div style="color:#a5b4fc;font-size:11px;margin-top:2px;">PRIME ASSET</div>
+            <div style="color:#a5b4fc;font-size:11px;margin-top:2px;">PRIMEASSET</div>
           </div>
 
           <!-- Message Content -->
@@ -297,24 +350,28 @@ const MessagesPage = {
             `}
 
             ${(content && t) ? `
+              <!-- 선택된 보험사 정보 -->
+              ${this._selectedCompanies.length > 0 ? `
+                <div style="background:white;border-radius:12px;padding:14px;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                  <div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">보험사 연락처</div>
+                  ${this._selectedCompanies.map(c => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;${this._selectedCompanies.indexOf(c) < this._selectedCompanies.length - 1 ? 'border-bottom:1px solid #f1f5f9;' : ''}">
+                      <span style="font-size:12px;font-weight:600;color:#1e293b;">${Utils.escapeHtml(c.name)}</span>
+                      <span style="font-size:12px;color:#3b82f6;font-weight:500;">${c.phone ? Utils.formatPhone(c.phone) : '-'}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+
               <!-- Quick Actions in Preview -->
-              <div style="display:flex;flex-direction:column;gap:8px;margin-top:20px;">
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
                 <div style="padding:12px 16px;background:white;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:10px;">
                   <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#facc15,#eab308);display:flex;align-items:center;justify-content:center;">
                     <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                   </div>
                   <div>
-                    <div style="font-size:12px;font-weight:600;color:#1e293b;">카카오톡으로 전송</div>
-                    <div style="font-size:10px;color:#94a3b8;">복사된 메시지를 카카오톡으로 보내세요</div>
-                  </div>
-                </div>
-                <div style="padding:12px 16px;background:white;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:10px;">
-                  <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;">
-                    <svg width="14" height="14" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                  </div>
-                  <div>
-                    <div style="font-size:12px;font-weight:600;color:#1e293b;">문자 메시지 전송</div>
-                    <div style="font-size:10px;color:#94a3b8;">SMS/LMS로 직접 전송하세요</div>
+                    <div style="font-size:12px;font-weight:600;color:#1e293b;">카카오톡/문자로 전송</div>
+                    <div style="font-size:10px;color:#94a3b8;">복사된 메시지를 전송하세요</div>
                   </div>
                 </div>
               </div>
@@ -322,7 +379,7 @@ const MessagesPage = {
 
             <!-- Footer -->
             <div style="text-align:center;padding:20px 0 8px;font-size:10px;color:#94a3b8;">
-              PRIME ASSET | ${Utils.escapeHtml(agentName)}<br>
+              PRIMEASSET | ${Utils.escapeHtml(agentName)}<br>
               ${new Date().toLocaleDateString('ko-KR')}
             </div>
           </div>
@@ -332,6 +389,98 @@ const MessagesPage = {
   },
 
   // ==================== Interactions ====================
+
+  // ==================== Customer List / Multi-Select ====================
+  _renderCustomerList() {
+    const search = this._customerSearch.toLowerCase();
+    const filtered = this.customers.filter(c => {
+      if (!search) return true;
+      return (c.name || '').toLowerCase().includes(search) || (c.phone || '').includes(search);
+    });
+
+    if (filtered.length === 0) {
+      return '<div style="padding:12px;text-align:center;color:var(--gray-400);font-size:12px;">검색 결과가 없습니다</div>';
+    }
+
+    return filtered.map(c => {
+      const isSelected = this._selectedCustomers.some(sc => sc.id === c.id);
+      return `
+        <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;${isSelected ? 'background:#eff6ff;' : ''}" onmouseover="this.style.background='${isSelected ? '#eff6ff' : '#f9fafb'}'" onmouseout="this.style.background='${isSelected ? '#eff6ff' : ''}'">
+          <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="MessagesPage.toggleCustomer(${c.id},'${Utils.escapeHtml(c.name)}','${c.phone || ''}')" style="accent-color:#4338ca;width:16px;height:16px;flex-shrink:0;">
+          <div style="flex:1;min-width:0;">
+            <span style="font-size:13px;font-weight:${isSelected ? '600' : '500'};color:var(--gray-800);">${Utils.escapeHtml(c.name)}</span>
+            <span style="font-size:11px;color:var(--gray-400);margin-left:6px;">${Utils.formatPhone(c.phone)}</span>
+          </div>
+        </label>
+      `;
+    }).join('');
+  },
+
+  filterCustomers(value) {
+    this._customerSearch = value;
+    const list = document.getElementById('msg-customer-list');
+    if (list) list.innerHTML = this._renderCustomerList();
+  },
+
+  toggleCustomer(id, name, phone) {
+    const idx = this._selectedCustomers.findIndex(c => c.id === id);
+    if (idx >= 0) {
+      this._selectedCustomers.splice(idx, 1);
+    } else {
+      this._selectedCustomers.push({ id, name, phone });
+    }
+    this._refreshFormArea();
+  },
+
+  removeCustomer(id) {
+    this._selectedCustomers = this._selectedCustomers.filter(c => c.id !== id);
+    this._refreshFormArea();
+  },
+
+  addManualRecipient() {
+    const nameEl = document.getElementById('msg-manual-name');
+    const phoneEl = document.getElementById('msg-manual-phone');
+    if (!nameEl?.value?.trim()) { showToast('이름을 입력하세요.', 'error'); return; }
+    this._manualRecipients.push({
+      name: nameEl.value.trim(),
+      phone: phoneEl?.value?.replace(/-/g, '') || ''
+    });
+    this._refreshFormArea();
+  },
+
+  removeManualRecipient(index) {
+    this._manualRecipients.splice(index, 1);
+    this._refreshFormArea();
+  },
+
+  toggleCompany(id, name, phone) {
+    const idx = this._selectedCompanies.findIndex(c => c.id === id);
+    if (idx >= 0) {
+      this._selectedCompanies.splice(idx, 1);
+    } else {
+      this._selectedCompanies.push({ id, name, phone });
+    }
+    this._refreshFormArea();
+    this.updatePreview();
+  },
+
+  removeCompany(id) {
+    this._selectedCompanies = this._selectedCompanies.filter(c => c.id !== id);
+    this._refreshFormArea();
+    this.updatePreview();
+  },
+
+  _refreshFormArea() {
+    const formArea = document.getElementById('msg-form-area');
+    if (formArea) {
+      formArea.innerHTML = this._renderFormArea();
+      // Restore content
+      const contentEl = document.getElementById('msg-content');
+      if (contentEl && this.selectedTemplate) {
+        this.updatePreview();
+      }
+    }
+  },
 
   selectTemplate(index) {
     this.selectedTemplateIndex = index;
@@ -349,7 +498,7 @@ const MessagesPage = {
       formArea.innerHTML = this._renderFormArea();
     }
 
-    // Set content
+    // Set content & update preview
     const contentEl = document.getElementById('msg-content');
     if (contentEl && this.selectedTemplate) {
       contentEl.value = this.selectedTemplate.content;
@@ -379,17 +528,19 @@ const MessagesPage = {
     if (!this.selectedTemplate) return;
 
     const agent = API.getAgent();
-    const customerEl = document.getElementById('msg-customer');
-    const companyEl = document.getElementById('msg-company');
-    const selectedCustomer = customerEl?.selectedOptions[0];
-    const selectedCompany = companyEl?.selectedOptions[0];
+    const firstCustomer = this._selectedCustomers[0] || this._manualRecipients[0] || null;
+    const firstCompany = this._selectedCompanies[0] || null;
+
+    // 보험사 여러개 선택 시 이름/전화 목록
+    const companyNames = this._selectedCompanies.map(c => c.name).join(', ') || '(보험사명)';
+    const companyPhones = this._selectedCompanies.map(c => `${c.name}: ${Utils.formatPhone(c.phone)}`).join('\n') || '(보험사전화)';
 
     const vars = {
-      '고객명': selectedCustomer?.dataset.name || '(고객명)',
+      '고객명': firstCustomer?.name || '(고객명)',
       '설계사명': agent?.name || '(설계사명)',
-      '설계사연락처': agent?.phone || '(연락처)',
-      '보험사명': selectedCompany?.dataset.name || '(보험사명)',
-      '보험사전화': selectedCompany?.dataset.phone || '(보험사전화)'
+      '설계사연락처': Utils.formatPhone(agent?.phone) || '(연락처)',
+      '보험사명': companyNames,
+      '보험사전화': firstCompany?.phone ? Utils.formatPhone(firstCompany.phone) : '(보험사전화)'
     };
 
     // Extra variables
@@ -426,19 +577,13 @@ const MessagesPage = {
       // Button animation
       const btn = document.getElementById('msg-copy-btn');
       if (btn) {
-        btn.innerHTML = `
-          <svg width="16" height="16" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-          복사 완료!
-        `;
+        btn.innerHTML = `<svg width="16" height="16" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> 복사 완료!`;
         btn.style.borderColor = '#10b981';
         btn.style.color = '#10b981';
         btn.style.background = '#ecfdf5';
         setTimeout(() => {
           if (btn) {
-            btn.innerHTML = `
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-              클립보드 복사
-            `;
+            btn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg> 클립보드 복사`;
             btn.style.borderColor = '';
             btn.style.color = '';
             btn.style.background = '';
@@ -448,16 +593,20 @@ const MessagesPage = {
 
       showToast('메시지가 클립보드에 복사되었습니다!', 'success');
 
-      // Log the copy action
-      const customerEl = document.getElementById('msg-customer');
-      if (customerEl?.value) {
+      // Log for each selected customer
+      const allRecipients = [
+        ...this._selectedCustomers.map(c => ({ customer_id: c.id, name: c.name, phone: c.phone })),
+        ...this._manualRecipients.map(r => ({ customer_id: null, name: r.name, phone: r.phone }))
+      ];
+
+      for (const r of allRecipients) {
         await API.sendMessage({
-          customer_id: parseInt(customerEl.value),
+          customer_id: r.customer_id,
           template_id: this.selectedTemplate?.id,
           type: '클립보드',
           content,
-          recipient_name: customerEl.selectedOptions[0]?.dataset.name,
-          recipient_phone: customerEl.selectedOptions[0]?.dataset.phone
+          recipient_name: r.name,
+          recipient_phone: r.phone
         });
       }
     } catch (err) {
@@ -467,51 +616,64 @@ const MessagesPage = {
 
   async sendMessage() {
     const content = document.getElementById('msg-content').value;
-    const customerEl = document.getElementById('msg-customer');
 
     if (!content) {
       showToast('메시지 내용이 없습니다.', 'error');
       return;
     }
 
-    if (!customerEl?.value) {
-      showToast('고객을 선택해주세요.', 'error');
+    const allRecipients = [
+      ...this._selectedCustomers.map(c => ({ customer_id: c.id, name: c.name, phone: c.phone })),
+      ...this._manualRecipients.map(r => ({ customer_id: null, name: r.name, phone: r.phone }))
+    ];
+
+    if (allRecipients.length === 0) {
+      showToast('고객을 선택하거나 직접 입력해주세요.', 'error');
       return;
     }
 
     try {
-      await API.sendMessage({
-        customer_id: parseInt(customerEl.value),
-        template_id: this.selectedTemplate?.id,
-        type: '클립보드',
-        content,
-        recipient_name: customerEl.selectedOptions[0]?.dataset.name,
-        recipient_phone: customerEl.selectedOptions[0]?.dataset.phone
-      });
+      for (const r of allRecipients) {
+        await API.sendMessage({
+          customer_id: r.customer_id,
+          template_id: this.selectedTemplate?.id,
+          type: '클립보드',
+          content,
+          recipient_name: r.name,
+          recipient_phone: r.phone
+        });
+      }
 
       // Button animation
       const btn = document.getElementById('msg-send-btn');
       if (btn) {
-        btn.innerHTML = `
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-          저장 완료!
-        `;
+        btn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> 저장 완료! (${allRecipients.length}명)`;
         btn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
         setTimeout(() => {
           if (btn) {
-            btn.innerHTML = `
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-              발송 기록 저장
-            `;
+            btn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg> 발송 기록 저장`;
             btn.style.background = 'linear-gradient(135deg,#6366f1,#8b5cf6)';
           }
         }, 2000);
       }
 
-      showToast('발송 기록이 저장되었습니다!', 'success');
+      showToast(`${allRecipients.length}명의 발송 기록이 저장되었습니다!`, 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
+  },
+
+  resetTemplate() {
+    if (!this.selectedTemplate) return;
+    Modal.confirm('이 템플릿의 내용을 기본값으로 복원하시겠습니까?', async () => {
+      try {
+        await API.resetTemplate(this.selectedTemplate.id);
+        showToast('템플릿이 기본값으로 복원되었습니다.', 'success');
+        App.navigate('messages');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
   },
 
   editTemplate() {

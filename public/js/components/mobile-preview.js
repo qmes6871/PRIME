@@ -20,7 +20,7 @@ const MobilePreview = {
     let html = `
       <div style="text-align:center;margin-bottom:20px;">
         <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:4px;">보험 상담 제안서</div>
-        <div style="font-size:12px;color:var(--gray-400);">PRIME ASSET</div>
+        <div style="font-size:12px;color:var(--gray-400);">PRIMEASSET</div>
       </div>
       <div style="background:var(--blue-50);padding:12px;border-radius:8px;margin-bottom:16px;">
         <div style="font-size:13px;color:var(--gray-600);">

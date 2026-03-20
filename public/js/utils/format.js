@@ -85,5 +85,74 @@ const Utils = {
     document.execCommand('copy');
     document.body.removeChild(textarea);
     return Promise.resolve();
+  },
+
+  // 전화번호 입력 시 자동으로 '-' 추가 (input 이벤트에 바인딩)
+  formatPhoneInput(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    if (value.length > 11) value = value.substring(0, 11);
+    if (value.length > 7) {
+      value = value.replace(/(\d{3})(\d{4})(\d{0,4})/, '$1-$2-$3');
+    } else if (value.length > 3) {
+      value = value.replace(/(\d{3})(\d{0,4})/, '$1-$2');
+    }
+    input.value = value;
+  },
+
+  // 금액 입력 시 자동으로 쉼표 추가 (input 이벤트에 바인딩)
+  formatMoneyInput(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    if (value) {
+      value = new Intl.NumberFormat('ko-KR').format(parseInt(value));
+    }
+    input.value = value;
+  },
+
+  // 금액 입력에서 순수 숫자값 추출
+  getMoneyValue(input) {
+    return parseInt((input.value || '0').replace(/[^0-9]/g, '')) || 0;
+  },
+
+  // 생년월일로 상령일 자동 계산 (생일 + 6개월 = 상령 월/일, 다가올 날짜 반환)
+  calculatePolicyAnniversary(birthDateStr) {
+    if (!birthDateStr) return '';
+    const birth = new Date(birthDateStr);
+    if (isNaN(birth.getTime())) return '';
+    // 상령일 = 생일 월 + 6개월의 같은 일
+    const annivMonth = birth.getMonth() + 6; // 0-indexed, may exceed 11
+    const annivDay = birth.getDate();
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    // 올해 상령일
+    let year = today.getFullYear();
+    let anniv = new Date(year, annivMonth, annivDay);
+    // 이미 지났으면 내년
+    if (anniv < today) {
+      year++;
+      anniv = new Date(year, annivMonth, annivDay);
+    }
+    return `${anniv.getFullYear()}-${String(anniv.getMonth()+1).padStart(2,'0')}-${String(anniv.getDate()).padStart(2,'0')}`;
+  },
+
+  // 다음 주소검색 팝업
+  searchAddress(callback) {
+    new daum.Postcode({
+      oncomplete: function(data) {
+        const addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
+        callback(addr, data.zonecode);
+      }
+    }).open();
+  },
+
+  // 생년월일 텍스트 입력 시 자동 포맷 (YYYY-MM-DD)
+  formatBirthInput(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    if (value.length > 8) value = value.substring(0, 8);
+    if (value.length > 6) {
+      value = value.replace(/(\d{4})(\d{2})(\d{0,2})/, '$1-$2-$3');
+    } else if (value.length > 4) {
+      value = value.replace(/(\d{4})(\d{0,2})/, '$1-$2');
+    }
+    input.value = value;
   }
 };

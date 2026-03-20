@@ -1,5 +1,7 @@
 // Modal Component
 const Modal = {
+  _escHandler: null,
+
   show(title, content, footer = '') {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -14,15 +16,23 @@ const Modal = {
         ${footer ? `<div class="modal-footer">${footer}</div>` : ''}
       </div>
     `;
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) Modal.close();
-    });
+    // 모달 밖 클릭으로 닫기 비활성화 (X 버튼/ESC로만 닫기)
     document.body.appendChild(overlay);
+
+    // ESC 키로 닫기
+    this._escHandler = (e) => {
+      if (e.key === 'Escape') Modal.close();
+    };
+    document.addEventListener('keydown', this._escHandler);
   },
 
   close() {
     const overlay = document.getElementById('modal-overlay');
     if (overlay) overlay.remove();
+    if (this._escHandler) {
+      document.removeEventListener('keydown', this._escHandler);
+      this._escHandler = null;
+    }
   },
 
   confirm(message, onConfirm) {

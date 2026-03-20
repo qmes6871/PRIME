@@ -120,6 +120,12 @@ const SettingsPage = {
   // ==================== 1. Profile ====================
   _renderProfile() {
     const a = this._agent || {};
+    const s = this._settings || {};
+    const positions = ['본부장', '지사장', '팀장', 'FC', '설계사'];
+    const profileImg = a.profile_image
+      ? `<img src="${a.profile_image}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;">`
+      : `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#818cf8);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:white;flex-shrink:0;">${Utils.escapeHtml((a.name || 'P')[0])}</div>`;
+
     return `
       <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;">
         <div class="card-header" style="margin-bottom:20px;">
@@ -131,22 +137,54 @@ const SettingsPage = {
           </h3>
         </div>
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding:16px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:12px;">
-          <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#818cf8);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:white;flex-shrink:0;">${Utils.escapeHtml((a.name || 'P')[0])}</div>
+          <div style="position:relative;cursor:pointer;" onclick="document.getElementById('profile-image-input').click()">
+            ${profileImg}
+            <div style="position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;">
+              <svg width="10" height="10" fill="white" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            </div>
+            <input type="file" id="profile-image-input" accept="image/*" style="display:none;" onchange="SettingsPage.uploadProfileImage(this)">
+          </div>
           <div>
             <div style="font-size:18px;font-weight:700;color:var(--gray-800);">${Utils.escapeHtml(a.name || '')}</div>
             <div style="font-size:13px;color:var(--gray-400);">${Utils.escapeHtml(a.position || '')} · ${Utils.escapeHtml(a.branch || '')}</div>
+            <div style="font-size:11px;color:var(--blue);margin-top:2px;cursor:pointer;" onclick="document.getElementById('profile-image-input').click()">프로필 사진 변경</div>
           </div>
         </div>
         <form id="profile-form">
           <div class="grid-2" style="gap:14px;">
             <div class="form-group"><label class="form-label" style="font-size:12px;">이름</label><input type="text" class="form-input" name="name" value="${Utils.escapeHtml(a.name || '')}" style="border-radius:10px;"></div>
-            <div class="form-group"><label class="form-label" style="font-size:12px;">연락처</label><input type="tel" class="form-input" name="phone" value="${Utils.escapeHtml(a.phone || '')}" style="border-radius:10px;"></div>
+            <div class="form-group"><label class="form-label" style="font-size:12px;">연락처</label><input type="tel" class="form-input" name="phone" value="${Utils.formatPhone(a.phone || '')}" style="border-radius:10px;" oninput="Utils.formatPhoneInput(this)"></div>
           </div>
           <div class="grid-2" style="gap:14px;">
-            <div class="form-group"><label class="form-label" style="font-size:12px;">이메일</label><input type="email" class="form-input" name="email" value="${Utils.escapeHtml(a.email || '')}" style="border-radius:10px;"></div>
-            <div class="form-group"><label class="form-label" style="font-size:12px;">직급</label><input type="text" class="form-input" name="position" value="${Utils.escapeHtml(a.position || '')}" style="border-radius:10px;"></div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px;">이메일</label>
+              <div style="display:flex;gap:6px;">
+                <input type="text" class="form-input" id="email-id" value="${(a.email || '').split('@')[0] || ''}" placeholder="아이디" style="border-radius:10px;flex:1;">
+                <span style="display:flex;align-items:center;color:var(--gray-400);">@</span>
+                <select class="form-input" id="email-domain" style="border-radius:10px;flex:1;" onchange="if(this.value==='direct'){this.style.display='none';document.getElementById('email-domain-input').style.display='block';}">
+                  <option value="naver.com" ${(a.email || '').includes('naver.com') ? 'selected' : ''}>naver.com</option>
+                  <option value="gmail.com" ${(a.email || '').includes('gmail.com') ? 'selected' : ''}>gmail.com</option>
+                  <option value="daum.net" ${(a.email || '').includes('daum.net') ? 'selected' : ''}>daum.net</option>
+                  <option value="hanmail.net" ${(a.email || '').includes('hanmail.net') ? 'selected' : ''}>hanmail.net</option>
+                  <option value="nate.com" ${(a.email || '').includes('nate.com') ? 'selected' : ''}>nate.com</option>
+                  <option value="kakao.com" ${(a.email || '').includes('kakao.com') ? 'selected' : ''}>kakao.com</option>
+                  <option value="direct">직접입력</option>
+                </select>
+                <input type="text" class="form-input" id="email-domain-input" placeholder="직접입력" style="border-radius:10px;flex:1;display:none;">
+              </div>
+              <input type="hidden" name="email" value="${Utils.escapeHtml(a.email || '')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px;">직급</label>
+              <select class="form-input" name="position" style="border-radius:10px;">
+                ${positions.map(p => `<option value="${p}" ${a.position === p ? 'selected' : ''}>${p}</option>`).join('')}
+              </select>
+            </div>
           </div>
-          <div class="form-group"><label class="form-label" style="font-size:12px;">소속</label><input type="text" class="form-input" name="branch" value="${Utils.escapeHtml(a.branch || '')}" style="border-radius:10px;"></div>
+          <div class="form-group">
+            <label class="form-label" style="font-size:12px;">소속</label>
+            <input type="text" class="form-input" name="branch" value="${Utils.escapeHtml(a.branch || '프라임에셋')}" style="border-radius:10px;background:var(--gray-50);" readonly>
+          </div>
           <button type="button" class="btn" onclick="SettingsPage.saveProfile()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;border-radius:10px;padding:12px 24px;font-weight:600;box-shadow:0 4px 14px rgba(99,102,241,0.3);">저장</button>
         </form>
       </div>
@@ -158,6 +196,23 @@ const SettingsPage = {
     const formData = new FormData(form);
     const data = {};
     formData.forEach((v, k) => { data[k] = v; });
+
+    // 이메일 조합
+    const emailId = document.getElementById('email-id')?.value?.trim();
+    const emailDomainSelect = document.getElementById('email-domain');
+    const emailDomainInput = document.getElementById('email-domain-input');
+    if (emailId) {
+      const domain = (emailDomainInput && emailDomainInput.style.display !== 'none')
+        ? emailDomainInput.value.trim()
+        : emailDomainSelect?.value;
+      data.email = `${emailId}@${domain}`;
+    }
+
+    // 연락처에서 하이픈 제거하여 저장
+    if (data.phone) {
+      data.phone = data.phone.replace(/-/g, '');
+    }
+
     try {
       const result = await API.updateProfile(data);
       const agent = API.getAgent();
@@ -166,6 +221,28 @@ const SettingsPage = {
       this._agent = { ...this._agent, ...result.agent };
       showToast('프로필이 저장되었습니다.', 'success');
     } catch (err) { showToast(err.message, 'error'); }
+  },
+
+  async uploadProfileImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('이미지 크기는 5MB 이하로 업로드해주세요.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const result = await API.post('/settings/profile-image', { image: e.target.result });
+        this._agent.profile_image = result.profile_image;
+        const agent = API.getAgent();
+        agent.profile_image = result.profile_image;
+        API.setAgent(agent);
+        showToast('프로필 사진이 업로드되었습니다.', 'success');
+        document.getElementById('settings-content').innerHTML = this._renderProfile();
+      } catch (err) { showToast(err.message, 'error'); }
+    };
+    reader.readAsDataURL(file);
   },
 
   // ==================== 2. Menu Customization ====================
@@ -714,6 +791,17 @@ const SettingsPage = {
           <div class="form-group">
             <label class="form-label" style="font-size:12px;">설문조사 인트로 문구</label>
             <textarea class="form-input" name="survey_intro" rows="3" style="border-radius:10px;">${Utils.escapeHtml(s.survey_intro || '')}</textarea>
+          </div>
+
+          <div style="border-top:1px solid var(--gray-100);margin:20px 0;padding-top:20px;">
+            <h4 style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:14px;color:var(--gray-700);">
+              <span style="font-size:18px;">📋</span> 연락 정보 설정
+            </h4>
+            <div class="grid-2" style="gap:14px;">
+              <div class="form-group"><label class="form-label" style="font-size:12px;">팩스번호</label><input type="tel" class="form-input" name="fax_number" value="${Utils.escapeHtml(s.fax_number || '')}" placeholder="02-000-0000" style="border-radius:10px;" oninput="Utils.formatPhoneInput(this)"></div>
+              <div class="form-group"><label class="form-label" style="font-size:12px;">온라인 예약 링크</label><input type="url" class="form-input" name="online_reservation_url" value="${Utils.escapeHtml(s.online_reservation_url || '')}" placeholder="https://..." style="border-radius:10px;"></div>
+            </div>
+            <div class="form-group"><label class="form-label" style="font-size:12px;">카카오톡 상담 링크</label><input type="url" class="form-input" name="kakao_talk_url" value="${Utils.escapeHtml(s.kakao_talk_url || '')}" placeholder="https://pf.kakao.com/..." style="border-radius:10px;"></div>
           </div>
 
           <div style="border-top:1px solid var(--gray-100);margin:20px 0;padding-top:20px;">

@@ -43,6 +43,18 @@ module.exports = (sequelize) => {
     survey_intro: {
       type: DataTypes.TEXT,
       comment: '설문조사 인트로 문구'
+    },
+    fax_number: {
+      type: DataTypes.STRING(20),
+      comment: '팩스번호'
+    },
+    online_reservation_url: {
+      type: DataTypes.STRING(500),
+      comment: '온라인 예약 링크'
+    },
+    kakao_talk_url: {
+      type: DataTypes.STRING(500),
+      comment: '카카오톡 상담 링크'
     }
   }, {
     tableName: 'agent_settings'

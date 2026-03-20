@@ -7,16 +7,62 @@ const App = {
       this.renderLogin();
       return;
     }
-    this.navigate('dashboard');
+
+    // hash에서 현재 페이지 복원
+    const restored = this._parseHash();
+    this.navigate(restored.page || 'dashboard', restored.params || {});
+
+    // 브라우저 뒤로/앞으로 버튼 지원
+    window.addEventListener('popstate', () => {
+      const state = this._parseHash();
+      this.navigate(state.page || 'dashboard', state.params || {}, true);
+    });
   },
 
-  async navigate(page, params = {}) {
+  // hash 파싱: #consultation?consultationId=5 → {page:'consultation', params:{consultationId:'5'}}
+  _parseHash() {
+    const hash = location.hash.replace(/^#\/?/, '');
+    if (!hash) return {};
+    const [page, queryStr] = hash.split('?');
+    const params = {};
+    if (queryStr) {
+      queryStr.split('&').forEach(pair => {
+        const [k, v] = pair.split('=');
+        if (k) params[decodeURIComponent(k)] = decodeURIComponent(v || '');
+      });
+    }
+    // 숫자 파라미터는 숫자로 변환
+    Object.keys(params).forEach(k => {
+      if (/^\d+$/.test(params[k])) params[k] = Number(params[k]);
+    });
+    return { page, params };
+  },
+
+  // params → query string
+  _buildHash(page, params) {
+    let hash = '#' + page;
+    const keys = Object.keys(params || {}).filter(k => params[k] !== undefined && params[k] !== '');
+    if (keys.length > 0) {
+      hash += '?' + keys.map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+    }
+    return hash;
+  },
+
+  async navigate(page, params = {}, fromPopstate = false) {
     if (page === 'login' || !API.isLoggedIn()) {
       this.renderLogin();
       return;
     }
 
     this.currentPage = page;
+
+    // URL hash 업데이트 (popstate에서 온 경우 제외)
+    if (!fromPopstate) {
+      const newHash = this._buildHash(page, params);
+      if (location.hash !== newHash) {
+        history.pushState(null, '', newHash);
+      }
+    }
     const app = document.getElementById('app');
 
     // Show loading
@@ -87,7 +133,12 @@ const App = {
     app.innerHTML = `
       <div class="login-container">
         <div class="login-card">
-          <div class="login-title">PRIME ASSET</div>
+          <div style="text-align:center;margin-bottom:8px;">
+            <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--primary),hsl(243,75%,70%));display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(99,102,241,0.25);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+            </div>
+          </div>
+          <div class="login-title">PRIME<span style="color:var(--primary)">ASSET</span></div>
           <div class="login-subtitle">보험상담 전산 시스템</div>
           <form onsubmit="App.handleLogin(event)">
             <div class="form-group">
@@ -102,7 +153,7 @@ const App = {
           </form>
           <div id="login-error" style="color:var(--red);font-size:13px;text-align:center;margin-top:12px;display:none;"></div>
           <div style="text-align:center;margin-top:16px;">
-            <a href="javascript:App.showRegister()" style="font-size:13px;color:var(--blue);text-decoration:none;">회원가입</a>
+            <a href="javascript:App.showRegister()" style="font-size:13px;color:var(--primary);text-decoration:none;">회원가입</a>
           </div>
         </div>
       </div>
@@ -120,6 +171,7 @@ const App = {
       API.setToken(result.token);
       API.setAgent(result.agent);
       this.navigate('dashboard');
+      history.replaceState(null, '', '#dashboard');
     } catch (err) {
       errorEl.textContent = err.message;
       errorEl.style.display = 'block';
@@ -158,7 +210,7 @@ const App = {
           </form>
           <div id="reg-error" style="color:var(--red);font-size:13px;text-align:center;margin-top:12px;display:none;"></div>
           <div style="text-align:center;margin-top:16px;">
-            <a href="javascript:App.renderLogin()" style="font-size:13px;color:var(--blue);text-decoration:none;">← 로그인으로 돌아가기</a>
+            <a href="javascript:App.renderLogin()" style="font-size:13px;color:var(--primary);text-decoration:none;">← 로그인으로 돌아가기</a>
           </div>
         </div>
       </div>
@@ -189,6 +241,7 @@ const App = {
 
   logout() {
     API.removeToken();
+    history.replaceState(null, '', location.pathname);
     this.renderLogin();
     showToast('로그아웃되었습니다.', 'info');
   }

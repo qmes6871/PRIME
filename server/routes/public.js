@@ -9,7 +9,7 @@ router.get('/proposal/:token', async (req, res, next) => {
       where: { share_token: req.params.token },
       include: [
         { model: Customer, attributes: ['id', 'name'] },
-        { model: Agent, attributes: ['id', 'name', 'phone', 'email', 'position', 'branch'] },
+        { model: Agent, attributes: ['id', 'name', 'phone', 'email', 'position', 'branch', 'profile_image'] },
         { model: ConsultationInsurer, as: 'insurers', include: [InsuranceCompany] }
       ]
     });
@@ -27,7 +27,13 @@ router.get('/proposal/:token', async (req, res, next) => {
       await consultation.update({ viewed_at: new Date(), status: '확인완료' });
     }
 
-    res.json({ consultation });
+    // 설정 정보도 함께 전달 (온라인예약, 카카오톡 URL 등)
+    const settings = await AgentSetting.findOne({
+      where: { agent_id: consultation.agent_id },
+      attributes: ['fax_number', 'online_reservation_url', 'kakao_talk_url']
+    });
+
+    res.json({ consultation, settings });
   } catch (err) {
     next(err);
   }

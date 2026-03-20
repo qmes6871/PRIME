@@ -108,6 +108,7 @@ const API = {
   },
   createTemplate(data) { return this.post('/templates', data); },
   updateTemplate(id, data) { return this.put(`/templates/${id}`, data); },
+  resetTemplate(id) { return this.post(`/templates/${id}/reset`); },
   deleteTemplate(id) { return this.delete(`/templates/${id}`); },
 
   // Messages
@@ -152,5 +153,25 @@ const API = {
   getSettings() { return this.get('/settings'); },
   updateSettings(data) { return this.put('/settings', data); },
   updateProfile(data) { return this.put('/settings/profile', data); },
-  changePassword(data) { return this.put('/settings/password', data); }
+  changePassword(data) { return this.put('/settings/password', data); },
+
+  // Uploads
+  async uploadPolicyImage(file) {
+    const formData = new FormData();
+    formData.append('image', file);
+    const res = await fetch(this.baseUrl + '/uploads/policy-image', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${this.getToken()}` },
+      body: formData
+    });
+    if (res.status === 401) {
+      this.removeToken();
+      App.navigate('login');
+      throw new Error('인증이 만료되었습니다.');
+    }
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || '업로드에 실패했습니다.');
+    return json;
+  },
+  deletePolicyImage(filename) { return this.delete(`/uploads/policy-image/${filename}`); }
 };

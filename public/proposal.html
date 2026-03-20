@@ -176,7 +176,7 @@
           return;
         }
 
-        renderProposal(data.consultation);
+        renderProposal(data.consultation, data.settings);
       } catch (err) {
         showError('오류 발생', '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
       }
@@ -192,7 +192,7 @@
       `;
     }
 
-    function renderProposal(consultation) {
+    function renderProposal(consultation, settings) {
       const agent = consultation.Agent || {};
       const customer = consultation.Customer || {};
       const insurers = consultation.insurers || [];
@@ -213,6 +213,25 @@
       }
       if (fd.job) infoItems.push(fd.job);
 
+      // 상령일 계산 (생일 + 6개월)
+      let policyAnniversaryText = '';
+      if (fd.birthdate) {
+        const birth = new Date(fd.birthdate);
+        if (!isNaN(birth.getTime())) {
+          const annivMonth = birth.getMonth() + 6;
+          const annivDay = birth.getDate();
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          let year = today.getFullYear();
+          let anniv = new Date(year, annivMonth, annivDay);
+          if (anniv < today) {
+            year++;
+            anniv = new Date(year, annivMonth, annivDay);
+          }
+          policyAnniversaryText = `${anniv.getFullYear()}년 ${anniv.getMonth()+1}월 ${anniv.getDate()}일`;
+        }
+      }
+
       // Tags
       const tags = [];
       if (fd.tags?.children) tags.push({ label: '자녀 있음', color: '#f97316', bg: '#fff7ed', border: '#fed7aa' });
@@ -223,9 +242,11 @@
       // Health checks
       const healthItems = [];
       if (fd.healthChecks?.checkup) healthItems.push({ label: '건강검진 내역', detail: fd.healthDetails?.checkup });
+      if (fd.healthChecks?.hospital1y) healthItems.push({ label: '1년 이내 병원 방문', detail: fd.healthDetails?.hospital1y });
       if (fd.healthChecks?.hospital3m) healthItems.push({ label: '3개월 이내 병원 방문', detail: fd.healthDetails?.hospital3m });
       if (fd.healthChecks?.recheck1y) healthItems.push({ label: '1년 이내 추가검사/재검사', detail: fd.healthDetails?.recheck1y });
       if (fd.healthChecks?.surgery5y) healthItems.push({ label: '5년 이내 입원/수술/중대질환', detail: fd.healthDetails?.surgery5y });
+      if (fd.healthChecks?.history6y) healthItems.push({ label: '6년 이내 기타 병력', detail: fd.healthDetails?.history6y });
 
       const existingPolicies = (fd.existingPolicies || []).filter(p => p.company || p.productName);
       const recommendedPlans = (fd.recommendedPlans || []).filter(p => p.company || p.productName);
@@ -236,16 +257,15 @@
       // ===== HEADER =====
       html += `
         <div class="header">
-          <div class="profile-photo">
-            <span>${escapeHtml(agentName[0] || 'P')}</span>
-          </div>
-          <div class="expert-badge"><span>EXPERT</span></div>
+          ${agent.profile_image
+            ? `<img src="${agent.profile_image}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;margin:0 auto 12px;display:block;box-shadow:0 4px 16px rgba(99,102,241,0.4);border:3px solid rgba(129,140,248,0.4);">`
+            : `<div class="profile-photo"><span>${escapeHtml(agentName[0] || 'P')}</span></div>`}
           <div class="agent-name">${escapeHtml(agentName)}</div>
-          <div class="agent-title">${escapeHtml(agentPosition)} | ${escapeHtml(agentBranch)}</div>
+          <div class="agent-title">${escapeHtml(agentPosition)} | PRIMEASSET</div>
           <div class="header-actions">
+            ${settings?.online_reservation_url ? `<a href="${escapeHtml(settings.online_reservation_url)}" target="_blank" class="header-btn"><i class="fas fa-calendar-alt"></i>온라인예약</a>` : ''}
             ${agent.phone ? `<a href="tel:${agent.phone}" class="header-btn"><i class="fas fa-phone"></i>전화</a>` : ''}
-            <a class="header-btn" onclick="alert('카카오톡 채널을 통해 상담해주세요')"><i class="fab fa-comment"></i>카톡</a>
-            ${agent.email ? `<a href="mailto:${agent.email}" class="header-btn"><i class="fas fa-envelope"></i>메일</a>` : ''}
+            ${settings?.kakao_talk_url ? `<a href="${escapeHtml(settings.kakao_talk_url)}" target="_blank" class="header-btn" style="background:rgba(250,204,21,0.9);color:#1e293b;"><i class="fab fa-comment"></i>카카오톡</a>` : `<a class="header-btn" onclick="alert('카카오톡 채널을 통해 상담해주세요')"><i class="fab fa-comment"></i>카톡</a>`}
           </div>
         </div>
       `;
@@ -266,12 +286,21 @@
               <div class="customer-info">${infoItems.join(' · ') || '보험 상담 고객'}</div>
             </div>
           </div>
+          ${policyAnniversaryText ? `
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:10px;margin-top:10px;">
+              <i class="fas fa-calendar-check" style="color:#d97706;font-size:13px;"></i>
+              <div>
+                <div style="font-size:11px;color:#92400e;font-weight:600;">보험 상령일</div>
+                <div style="font-size:14px;color:#78350f;font-weight:700;">${policyAnniversaryText}</div>
+              </div>
+            </div>
+          ` : ''}
           ${tags.length > 0 ? `
             <div class="tags">
               ${tags.map(t => `<span class="tag" style="color:${t.color};background:${t.bg};border:1px solid ${t.border};">${t.label}</span>`).join('')}
             </div>
           ` : ''}
-          ${fd.address ? `<div class="address-row"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(fd.address)}</div>` : ''}
+          ${fd.address ? `<div class="address-row"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(fd.address)}${fd.addressDetail ? ' ' + escapeHtml(fd.addressDetail) : ''}</div>` : ''}
         </div>
       `;
 
@@ -508,6 +537,24 @@
         `;
       }
 
+      // ===== ATTACHED IMAGES =====
+      const sectionImages = fd.sectionImages || [];
+      if (sectionImages.length > 0) {
+        html += `
+          <div class="section">
+            <div class="section-title">
+              <span class="section-icon" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe);"><i class="fas fa-images" style="color:#6366f1;font-size:11px;"></i></span>
+              첨부 자료
+            </div>
+            ${sectionImages.map(img => `
+              <div style="margin-bottom:10px;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+                <img src="${escapeHtml(img.url)}" style="width:100%;display:block;" alt="첨부자료">
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
       // ===== REFERENCE LINKS =====
       if (referenceLinks.length > 0) {
         html += `
@@ -550,7 +597,7 @@
       // ===== FOOTER =====
       html += `
         <div class="footer">
-          <div class="footer-logo">PRIME ASSET</div>
+          <div class="footer-logo">PRIMEASSET</div>
           ${escapeHtml(agentBranch)} | ${escapeHtml(agentName)} ${escapeHtml(agentPosition)}<br>
           ${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
