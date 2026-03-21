@@ -55,6 +55,11 @@ module.exports = (sequelize) => {
     kakao_talk_url: {
       type: DataTypes.STRING(500),
       comment: '카카오톡 상담 링크'
+    },
+    proposal_layout: {
+      type: DataTypes.STRING(20),
+      defaultValue: 'photo',
+      comment: '제안서 헤더 레이아웃: photo(배경사진) / circle(동그라미)'
     }
   }, {
     tableName: 'agent_settings'

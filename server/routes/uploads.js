@@ -24,11 +24,11 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
   if (allowed.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('이미지 파일만 업로드 가능합니다. (JPG, PNG, GIF, WEBP)'), false);
+    cb(new Error('이미지 또는 PDF 파일만 업로드 가능합니다.'), false);
   }
 };
 
@@ -39,12 +39,20 @@ const upload = multer({
 });
 
 // POST /api/v1/uploads/policy-image
-router.post('/policy-image', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: '이미지 파일을 선택해주세요.' });
-  }
-  const url = `/prime/uploads/policies/${req.file.filename}`;
-  res.json({ url, filename: req.file.filename });
+router.post('/policy-image', (req, res) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      const msg = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
+        ? '파일 크기는 10MB 이하여야 합니다.'
+        : err.message || '파일 업로드에 실패했습니다.';
+      return res.status(400).json({ error: msg });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: '파일을 선택해주세요.' });
+    }
+    const url = `/prime/uploads/policies/${req.file.filename}`;
+    res.json({ url, filename: req.file.originalname });
+  });
 });
 
 // DELETE /api/v1/uploads/policy-image/:filename

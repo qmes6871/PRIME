@@ -798,10 +798,36 @@ const SettingsPage = {
               <span style="font-size:18px;">📋</span> 연락 정보 설정
             </h4>
             <div class="grid-2" style="gap:14px;">
-              <div class="form-group"><label class="form-label" style="font-size:12px;">팩스번호</label><input type="tel" class="form-input" name="fax_number" value="${Utils.escapeHtml(s.fax_number || '')}" placeholder="02-000-0000" style="border-radius:10px;" oninput="Utils.formatPhoneInput(this)"></div>
-              <div class="form-group"><label class="form-label" style="font-size:12px;">온라인 예약 링크</label><input type="url" class="form-input" name="online_reservation_url" value="${Utils.escapeHtml(s.online_reservation_url || '')}" placeholder="https://..." style="border-radius:10px;"></div>
+              <div class="form-group"><label class="form-label" style="font-size:12px;">팩스번호</label><input type="text" class="form-input" name="fax_number" value="${Utils.escapeHtml(s.fax_number || '')}" placeholder="0504-137-1591" style="border-radius:10px;"></div>
+              <div class="form-group"><label class="form-label" style="font-size:12px;">온라인 명함 링크</label><input type="url" class="form-input" name="online_reservation_url" value="${Utils.escapeHtml(s.online_reservation_url || '')}" placeholder="https://..." style="border-radius:10px;"></div>
             </div>
             <div class="form-group"><label class="form-label" style="font-size:12px;">카카오톡 상담 링크</label><input type="url" class="form-input" name="kakao_talk_url" value="${Utils.escapeHtml(s.kakao_talk_url || '')}" placeholder="https://pf.kakao.com/..." style="border-radius:10px;"></div>
+          </div>
+
+          <div style="border-top:1px solid var(--gray-100);margin:20px 0;padding-top:20px;">
+            <h4 style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:14px;color:var(--gray-700);">
+              <span style="font-size:18px;">📄</span> 제안서 레이아웃
+            </h4>
+            <input type="hidden" name="proposal_layout" id="proposal-layout-input" value="${s.proposal_layout || 'photo'}">
+            <div style="display:flex;gap:12px;">
+              <div onclick="SettingsPage.selectLayout('photo')" id="layout-card-photo" style="flex:1;cursor:pointer;border:2px solid ${(s.proposal_layout || 'photo') === 'photo' ? '#6366f1' : '#e2e8f0'};border-radius:12px;padding:14px;text-align:center;transition:all 0.2s;">
+                <div style="width:100%;height:80px;background:linear-gradient(135deg,#0f172a,#312e81);border-radius:8px;margin-bottom:10px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;position:relative;">
+                  <div style="width:40px;height:50px;background:linear-gradient(135deg,#6366f1,#818cf8);border-radius:6px 6px 0 0;opacity:0.6;"></div>
+                  <div style="position:absolute;bottom:0;left:0;right:0;height:30px;background:linear-gradient(transparent,rgba(15,23,42,0.9));"></div>
+                  <div style="position:absolute;bottom:6px;left:0;right:0;text-align:center;">
+                    <div style="font-size:8px;color:white;font-weight:700;">이름</div>
+                  </div>
+                </div>
+                <div style="font-size:12px;font-weight:600;color:${(s.proposal_layout || 'photo') === 'photo' ? '#6366f1' : '#64748b'};">배경 사진</div>
+              </div>
+              <div onclick="SettingsPage.selectLayout('circle')" id="layout-card-circle" style="flex:1;cursor:pointer;border:2px solid ${s.proposal_layout === 'circle' ? '#6366f1' : '#e2e8f0'};border-radius:12px;padding:14px;text-align:center;transition:all 0.2s;">
+                <div style="width:100%;height:80px;background:linear-gradient(135deg,#0f172a,#312e81);border-radius:8px;margin-bottom:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+                  <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#818cf8);border:2px solid rgba(255,255,255,0.2);"></div>
+                  <div style="font-size:8px;color:white;font-weight:700;">이름</div>
+                </div>
+                <div style="font-size:12px;font-weight:600;color:${s.proposal_layout === 'circle' ? '#6366f1' : '#64748b'};">동그라미 프로필</div>
+              </div>
+            </div>
           </div>
 
           <div style="border-top:1px solid var(--gray-100);margin:20px 0;padding-top:20px;">
@@ -820,6 +846,15 @@ const SettingsPage = {
         </form>
       </div>
     `;
+  },
+
+  selectLayout(value) {
+    document.getElementById('proposal-layout-input').value = value;
+    const isPhoto = value === 'photo';
+    document.getElementById('layout-card-photo').style.borderColor = isPhoto ? '#6366f1' : '#e2e8f0';
+    document.getElementById('layout-card-circle').style.borderColor = !isPhoto ? '#6366f1' : '#e2e8f0';
+    document.querySelector('#layout-card-photo > div:last-child').style.color = isPhoto ? '#6366f1' : '#64748b';
+    document.querySelector('#layout-card-circle > div:last-child').style.color = !isPhoto ? '#6366f1' : '#64748b';
   },
 
   async saveSystem() {

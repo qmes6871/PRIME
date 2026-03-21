@@ -83,19 +83,25 @@ const App = {
         case 'dashboard':
           content = await DashboardPage.render();
           break;
+        case 'customers':
+          content = await DashboardPage.renderCustomerListPage();
+          break;
         case 'consultation':
           content = await ConsultationPage.render(params);
           break;
         case 'messages':
           pageObj = MessagesPage;
-          content = await MessagesPage.render();
+          content = await MessagesPage.render(params);
           break;
         case 'alimtalk':
           pageObj = AlimtalkPage;
-          content = await AlimtalkPage.render();
+          content = await AlimtalkPage.render(params);
           break;
         case 'coverage':
           content = await CoveragePage.render();
+          break;
+        case 'infopage':
+          content = await InfoPagePage.render();
           break;
         case 'settings':
           content = await SettingsPage.render();

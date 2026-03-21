@@ -44,6 +44,10 @@ module.exports = (sequelize) => {
     policy_anniversary: {
       type: DataTypes.DATEONLY,
       comment: '상령일'
+    },
+    consult_date: {
+      type: DataTypes.DATE,
+      comment: '상담 예정일시'
     }
   }, {
     tableName: 'customers'

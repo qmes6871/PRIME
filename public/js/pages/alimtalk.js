@@ -52,7 +52,8 @@ const AlimtalkPage = {
   // Dynamic field values
   _fieldValues: {},
 
-  async render() {
+  async render(params = {}) {
+    this._preselectedCustomerId = params.customerId || null;
     try {
       const [templatesData, customersData] = await Promise.all([
         API.getTemplates({ category: '알림톡' }),
@@ -90,10 +91,10 @@ const AlimtalkPage = {
             ${this._renderFormArea()}
           </div>
 
-          <!-- RIGHT: KakaoTalk Preview -->
+          <!-- RIGHT: 편집 가능 미리보기 패널 -->
           <div style="position:sticky;top:24px;align-self:start;">
             <div id="alim-preview-wrapper">
-              ${this._renderKakaoPreview()}
+              ${this._renderEditablePreview()}
             </div>
           </div>
         </div>
@@ -179,7 +180,7 @@ const AlimtalkPage = {
           <select class="form-input" id="alim-customer" onchange="AlimtalkPage.updatePreview()" style="border-radius:10px;">
             <option value="">고객을 선택하세요</option>
             ${this.customers.map(c => `
-              <option value="${c.id}" data-name="${Utils.escapeHtml(c.name)}" data-phone="${c.phone || ''}">${c.name} (${Utils.formatPhone(c.phone)})</option>
+              <option value="${c.id}" data-name="${Utils.escapeHtml(c.name)}" data-phone="${c.phone || ''}" ${this._preselectedCustomerId == c.id ? 'selected' : ''}>${c.name} (${Utils.formatPhone(c.phone)})</option>
             `).join('')}
           </select>
         </div>
@@ -190,25 +191,6 @@ const AlimtalkPage = {
 
       <!-- Extra Template Variables -->
       <div id="alim-extra-fields-wrapper"></div>
-
-      <!-- Message Content -->
-      <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;">
-        <div class="card-header" style="margin-bottom:16px;">
-          <h3 class="card-title" style="display:flex;align-items:center;gap:8px;">
-            <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:8px;">
-              <svg width="14" height="14" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-            </span>
-            메시지 내용
-          </h3>
-          <span id="alim-char-count" style="font-size:11px;color:var(--gray-400);">0자</span>
-        </div>
-        <textarea class="form-input" id="alim-content" rows="12" oninput="AlimtalkPage.onContentInput()" style="border-radius:10px;font-size:13px;line-height:1.9;font-family:'Pretendard Variable',sans-serif;"></textarea>
-        ${template ? `
-          <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px;">
-            ${(template.variables || []).map(v => `<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:${step.color}10;color:${step.color};font-size:10px;font-weight:500;">{{${Utils.escapeHtml(v)}}}</span>`).join('')}
-          </div>
-        ` : ''}
-      </div>
 
       <!-- Action Buttons -->
       <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);">
@@ -273,7 +255,7 @@ const AlimtalkPage = {
             ${field.options.map(opt => {
               const isSelected = val === opt.value;
               return `
-                <div onclick="AlimtalkPage.setFieldValue('${field.key}','${opt.value}')"
+                <div onclick="AlimtalkPage.setFieldValue('${field.key}','${opt.value}',true)"
                   style="flex:1;min-width:80px;padding:12px 8px;border-radius:12px;cursor:pointer;text-align:center;transition:all 0.2s;
                     border:2px solid ${isSelected ? step.color : 'var(--gray-200)'};
                     background:${isSelected ? step.bg : 'white'};
@@ -300,14 +282,14 @@ const AlimtalkPage = {
       return `
         <div class="form-group" style="margin-bottom:0;">
           <label class="form-label" style="font-size:12px;">${field.label}</label>
-          <input type="date" class="form-input" id="alim-field-${field.key}" value="${val}" oninput="AlimtalkPage.setFieldValue('${field.key}',this.value)" style="border-radius:10px;">
+          <input type="text" class="form-input" id="alim-field-${field.key}" value="${val}" oninput="Utils.formatBirthInput(this); AlimtalkPage.setFieldValue('${field.key}',this.value)" placeholder="20260101" maxlength="10" style="border-radius:10px;">
         </div>
       `;
     } else if (field.type === 'time') {
       return `
         <div class="form-group" style="margin-bottom:0;">
           <label class="form-label" style="font-size:12px;">${field.label}</label>
-          <input type="time" class="form-input" id="alim-field-${field.key}" value="${val}" oninput="AlimtalkPage.setFieldValue('${field.key}',this.value)" style="border-radius:10px;">
+          <input type="text" class="form-input" id="alim-field-${field.key}" value="${val}" oninput="AlimtalkPage.setFieldValue('${field.key}',this.value)" placeholder="14:00" maxlength="5" style="border-radius:10px;">
         </div>
       `;
     } else {
@@ -321,6 +303,40 @@ const AlimtalkPage = {
   },
 
   // ==================== KakaoTalk-Style Phone Preview ====================
+  _renderEditablePreview() {
+    const agent = API.getAgent();
+    const agentName = agent?.name || '설계사';
+    const step = this._steps[this.currentStep];
+    const content = document.getElementById('alim-content')?.value || '';
+
+    return `
+      <div style="background:white;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);overflow:hidden;">
+        <!-- Header -->
+        <div style="background:${step.color};padding:14px 20px;display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">${step.emoji}</span>
+          <div>
+            <div style="color:white;font-size:14px;font-weight:700;">${step.title}</div>
+            <div style="color:rgba(255,255,255,0.8);font-size:11px;">${Utils.escapeHtml(agentName)} · PRIMEASSET</div>
+          </div>
+        </div>
+
+        <!-- Editable Content -->
+        <div style="padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:12px;font-weight:600;color:var(--gray-500);">알림톡 내용</span>
+            <span id="alim-char-count" style="font-size:11px;color:var(--gray-400);">0자</span>
+          </div>
+          <textarea class="form-input" id="alim-content" rows="18" oninput="AlimtalkPage.onContentInput()" placeholder="알림톡 내용을 입력하거나 템플릿에서 자동 생성됩니다..." style="border-radius:10px;font-size:13px;line-height:1.8;font-family:'Pretendard Variable',sans-serif;border:1px solid var(--gray-200);resize:vertical;"></textarea>
+        </div>
+
+        <!-- Footer -->
+        <div style="padding:0 16px 12px;text-align:center;font-size:10px;color:var(--gray-400);">
+          ${step.emoji} ${step.title} · ${new Date().toLocaleDateString('ko-KR')}
+        </div>
+      </div>
+    `;
+  },
+
   _renderKakaoPreview() {
     const agent = API.getAgent();
     const agentName = agent?.name || '설계사';
@@ -432,14 +448,18 @@ const AlimtalkPage = {
     App.navigate('alimtalk');
   },
 
-  setFieldValue(key, value) {
+  setFieldValue(key, value, rerender) {
     this._fieldValues[key] = value;
-    // Re-render form area to handle conditional sections
-    const formArea = document.getElementById('alim-form-area');
-    if (formArea) {
-      formArea.innerHTML = this._renderFormArea();
-      // Restore content
-      this._loadTemplate();
+    if (rerender) {
+      // iconSelect 등 조건부 섹션 변경 시에만 전체 리렌더
+      const formArea = document.getElementById('alim-form-area');
+      if (formArea) {
+        formArea.innerHTML = this._renderFormArea();
+        this._loadTemplate();
+      }
+    } else {
+      // 텍스트 입력은 미리보기만 갱신
+      this.updatePreview();
     }
   },
 
@@ -463,16 +483,9 @@ const AlimtalkPage = {
     if (!container || !this.currentTemplate) return;
 
     const vars = this.currentTemplate.variables || [];
-    const skipVars = ['고객명', '설계사명', '설계사연락처'];
-    const extraVars = vars.filter(v => !skipVars.includes(v));
-
-    // Also skip vars that are covered by dynamic fields
-    const dynamicFieldKeys = [];
-    const meta = this._stepFields[this._steps[this.currentStep].key];
-    if (meta) {
-      meta.sections.forEach(s => s.fields.forEach(f => dynamicFieldKeys.push(f.key)));
-    }
-    const filteredVars = extraVars.filter(v => !dynamicFieldKeys.some(k => v.toLowerCase().includes(k.toLowerCase())));
+    // 자동 치환되는 변수 + 동적 필드에서 조합하는 변수 제외
+    const skipVars = ['고객명', '설계사명', '설계사연락처', '상담일시', '상담장소'];
+    const filteredVars = vars.filter(v => !skipVars.includes(v));
 
     if (filteredVars.length === 0) {
       container.innerHTML = '';
@@ -505,7 +518,7 @@ const AlimtalkPage = {
     const content = document.getElementById('alim-content')?.value || '';
     const previewWrapper = document.getElementById('alim-preview-wrapper');
     if (previewWrapper) {
-      previewWrapper.innerHTML = this._renderKakaoPreview();
+      previewWrapper.innerHTML = this._renderEditablePreview();
     }
   },
 
@@ -526,10 +539,21 @@ const AlimtalkPage = {
     const customerEl = document.getElementById('alim-customer');
     const selectedCustomer = customerEl?.selectedOptions[0];
 
+    // 동적 필드에서 상담일시/장소 조합
+    const fv = this._fieldValues || {};
+    const consultDate = fv.consultDate || '';
+    const consultTime = fv.consultTime || '';
+    const consultDateTime = [consultDate, consultTime].filter(Boolean).join(' ') || '(상담일시)';
+    const meetRegion = fv.meetRegion || '';
+    const meetDetail = fv.meetDetail || '';
+    const consultPlace = [meetRegion, meetDetail].filter(Boolean).join(' ') || '(상담장소)';
+
     const vars = {
       '고객명': selectedCustomer?.dataset.name || '(고객명)',
       '설계사명': agent?.name || '(설계사명)',
-      '설계사연락처': agent?.phone || '(연락처)'
+      '설계사연락처': agent?.phone ? Utils.formatPhone(agent.phone) : '(연락처)',
+      '상담일시': consultDateTime,
+      '상담장소': fv.consultMethod === '대면상담' ? consultPlace : (fv.consultMethod || '(상담방식)')
     };
 
     (this.currentTemplate.variables || []).forEach(v => {
@@ -540,15 +564,16 @@ const AlimtalkPage = {
     });
 
     const content = Utils.replaceTemplateVars(this.currentTemplate.content, vars);
-    const contentEl = document.getElementById('alim-content');
-    if (contentEl) {
-      contentEl.value = content;
-      this._updateCharCount();
-    }
 
     const previewWrapper = document.getElementById('alim-preview-wrapper');
     if (previewWrapper) {
-      previewWrapper.innerHTML = this._renderKakaoPreview();
+      previewWrapper.innerHTML = this._renderEditablePreview();
+      // 리렌더 후 새 textarea에 내용 설정
+      const newContentEl = document.getElementById('alim-content');
+      if (newContentEl) {
+        newContentEl.value = content;
+        this._updateCharCount();
+      }
     }
   },
 
