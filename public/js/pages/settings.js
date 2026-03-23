@@ -12,7 +12,7 @@ const SettingsPage = {
     { id: 'profile',    icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', label: '프로필', color: '#6366f1' },
     { id: 'menu',       icon: 'M4 6h16M4 12h16M4 18h7', label: '메뉴 커스터마이징', color: '#8b5cf6' },
     { id: 'templates',  icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', label: '메시지 템플릿', color: '#059669' },
-    { id: 'checkitems', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', label: '보장 점검항목', color: '#d97706' },
+    // { id: 'checkitems', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', label: '보장 점검항목', color: '#d97706' },
     { id: 'links',      icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1', label: '보험정보 링크', color: '#3b82f6' },
     { id: 'system',     icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', label: '시스템 설정', color: '#64748b' },
     { id: 'password',   icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', label: '비밀번호 변경', color: '#dc2626' }
@@ -800,14 +800,9 @@ const SettingsPage = {
           </h3>
         </div>
         <form id="system-form">
-          <div class="grid-2" style="gap:14px;">
-            <div class="form-group"><label class="form-label" style="font-size:12px;">회사명</label><input type="text" class="form-input" name="company_name" value="${Utils.escapeHtml(s.company_name || '')}" style="border-radius:10px;"></div>
-            <div class="form-group"><label class="form-label" style="font-size:12px;">인사말 이름</label><input type="text" class="form-input" name="greeting_name" value="${Utils.escapeHtml(s.greeting_name || '')}" style="border-radius:10px;"></div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" style="font-size:12px;">설문조사 인트로 문구</label>
-            <textarea class="form-input" name="survey_intro" rows="3" style="border-radius:10px;">${Utils.escapeHtml(s.survey_intro || '')}</textarea>
-          </div>
+          <input type="hidden" name="company_name" value="${Utils.escapeHtml(s.company_name || '')}">
+          <input type="hidden" name="greeting_name" value="${Utils.escapeHtml(s.greeting_name || '')}">
+          <input type="hidden" name="survey_intro" value="${Utils.escapeHtml(s.survey_intro || '')}">
 
           <div style="border-top:1px solid var(--gray-100);margin:20px 0;padding-top:20px;">
             <h4 style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:14px;color:var(--gray-700);">

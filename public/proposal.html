@@ -375,11 +375,19 @@
               ${infoItems.filter(i => i !== fd.job).length > 0 ? '<span style="background:#f1f5f9;color:#475569;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:700;">' + infoItems.filter(i => i !== fd.job).join(' / ') + '</span>' : ''}
             </div>
           </div>
-          ${fd.address ? '<div style="font-size:14px;color:#64748b;background:#f8fafc;padding:8px 12px;border-radius:8px;margin-bottom:10px;word-break:break-all;">&#128205; ' + escapeHtml(fd.address) + (!fd.hideAddressDetail && fd.addressDetail ? ' ' + escapeHtml(fd.addressDetail) : '') + '</div>' : ''}
+          ${fd.address ? '<div style="font-size:14px;color:#64748b;background:#f8fafc;padding:8px 12px;border-radius:8px;margin-bottom:10px;word-break:break-all;">&#128205; ' + escapeHtml(fd.address) + (fd.addressDetail ? ' ' + escapeHtml(fd.addressDetail) : '') + '</div>' : ''}
           ${tags.length > 0 ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">' + tags.map(t => '<span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;color:' + t.color + ';background:' + t.bg + ';">' + t.label + '</span>').join('') + '</div>' : ''}
           ${policyAnniversaryText ? '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;margin-top:6px;"><span style="font-size:15px;">&#128197;</span><div><div style="font-size:12px;color:#92400e;font-weight:700;">보험 상령일</div><div style="font-size:15px;color:#78350f;font-weight:800;">' + policyAnniversaryText + '</div></div></div>' : ''}
         </div>
       `;
+
+      // 메모 카드 (Customer Info Card 아래)
+      if (fd.memoTitle || fd.memoContent) {
+        html += '<div style="background:white;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.04);border:1px solid rgba(241,245,249,0.5);">';
+        html += '<div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:10px;display:flex;align-items:center;"><div style="width:28px;height:28px;border-radius:50%;background:#eef2ff;display:flex;align-items:center;justify-content:center;margin-right:8px;"><span style="color:#6366f1;font-size:15px;">&#128221;</span></div>' + (fd.memoTitle ? escapeHtml(fd.memoTitle) : '메모') + '</div>';
+        if (fd.memoContent) html += '<div style="font-size:14px;color:#475569;line-height:1.7;white-space:pre-wrap;background:#f8fafc;padding:14px;border-radius:12px;border:1px solid #f1f5f9;">' + escapeHtml(fd.memoContent) + '</div>';
+        html += '</div>';
+      }
 
       // ===== REFERENCE LINKS (bookmark style) =====
       if (fd.showLinks && referenceLinks.length > 0) {

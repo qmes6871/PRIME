@@ -312,9 +312,9 @@ const ConsultationPage = {
     return `
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
         <div>
-          <button class="btn btn-secondary btn-sm" onclick="App.navigate('consultation')" style="margin-bottom:8px;border-radius:6px;">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-            새 제안서
+          <button class="btn btn-secondary btn-sm" onclick="ConsultationPage.resetProposalFields()" style="margin-bottom:8px;border-radius:6px;color:#dc2626;border-color:#fecaca;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h5M20 20v-5h-5"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+            초기화
           </button>
           <h1 class="page-title" style="font-size:22px;">${Utils.escapeHtml(customerName)}님 제안서</h1>
           <p class="page-subtitle">${Utils.escapeHtml(customerName)}님 맞춤 보험 상담</p>
@@ -351,7 +351,6 @@ const ConsultationPage = {
                   <svg width="14" height="14" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 </span>
                 <span style="font-size:15px;font-weight:700;color:var(--gray-800);">내 메모</span>
-                <span style="font-size:11px;color:var(--gray-400);">미리보기에 표시되지 않음</span>
               </div>
               <svg width="16" height="16" fill="none" stroke="#9ca3af" stroke-width="2" viewBox="0 0 24 24" style="transition:transform 0.2s;${this._memoOpen ? 'transform:rotate(180deg);' : ''}"><path d="M19 9l-7 7-7-7"/></svg>
             </div>
@@ -405,19 +404,13 @@ const ConsultationPage = {
             </div>
             <div class="grid-2">
               <div class="form-group">
-                <label class="form-label" style="display:flex;align-items:center;gap:8px;">
-                  주소
-                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:var(--gray-500);cursor:pointer;">
-                    <input type="checkbox" id="c-hide-address-detail" ${this._formData.hideAddressDetail ? 'checked' : ''} onchange="ConsultationPage.toggleHideAddressDetail()" style="accent-color:#6366f1;width:14px;height:14px;">
-                    상세주소 숨김
-                  </label>
-                </label>
+                <label class="form-label">주소</label>
                 <div style="display:flex;gap:6px;">
                   <input type="text" class="form-input" id="c-address" value="${Utils.escapeHtml(this._formData.address)}" placeholder="주소 검색" style="border-radius:10px;flex:1;background:var(--gray-50);" readonly>
                   <button type="button" class="btn btn-secondary btn-sm" onclick="Utils.searchAddress(function(addr){document.getElementById('c-address').value=addr;ConsultationPage.autoSave();})" style="white-space:nowrap;height:38px;border-radius:10px;">검색</button>
                 </div>
               </div>
-              <div class="form-group" id="c-address-detail-group" style="${this._formData.hideAddressDetail ? 'display:none;' : ''}">
+              <div class="form-group" id="c-address-detail-group">
                 <label class="form-label">상세주소</label>
                 <input type="text" class="form-input" id="c-address-detail" value="${Utils.escapeHtml(this._formData.addressDetail)}" oninput="ConsultationPage.autoSave()" placeholder="동/호수 등" style="border-radius:10px;">
               </div>
@@ -784,13 +777,11 @@ const ConsultationPage = {
             <div style="display:flex;flex-direction:column;gap:10px;">
               ${cat.fields.map(f => this._renderCoverageField(cat.key, f, data[f.key] || '')).join('')}
             </div>
-            ${filledCount > 0 ? `
-              <div style="margin-top:12px;text-align:right;">
-                <button onclick="event.stopPropagation();ConsultationPage.clearCoverageCategory('${cat.key}')" style="padding:4px 12px;border-radius:8px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;">
-                  초기화
-                </button>
-              </div>
-            ` : ''}
+            <div id="coverage-reset-${cat.key}" style="${filledCount > 0 ? '' : 'display:none;'}margin-top:12px;text-align:right;">
+              <button onclick="event.stopPropagation();ConsultationPage.clearCoverageCategory('${cat.key}')" style="padding:4px 12px;border-radius:8px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;">
+                초기화
+              </button>
+            </div>
           </div>
         ` : ''}
       </div>
@@ -877,10 +868,79 @@ const ConsultationPage = {
     this._refreshPreview();
   },
 
+  resetProposalFields() {
+    if (!confirm('고객 기본 정보를 제외한 모든 필드를 초기화하시겠습니까?')) return;
+    // 고객 기본 정보 보존
+    const keep = {
+      birthdate: this._formData.birthdate,
+      gender: this._formData.gender,
+      job: this._formData.job,
+      address: this._formData.address,
+      addressDetail: this._formData.addressDetail
+    };
+    // 나머지 필드 초기화
+    this._formData = {
+      ...keep,
+      tags: { children: false, driving: false, pet: false, homeowner: false },
+      chronicDiseases: { hypertension: false, hyperlipidemia: false, diabetes: false },
+      showLinks: false,
+      showHealthLinks: false,
+      showRemodelLinks: false,
+      showBrochureLinks: false,
+      referenceLinks: [],
+      healthLinks: [],
+      remodelLinks: [],
+      brochureLinks: [],
+      healthChecks: { checkup: false, recent3m: false, recheck1y: false, general5y: false, disease11: false },
+      healthDetails: { checkup: '', recent3m: '', recheck1y: '', general5y: '', disease11: '' },
+      totalPremium: '',
+      premiumEval: '',
+      expertComment: '',
+      existingPolicies: [],
+      urgentItem: '',
+      proposalReason: '',
+      recommendedPlans: [],
+      coverageAnalysis: {},
+      sectionImages: [],
+      memoTitle: '',
+      memoContent: ''
+    };
+    this._existingPolicies = [];
+    this._recommendedPlans = [];
+    this._referenceLinks = [];
+    this._healthLinks = [];
+    this._remodelLinks = [];
+    this._brochureLinks = [];
+    this._coverageOpenSections = {};
+    // 대기 중인 autoSave 취소
+    clearTimeout(this._autoSaveTimer);
+    // 즉시 서버에 저장 후 페이지 다시 렌더링
+    const id = this.currentConsultation.id;
+    const proposalJson = JSON.stringify(this._formData);
+    API.updateConsultation(id, {
+      proposal_html: proposalJson,
+      progress_memo: '',
+      checklist: this.currentConsultation.checklist || {}
+    }).then(() => {
+      App.navigate('consultation', { consultationId: id });
+    });
+  },
+
   updateCoverageField(catKey, fieldKey, value) {
     if (!this._formData.coverageAnalysis) this._formData.coverageAnalysis = {};
     if (!this._formData.coverageAnalysis[catKey]) this._formData.coverageAnalysis[catKey] = {};
     this._formData.coverageAnalysis[catKey][fieldKey] = value;
+    // 초기화 버튼 즉시 표시/숨김
+    const resetBtn = document.getElementById('coverage-reset-' + catKey);
+    if (resetBtn) {
+      const cat = this._coverageCategories.find(c => c.key === catKey);
+      const data = this._formData.coverageAnalysis[catKey] || {};
+      const filledCount = cat ? cat.fields.filter(f => {
+        const v = data[f.key];
+        return v !== undefined && v !== '' && v !== null;
+      }).length : 0;
+      resetBtn.style.display = filledCount > 0 ? '' : 'none';
+    }
     this.autoSave();
   },
 
@@ -1245,7 +1305,7 @@ const ConsultationPage = {
                   ${infoItems.length > 0 ? `<span style="background:#f1f5f9;color:#475569;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:700;">${infoItems.filter(i => i !== fd.job).join(' / ')}</span>` : ''}
                 </div>
               </div>
-              ${fd.address ? `<div style="font-size:14px;color:#64748b;background:#f8fafc;padding:8px 12px;border-radius:8px;margin-bottom:10px;word-break:break-all;">&#128205; ${Utils.escapeHtml(fd.address)}${!fd.hideAddressDetail && fd.addressDetail ? ' ' + Utils.escapeHtml(fd.addressDetail) : ''}</div>` : ''}
+              ${fd.address ? `<div style="font-size:14px;color:#64748b;background:#f8fafc;padding:8px 12px;border-radius:8px;margin-bottom:10px;word-break:break-all;">&#128205; ${Utils.escapeHtml(fd.address)}${fd.addressDetail ? ' ' + Utils.escapeHtml(fd.addressDetail) : ''}</div>` : ''}
               ${tagLabels.length > 0 ? `
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
                   ${tagLabels.map(t => `<span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;color:${t.color};background:${t.bg};">${t.label}</span>`).join('')}
@@ -1258,6 +1318,17 @@ const ConsultationPage = {
                 return '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;margin-top:6px;"><span style="font-size:15px;">&#128197;</span><div><div style="font-size:12px;color:#92400e;font-weight:700;">보험 상령일</div><div style="font-size:15px;color:#78350f;font-weight:800;">' + y + '년 ' + parseInt(m) + '월 ' + parseInt(d) + '일</div></div></div>';
               })() : ''}
             </div>
+
+            <!-- Memo Card -->
+            ${fd.memoTitle || fd.memoContent ? `
+              <div style="background:white;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.04);border:1px solid rgba(241,245,249,0.5);">
+                <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:10px;display:flex;align-items:center;">
+                  <div style="width:28px;height:28px;border-radius:50%;background:#eef2ff;display:flex;align-items:center;justify-content:center;margin-right:8px;"><span style="color:#6366f1;font-size:15px;">&#128221;</span></div>
+                  ${fd.memoTitle ? Utils.escapeHtml(fd.memoTitle) : '메모'}
+                </div>
+                ${fd.memoContent ? `<div style="font-size:14px;color:#475569;line-height:1.7;white-space:pre-wrap;background:#f8fafc;padding:14px;border-radius:12px;border:1px solid #f1f5f9;">${Utils.escapeHtml(fd.memoContent)}</div>` : ''}
+              </div>
+            ` : ''}
 
             <!-- Reference Links (bookmark style) -->
             ${(fd.showLinks && this._referenceLinks.filter(l => l.title || l.url).length > 0) ? `
@@ -1647,13 +1718,6 @@ const ConsultationPage = {
     App.navigate('consultation', { consultationId: this.currentConsultation.id });
   },
 
-  toggleHideAddressDetail() {
-    this._formData.hideAddressDetail = document.getElementById('c-hide-address-detail')?.checked || false;
-    const group = document.getElementById('c-address-detail-group');
-    if (group) group.style.display = this._formData.hideAddressDetail ? 'none' : '';
-    this.autoSave();
-    this._refreshPreview();
-  },
 
   toggleTag(key) {
     if (!this._formData.tags) this._formData.tags = {};
@@ -2263,7 +2327,6 @@ const ConsultationPage = {
       job: jobEl ? jobEl.value : this._formData.job,
       address: addressEl ? addressEl.value : this._formData.address,
       addressDetail: addressDetailEl ? addressDetailEl.value : this._formData.addressDetail,
-      hideAddressDetail: document.getElementById('c-hide-address-detail')?.checked || false,
       memoTitle: document.getElementById('c-memo-title')?.value ?? this._formData.memoTitle ?? '',
       memoContent: document.getElementById('c-memo-content')?.value ?? this._formData.memoContent ?? '',
       totalPremium: totalPremiumEl ? Utils.getMoneyValue(totalPremiumEl) : this._formData.totalPremium,
@@ -2334,9 +2397,14 @@ const ConsultationPage = {
   async _renderNewPage(customerId) {
     this._newConsultationCustomerId = customerId || null;
 
-    // 고객이 이미 지정되어 있으면 바로 상담 생성 후 에디터로
+    // 고객이 이미 지정되어 있으면 기존 제안서 열기, 없으면 새로 생성
     if (customerId) {
       try {
+        const data = await API.getConsultations({ customer_id: parseInt(customerId) });
+        const existing = (data.consultations || [])[0];
+        if (existing) {
+          return await this.renderEditor(existing.id);
+        }
         const { consultation } = await API.createConsultation({
           customer_id: parseInt(customerId),
           title: '새 상담'
@@ -2429,6 +2497,13 @@ const ConsultationPage = {
     try {
       const btn = document.getElementById('nc-start-btn');
       if (btn) { btn.disabled = true; btn.textContent = '생성 중...'; }
+      // 기존 제안서가 있으면 열기
+      const data = await API.getConsultations({ customer_id: parseInt(customerId) });
+      const existing = (data.consultations || [])[0];
+      if (existing) {
+        App.navigate('consultation', { consultationId: existing.id });
+        return;
+      }
       const { consultation } = await API.createConsultation({
         customer_id: parseInt(customerId),
         title: '새 상담'
@@ -2552,6 +2627,14 @@ const ConsultationPage = {
     }
 
     try {
+      // 기존 제안서가 있으면 열기
+      const data = await API.getConsultations({ customer_id: parseInt(customerId) });
+      const existing = (data.consultations || [])[0];
+      if (existing) {
+        Modal.close();
+        App.navigate('consultation', { consultationId: existing.id });
+        return;
+      }
       const { consultation } = await API.createConsultation({
         customer_id: parseInt(customerId),
         title: '새 상담'
@@ -2565,10 +2648,6 @@ const ConsultationPage = {
 
   async shareConsultation(id) {
     try {
-      // 공유 전 히스토리 자동 저장
-      try {
-        await API.createConsultationHistory(id, { save_type: 'manual', label: '공유 전 저장' });
-      } catch (e) {}
       const result = await API.shareConsultation(id);
       showToast('공유링크가 생성되었습니다!', 'success');
       await Utils.copyToClipboard(location.origin + result.share_url);
@@ -2611,11 +2690,11 @@ const ConsultationPage = {
               return `
                 <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-100);">
                   <div style="flex:1;">
+                    ${h.label ? `<div style="font-size:13px;font-weight:600;color:var(--gray-800);margin-bottom:2px;">${Utils.escapeHtml(h.label)}</div>` : ''}
                     <div style="display:flex;align-items:center;gap:6px;">
                       <span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${badgeColor}15;color:${badgeColor};">${badgeLabel}</span>
-                      <span style="font-size:13px;font-weight:600;color:var(--gray-800);">${date}</span>
+                      <span style="font-size:12px;color:var(--gray-500);">${date}</span>
                     </div>
-                    ${h.label ? `<div style="font-size:12px;color:var(--gray-500);margin-top:2px;">${Utils.escapeHtml(h.label)}</div>` : ''}
                   </div>
                   <button class="btn btn-sm" onclick="ConsultationPage.restoreFromHistory(${id},${h.id})" style="border-radius:8px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;padding:4px 12px;font-size:12px;font-weight:600;">
                     복원
@@ -2645,8 +2724,14 @@ const ConsultationPage = {
 
   async manualSave() {
     if (!this.currentConsultation) return;
+    const label = prompt('저장 이름을 입력하세요.');
+    if (label === null) return;
+    if (!label.trim()) {
+      showToast('저장 이름을 입력해주세요.', 'error');
+      return;
+    }
     try {
-      await API.createConsultationHistory(this.currentConsultation.id, { save_type: 'manual' });
+      await API.createConsultationHistory(this.currentConsultation.id, { save_type: 'manual', label: label.trim() });
       showToast('저장되었습니다.', 'success');
     } catch (err) {
       showToast(err.message, 'error');

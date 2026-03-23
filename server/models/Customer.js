@@ -46,7 +46,7 @@ module.exports = (sequelize) => {
       comment: '상령일'
     },
     consult_date: {
-      type: DataTypes.DATE,
+      type: DataTypes.STRING(50),
       comment: '상담 예정일시'
     }
   }, {

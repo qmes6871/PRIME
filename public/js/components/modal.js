@@ -36,11 +36,12 @@ const Modal = {
   },
 
   confirm(message, onConfirm) {
+    this._onConfirm = onConfirm;
     this.show(
       '확인',
       `<p style="font-size:14px;color:var(--gray-600)">${message}</p>`,
       `<button class="btn btn-secondary" onclick="Modal.close()">취소</button>
-       <button class="btn btn-primary" onclick="Modal.close(); (${onConfirm.toString()})()">확인</button>`
+       <button class="btn btn-primary" onclick="Modal.close(); Modal._onConfirm();">확인</button>`
     );
   }
 };

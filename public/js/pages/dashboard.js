@@ -122,7 +122,7 @@ const DashboardPage = {
             <strong style="font-size:13px;cursor:pointer;color:var(--blue);" onclick="DashboardPage.showCustomerDetail(${c.id})">${Utils.escapeHtml(c.name)}</strong>
             <span class="status-badge ${Utils.getStatusClass(c.status)}" style="font-size:10px;padding:1px 6px;cursor:pointer;" onclick="DashboardPage.cycleStatus(${c.id}, '${c.status}')">${c.status}</span>
           </div>
-          <div style="font-size:11px;color:var(--gray-400);">${Utils.formatPhone(c.phone)} ${c.birth_date ? '· ' + Utils.formatDate(c.birth_date) : ''}${c.address ? ' · ' + (c.address.split('|')[0].match(/^.*?[시군구]/)?.[0] || '') : ''}${c.consult_date ? ' · <span style="color:#6366f1;">' + new Date(c.consult_date).toLocaleString('ko-KR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) + '</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--gray-400);">${Utils.formatPhone(c.phone)} ${c.birth_date ? '· ' + Utils.formatDate(c.birth_date) : ''}${c.address ? ' · ' + (c.address.split('|')[0].match(/^.*?[시군구]/)?.[0] || '') : ''}${c.consult_date ? ' · <span style="color:#6366f1;">' + Utils.escapeHtml(c.consult_date) + '</span>' : ''}</div>
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0;">
           <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;border-radius:6px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;" onclick="DashboardPage.openProposal(${c.id})" title="제안서">제안서</button>
@@ -230,7 +230,7 @@ const DashboardPage = {
               <td>
                 <span class="status-badge ${Utils.getStatusClass(c.status)}" style="cursor:pointer;" onclick="DashboardPage.cycleStatus(${c.id}, '${c.status}')">${c.status}</span>
               </td>
-              <td style="font-size:12px;color:var(--gray-600);">${c.consult_date ? new Date(c.consult_date).toLocaleString('ko-KR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</td>
+              <td style="font-size:12px;color:var(--gray-600);">${c.consult_date ? Utils.escapeHtml(c.consult_date) : ''}</td>
               <td>${Utils.formatDate(c.created_at)}</td>
               <td>${Utils.formatDate(c.updated_at)}</td>
               <td>
@@ -365,7 +365,7 @@ const DashboardPage = {
           </div>
           <div class="form-group">
             <label class="form-label">상담 예정일시</label>
-            <input type="datetime-local" class="form-input" name="consult_date">
+            <input type="text" class="form-input" name="consult_date" placeholder="예: 3/25 오후 2시">
           </div>
         </div>
         <div class="grid-2">
@@ -464,7 +464,7 @@ const DashboardPage = {
             </div>
             <div class="form-group">
               <label class="form-label">상담 예정일시</label>
-              <input type="datetime-local" class="form-input" name="consult_date" value="${customer.consult_date ? new Date(customer.consult_date).toISOString().slice(0,16) : ''}">
+              <input type="text" class="form-input" name="consult_date" value="${Utils.escapeHtml(customer.consult_date || '')}" placeholder="예: 3/25 오후 2시">
             </div>
           </div>
           <div class="grid-2">
@@ -573,7 +573,13 @@ const DashboardPage = {
   },
 
   deleteCustomer(id, name) {
-    Modal.confirm(`"${name}" 고객을 삭제하시겠습니까?`, async () => {
+    const pw = prompt(`"${name}" 고객을 삭제하려면 비밀번호를 입력하세요.`);
+    if (pw === null) return;
+    if (pw !== '0119') {
+      showToast('비밀번호가 일치하지 않습니다.', 'error');
+      return;
+    }
+    Modal.confirm(`"${name}" 고객을 정말 삭제하시겠습니까?`, async () => {
       try {
         await API.deleteCustomer(id);
         showToast('삭제되었습니다.', 'success');
