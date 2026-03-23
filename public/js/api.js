@@ -53,7 +53,13 @@ const API = {
       throw new Error('인증이 만료되었습니다.');
     }
 
-    const json = await res.json();
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (e) {
+      throw new Error('서버 응답 오류 (status: ' + res.status + ')');
+    }
 
     if (!res.ok) {
       throw new Error(json.error || '요청에 실패했습니다.');
@@ -100,6 +106,10 @@ const API = {
   updateConsultation(id, data) { return this.put(`/consultations/${id}`, data); },
   deleteConsultation(id) { return this.delete(`/consultations/${id}`); },
   shareConsultation(id) { return this.post(`/consultations/${id}/share`); },
+  getConsultationHistory(id) { return this.get(`/consultations/${id}/history`); },
+  getConsultationHistoryDetail(id, historyId) { return this.get(`/consultations/${id}/history/${historyId}`); },
+  createConsultationHistory(id, data) { return this.post(`/consultations/${id}/history`, data); },
+  restoreConsultationHistory(id, historyId) { return this.post(`/consultations/${id}/history/${historyId}/restore`); },
 
   // Templates
   getTemplates(params = {}) {
@@ -169,7 +179,13 @@ const API = {
       App.navigate('login');
       throw new Error('인증이 만료되었습니다.');
     }
-    const json = await res.json();
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (e) {
+      throw new Error('서버 응답 오류 (status: ' + res.status + ')');
+    }
     if (!res.ok) throw new Error(json.error || '업로드에 실패했습니다.');
     return json;
   },

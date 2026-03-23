@@ -11,6 +11,33 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// 제안서 페이지 - 카카오톡 공유 시 고객명 포함 title/OG 태그 동적 생성
+const { Consultation, Customer } = require('./models');
+const fs = require('fs');
+app.get('/prime/proposal.html', async (req, res, next) => {
+  const token = req.query.token;
+  if (!token) return next();
+  try {
+    const consultation = await Consultation.findOne({
+      where: { share_token: token },
+      include: [{ model: Customer, attributes: ['name'] }]
+    });
+    const customerName = consultation?.Customer?.name || '';
+    const title = customerName ? `${customerName} 고객님을 위한 맞춤 컨설팅 리포트` : '맞춤 컨설팅 리포트';
+    let html = fs.readFileSync(path.join(__dirname, '..', 'public', 'proposal.html'), 'utf-8');
+    html = html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
+    // OG 메타 태그 추가
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const ogTags = `<meta property="og:title" content="${title}">\n  <meta property="og:description" content="보험 전문가가 준비한 맞춤 컨설팅 리포트입니다.">\n  <meta property="og:image" content="${baseUrl}/prime/images/og-proposal.png">\n  <meta property="og:type" content="website">`;
+    html = html.replace('</head>', `  ${ogTags}\n</head>`);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.send(html);
+  } catch (err) {
+    next();
+  }
+});
+
 // Static files (no cache for JS/CSS during development)
 app.use('/prime', express.static(path.join(__dirname, '..', 'public'), {
   etag: false,

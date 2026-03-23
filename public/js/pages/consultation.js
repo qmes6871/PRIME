@@ -8,7 +8,11 @@ const ConsultationPage = {
   _existingPolicies: [],
   _recommendedPlans: [],
   _referenceLinks: [],
+  _healthLinks: [],
+  _remodelLinks: [],
+  _brochureLinks: [],
   _coverageOpenSections: {},
+  _memoOpen: false,
 
   // Health check items definition
   _healthItems: [
@@ -276,7 +280,13 @@ const ConsultationPage = {
       tags: savedData.tags || { children: false, driving: false, pet: false, homeowner: false },
       chronicDiseases: savedData.chronicDiseases || { hypertension: false, hyperlipidemia: false, diabetes: false },
       showLinks: savedData.showLinks || false,
+      showHealthLinks: savedData.showHealthLinks || false,
+      showRemodelLinks: savedData.showRemodelLinks || false,
+      showBrochureLinks: savedData.showBrochureLinks || false,
       referenceLinks: savedData.referenceLinks || [],
+      healthLinks: savedData.healthLinks || [],
+      remodelLinks: savedData.remodelLinks || [],
+      brochureLinks: savedData.brochureLinks || [],
       healthChecks: savedData.healthChecks || { checkup: false, recent3m: false, recheck1y: false, general5y: false, disease11: false },
       healthDetails: savedData.healthDetails || { checkup: '', recent3m: '', recheck1y: '', general5y: '', disease11: '' },
       totalPremium: savedData.totalPremium || '',
@@ -292,6 +302,9 @@ const ConsultationPage = {
     this._existingPolicies = this._formData.existingPolicies;
     this._recommendedPlans = this._formData.recommendedPlans;
     this._referenceLinks = this._formData.referenceLinks;
+    this._healthLinks = this._formData.healthLinks;
+    this._remodelLinks = this._formData.remodelLinks;
+    this._brochureLinks = this._formData.brochureLinks;
 
     const checklist = consultation.checklist || {};
     const customerName = consultation.Customer?.name || '';
@@ -311,6 +324,14 @@ const ConsultationPage = {
             <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gray-400);margin-right:4px;"></span>
             자동저장 대기
           </span>
+          <button class="btn btn-sm" style="border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;display:flex;align-items:center;gap:4px;padding:6px 14px;" onclick="ConsultationPage.manualSave()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+            저장
+          </button>
+          <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px solid var(--gray-200);display:flex;align-items:center;gap:4px;" onclick="ConsultationPage.showHistory()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            이력
+          </button>
           <button class="btn btn-success" style="border-radius:8px;box-shadow:0 2px 8px rgba(16,185,129,0.3);" onclick="ConsultationPage.shareConsultation(${consultationId})">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
             공유링크
@@ -321,6 +342,26 @@ const ConsultationPage = {
       <div class="consultation-layout" style="grid-template-columns:1fr 420px;gap:28px;">
         <!-- LEFT: Form Area -->
         <div style="display:flex;flex-direction:column;gap:0;">
+
+          <!-- Section 0: 메모 -->
+          <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;border-left:3px solid #f59e0b;">
+            <div onclick="ConsultationPage.toggleMemoSection()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:8px;">
+                  <svg width="14" height="14" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </span>
+                <span style="font-size:15px;font-weight:700;color:var(--gray-800);">내 메모</span>
+                <span style="font-size:11px;color:var(--gray-400);">미리보기에 표시되지 않음</span>
+              </div>
+              <svg width="16" height="16" fill="none" stroke="#9ca3af" stroke-width="2" viewBox="0 0 24 24" style="transition:transform 0.2s;${this._memoOpen ? 'transform:rotate(180deg);' : ''}"><path d="M19 9l-7 7-7-7"/></svg>
+            </div>
+            ${this._memoOpen ? `
+              <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;">
+                <input type="text" class="form-input" id="c-memo-title" value="${Utils.escapeHtml(this._formData.memoTitle || '')}" oninput="ConsultationPage.autoSave()" placeholder="제목 (예: 이번 상담 목표)" style="border-radius:10px;font-weight:600;">
+                <textarea class="form-input" id="c-memo-content" rows="3" oninput="ConsultationPage.autoSave()" placeholder="메모 내용을 자유롭게 작성하세요..." style="border-radius:10px;font-size:13px;line-height:1.7;">${Utils.escapeHtml(this._formData.memoContent || '')}</textarea>
+              </div>
+            ` : ''}
+          </div>
 
           <!-- Section 1: 고객 기본 정보 -->
           <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;">
@@ -364,13 +405,19 @@ const ConsultationPage = {
             </div>
             <div class="grid-2">
               <div class="form-group">
-                <label class="form-label">주소</label>
+                <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+                  주소
+                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:var(--gray-500);cursor:pointer;">
+                    <input type="checkbox" id="c-hide-address-detail" ${this._formData.hideAddressDetail ? 'checked' : ''} onchange="ConsultationPage.toggleHideAddressDetail()" style="accent-color:#6366f1;width:14px;height:14px;">
+                    상세주소 숨김
+                  </label>
+                </label>
                 <div style="display:flex;gap:6px;">
                   <input type="text" class="form-input" id="c-address" value="${Utils.escapeHtml(this._formData.address)}" placeholder="주소 검색" style="border-radius:10px;flex:1;background:var(--gray-50);" readonly>
                   <button type="button" class="btn btn-secondary btn-sm" onclick="Utils.searchAddress(function(addr){document.getElementById('c-address').value=addr;ConsultationPage.autoSave();})" style="white-space:nowrap;height:38px;border-radius:10px;">검색</button>
                 </div>
               </div>
-              <div class="form-group">
+              <div class="form-group" id="c-address-detail-group" style="${this._formData.hideAddressDetail ? 'display:none;' : ''}">
                 <label class="form-label">상세주소</label>
                 <input type="text" class="form-input" id="c-address-detail" value="${Utils.escapeHtml(this._formData.addressDetail)}" oninput="ConsultationPage.autoSave()" placeholder="동/호수 등" style="border-radius:10px;">
               </div>
@@ -443,6 +490,29 @@ const ConsultationPage = {
                 ${this._renderChronicToggle('diabetes', '당뇨', '#d97706', '#fffbeb', '#fde68a')}
               </div>
             </div>
+
+            <!-- 고지 의무 관련 영상/자료 첨부 -->
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="font-size:13px;font-weight:600;color:var(--gray-700);display:flex;align-items:center;gap:6px;">
+                  <svg width="14" height="14" fill="none" stroke="#db2777" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                  고지 의무 관련 영상/자료 첨부
+                </div>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--gray-500);">
+                  <input type="checkbox" id="c-show-health-links" ${this._formData.showHealthLinks ? 'checked' : ''} onchange="ConsultationPage.toggleHealthLinks()" style="accent-color:#db2777;">
+                  사용
+                </label>
+              </div>
+              <div id="health-links-container" style="${this._formData.showHealthLinks ? '' : 'display:none;'}">
+                <div id="health-links-list">
+                  ${this._healthLinks.map((link, i) => this._renderHealthLinkRow(i, link)).join('')}
+                </div>
+                <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px dashed var(--gray-300);color:var(--gray-500);margin-top:8px;" onclick="ConsultationPage.addHealthLink()">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                  링크 추가
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Section 5: 기존 보험 분석 -->
@@ -496,6 +566,29 @@ const ConsultationPage = {
                 ${this._existingPolicies.map((p, i) => this._renderExistingPolicy(i, p)).join('')}
               </div>
             </div>
+
+            <!-- 리모델링 사례/영상 첨부 -->
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="font-size:13px;font-weight:600;color:var(--gray-700);display:flex;align-items:center;gap:6px;">
+                  <svg width="14" height="14" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                  리모델링 사례/영상 첨부
+                </div>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--gray-500);">
+                  <input type="checkbox" id="c-show-remodel-links" ${this._formData.showRemodelLinks ? 'checked' : ''} onchange="ConsultationPage.toggleRemodelLinks()" style="accent-color:#16a34a;">
+                  사용
+                </label>
+              </div>
+              <div id="remodel-links-container" style="${this._formData.showRemodelLinks ? '' : 'display:none;'}">
+                <div id="remodel-links-list">
+                  ${this._remodelLinks.map((link, i) => this._renderRemodelLinkRow(i, link)).join('')}
+                </div>
+                <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px dashed var(--gray-300);color:var(--gray-500);margin-top:8px;" onclick="ConsultationPage.addRemodelLink()">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                  링크 추가
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Section 5.5: 보장분석 (기존보험분석과 연속) -->
@@ -524,7 +617,7 @@ const ConsultationPage = {
               </h3>
             </div>
             <div class="form-group">
-              <label class="form-label">가장 시급한 보완 내역</label>
+              <label class="form-label">제목(추천 보험)</label>
               <input type="text" class="form-input" id="c-urgent" value="${Utils.escapeHtml(this._formData.urgentItem)}" oninput="ConsultationPage.autoSave()" placeholder="예: 실손보험 미가입, 암보험 보장 부족 등" style="border-radius:10px;">
             </div>
             <div class="form-group">
@@ -541,6 +634,29 @@ const ConsultationPage = {
               </div>
               <div id="recommended-plans-list">
                 ${this._recommendedPlans.map((p, i) => this._renderRecommendedPlan(i, p)).join('')}
+              </div>
+            </div>
+
+            <!-- 추천 상품 브로셔/영상 첨부 -->
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="font-size:13px;font-weight:600;color:var(--gray-700);display:flex;align-items:center;gap:6px;">
+                  <svg width="14" height="14" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                  추천 상품 브로셔/영상 첨부
+                </div>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--gray-500);">
+                  <input type="checkbox" id="c-show-brochure-links" ${this._formData.showBrochureLinks ? 'checked' : ''} onchange="ConsultationPage.toggleBrochureLinks()" style="accent-color:#d97706;">
+                  사용
+                </label>
+              </div>
+              <div id="brochure-links-container" style="${this._formData.showBrochureLinks ? '' : 'display:none;'}">
+                <div id="brochure-links-list">
+                  ${this._brochureLinks.map((link, i) => this._renderBrochureLinkRow(i, link)).join('')}
+                </div>
+                <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px dashed var(--gray-300);color:var(--gray-500);margin-top:8px;" onclick="ConsultationPage.addBrochureLink()">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                  링크 추가
+                </button>
               </div>
             </div>
           </div>
@@ -668,6 +784,13 @@ const ConsultationPage = {
             <div style="display:flex;flex-direction:column;gap:10px;">
               ${cat.fields.map(f => this._renderCoverageField(cat.key, f, data[f.key] || '')).join('')}
             </div>
+            ${filledCount > 0 ? `
+              <div style="margin-top:12px;text-align:right;">
+                <button onclick="event.stopPropagation();ConsultationPage.clearCoverageCategory('${cat.key}')" style="padding:4px 12px;border-radius:8px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;">
+                  초기화
+                </button>
+              </div>
+            ` : ''}
           </div>
         ` : ''}
       </div>
@@ -740,6 +863,20 @@ const ConsultationPage = {
     }
   },
 
+  clearCoverageCategory(catKey) {
+    if (this._formData.coverageAnalysis && this._formData.coverageAnalysis[catKey]) {
+      delete this._formData.coverageAnalysis[catKey];
+    }
+    // 섹션을 닫아서 _collectCoverageFields가 DOM에서 값을 다시 읽지 않도록 함
+    this._coverageOpenSections[catKey] = false;
+    const container = document.getElementById('coverage-analysis-container');
+    if (container) {
+      container.innerHTML = this._coverageCategories.map(cat => this._renderCoverageCategory(cat)).join('');
+    }
+    this.autoSave();
+    this._refreshPreview();
+  },
+
   updateCoverageField(catKey, fieldKey, value) {
     if (!this._formData.coverageAnalysis) this._formData.coverageAnalysis = {};
     if (!this._formData.coverageAnalysis[catKey]) this._formData.coverageAnalysis[catKey] = {};
@@ -754,7 +891,9 @@ const ConsultationPage = {
       if (!this._formData.coverageAnalysis[cat.key]) this._formData.coverageAnalysis[cat.key] = {};
       cat.fields.forEach(f => {
         const el = document.getElementById(`ca-${cat.key}-${f.key}`);
-        if (el) this._formData.coverageAnalysis[cat.key][f.key] = el.value;
+        if (el) {
+          this._formData.coverageAnalysis[cat.key][f.key] = f.type === 'amount' ? Utils.getMoneyValue(el) : el.value;
+        }
       });
     });
   },
@@ -762,19 +901,31 @@ const ConsultationPage = {
   // ==================== Link Row Renderer ====================
   _renderLinkRow(index, link) {
     return `
-      <div class="grid-2" style="gap:8px;margin-bottom:8px;align-items:end;" data-link-index="${index}">
-        <div class="form-group" style="margin-bottom:0;">
-          ${index === 0 ? '<label class="form-label" style="font-size:12px;">링크 제목</label>' : ''}
-          <input type="text" class="form-input" value="${Utils.escapeHtml(link.title || '')}" oninput="ConsultationPage.updateLink(${index},'title',this.value)" placeholder="제목" style="border-radius:8px;font-size:13px;">
+      <div style="display:flex;gap:8px;margin-bottom:8px;align-items:start;" data-link-index="${index}">
+        <div style="width:64px;height:64px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:pointer;position:relative;border:1px dashed ${link.thumbnail ? 'transparent' : '#cbd5e1'};" onclick="ConsultationPage.uploadLinkThumbnail(${index})">
+          ${link.thumbnail
+            ? `<img src="${Utils.escapeHtml(link.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
+            : `<div style="width:100%;height:100%;background:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                <svg width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                <span style="font-size:9px;color:#94a3b8;">썸네일</span>
+              </div>`
+          }
+          <input type="file" id="link-thumb-${index}" accept="image/*" style="display:none;" onchange="ConsultationPage.handleLinkThumbnail(${index},this)">
         </div>
-        <div style="display:flex;gap:6px;">
-          <div class="form-group" style="margin-bottom:0;flex:1;">
-            ${index === 0 ? '<label class="form-label" style="font-size:12px;">URL</label>' : ''}
-            <input type="url" class="form-input" value="${Utils.escapeHtml(link.url || '')}" oninput="ConsultationPage.updateLink(${index},'url',this.value)" placeholder="https://" style="border-radius:8px;font-size:13px;">
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+          <div class="form-group" style="margin-bottom:0;">
+            ${index === 0 ? '<label class="form-label" style="font-size:12px;">링크 제목</label>' : ''}
+            <input type="text" class="form-input" value="${Utils.escapeHtml(link.title || '')}" oninput="ConsultationPage.updateLink(${index},'title',this.value)" placeholder="제목" style="border-radius:8px;font-size:13px;">
           </div>
-          <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;align-self:${index === 0 ? 'end' : 'center'};height:38px;" onclick="ConsultationPage.removeLink(${index})">
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+          <div style="display:flex;gap:6px;">
+            <div class="form-group" style="margin-bottom:0;flex:1;">
+              ${index === 0 ? '<label class="form-label" style="font-size:12px;">URL</label>' : ''}
+              <input type="url" class="form-input" value="${Utils.escapeHtml(link.url || '')}" oninput="ConsultationPage.updateLink(${index},'url',this.value)" placeholder="https://" style="border-radius:8px;font-size:13px;">
+            </div>
+            <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;align-self:${index === 0 ? 'end' : 'center'};height:38px;" onclick="ConsultationPage.removeLink(${index})">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -992,6 +1143,7 @@ const ConsultationPage = {
     const agent = API.getAgent();
     const agentName = agent?.name || '전문가';
     const agentPosition = agent?.position || '보험설계사';
+    const agentIntro = agent?.profile_intro || '';
     const customerName = this.currentConsultation?.Customer?.name || '고객';
     const fd = this._formData;
 
@@ -1035,6 +1187,7 @@ const ConsultationPage = {
             <div style="position:relative;z-index:2;padding:180px 20px 20px;background:linear-gradient(180deg,transparent 0%,rgba(15,23,42,0.6) 50%,rgba(15,23,42,0.95) 100%);">
               <div style="color:white;font-size:20px;font-weight:700;">${Utils.escapeHtml(agentName)}</div>
               <div style="color:#a5b4fc;font-size:14px;margin-top:2px;">${Utils.escapeHtml(agentPosition)} | PRIMEASSET</div>
+              ${agentIntro ? `<div style="color:rgba(255,255,255,0.7);font-size:12px;margin-top:6px;">${Utils.escapeHtml(agentIntro)}</div>` : ''}
               <div style="display:flex;gap:8px;margin-top:16px;justify-content:center;">
                 <button style="flex:1;max-width:100px;padding:8px 4px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.15);color:white;display:flex;flex-direction:column;align-items:center;gap:4px;backdrop-filter:blur(4px);">
                   <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -1060,6 +1213,7 @@ const ConsultationPage = {
               </div>`}
             <div style="color:white;font-size:20px;font-weight:700;">${Utils.escapeHtml(agentName)}</div>
             <div style="color:#a5b4fc;font-size:14px;margin-top:2px;">${Utils.escapeHtml(agentPosition)} | PRIMEASSET</div>
+            ${agentIntro ? `<div style="color:rgba(255,255,255,0.7);font-size:12px;margin-top:6px;">${Utils.escapeHtml(agentIntro)}</div>` : ''}
             <div style="display:flex;gap:8px;margin-top:16px;justify-content:center;">
               <button style="flex:1;max-width:100px;padding:8px 4px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.15);color:white;display:flex;flex-direction:column;align-items:center;gap:4px;backdrop-filter:blur(4px);">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -1091,7 +1245,7 @@ const ConsultationPage = {
                   ${infoItems.length > 0 ? `<span style="background:#f1f5f9;color:#475569;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:700;">${infoItems.filter(i => i !== fd.job).join(' / ')}</span>` : ''}
                 </div>
               </div>
-              ${fd.address ? `<div style="font-size:14px;color:#64748b;background:#f8fafc;padding:8px 12px;border-radius:8px;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">&#128205; ${Utils.escapeHtml(fd.address)}${fd.addressDetail ? ' ' + Utils.escapeHtml(fd.addressDetail) : ''}</div>` : ''}
+              ${fd.address ? `<div style="font-size:14px;color:#64748b;background:#f8fafc;padding:8px 12px;border-radius:8px;margin-bottom:10px;word-break:break-all;">&#128205; ${Utils.escapeHtml(fd.address)}${!fd.hideAddressDetail && fd.addressDetail ? ' ' + Utils.escapeHtml(fd.addressDetail) : ''}</div>` : ''}
               ${tagLabels.length > 0 ? `
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
                   ${tagLabels.map(t => `<span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;color:${t.color};background:${t.bg};">${t.label}</span>`).join('')}
@@ -1115,7 +1269,10 @@ const ConsultationPage = {
                       ${l.url ? '<div style="font-size:12px;color:#94a3b8;margin-top:3px;display:flex;align-items:center;">&#128279; ' + Utils.escapeHtml(l.url.replace(/^https?:\/\//, '').substring(0, 30)) + '...</div>' : ''}
                     </div>
                     <div style="width:64px;height:64px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                      <svg width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                      ${l.thumbnail
+                        ? `<img src="${Utils.escapeHtml(l.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
+                        : `<svg width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>`
+                      }
                     </div>
                   </div>
                 `).join('')}
@@ -1147,6 +1304,30 @@ const ConsultationPage = {
                     </div>
                   ` : ''}
                 </div>
+                ${(fd.showHealthLinks && this._healthLinks.filter(l => l.title || l.url).length > 0) ? `
+                  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;">
+                    <div style="font-size:13px;font-weight:600;color:#db2777;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
+                      <svg width="12" height="12" fill="none" stroke="#db2777" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                      고지 의무 관련 영상/자료
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      ${this._healthLinks.filter(l => l.title || l.url).map(l => `
+                        <div style="display:flex;height:64px;background:white;border:1px solid #f1f5f9;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.02);">
+                          <div style="flex:1;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;">
+                            <div style="font-size:14px;font-weight:700;color:#1e293b;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${Utils.escapeHtml(l.title || l.url || '')}</div>
+                            ${l.url ? '<div style="font-size:12px;color:#94a3b8;margin-top:3px;display:flex;align-items:center;">&#128279; ' + Utils.escapeHtml(l.url.replace(/^https?:\/\//, '').substring(0, 30)) + '...</div>' : ''}
+                          </div>
+                          <div style="width:64px;height:64px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            ${l.thumbnail
+                              ? `<img src="${Utils.escapeHtml(l.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
+                              : `<svg width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>`
+                            }
+                          </div>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                ` : ''}
               </div>
             ` : ''}
 
@@ -1168,6 +1349,7 @@ const ConsultationPage = {
                 ` : ''}
                 ${fd.expertComment ? `<div style="font-size:14px;color:#475569;line-height:1.6;padding:12px 14px;background:#f8fafc;border-radius:12px;border:1px solid #f1f5f9;margin-bottom:12px;">${Utils.escapeHtml(fd.expertComment)}</div>` : ''}
                 ${this._renderMobilePreviewCoverageInline(fd)}
+                ${this._existingPolicies.filter(p => p.company || p.productName).length > 0 ? `<div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:8px;margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;align-items:center;gap:6px;"><span style="font-size:15px;">&#128203;</span> 상품별 보험 평가</div>` : ''}
                 ${this._existingPolicies.filter(p => p.company || p.productName).map(p => `
                   <div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:8px;background:white;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -1188,7 +1370,7 @@ const ConsultationPage = {
                         ${p.coverageChecks.map(c => `<span style="font-size:11px;padding:2px 6px;border-radius:8px;background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe;">${Utils.escapeHtml(c)}</span>`).join('')}
                       </div>
                     ` : ''}
-                    ${p.opinion ? `<div style="font-size:13px;color:#6366f1;margin-top:8px;padding:8px 10px;background:#eef2ff;border-radius:8px;">${Utils.escapeHtml(p.opinion)}</div>` : ''}
+                    ${p.opinion ? `<div style="font-size:13px;color:#16a34a;margin-top:8px;padding:8px 10px;background:#f0fdf4;border-radius:8px;">${Utils.escapeHtml(p.opinion)}</div>` : ''}
                     ${p.images && p.images.length > 0 ? `
                       <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
                         ${this._renderImageSlider(p.images, 'ep-slider-' + this._existingPolicies.indexOf(p))}
@@ -1196,6 +1378,30 @@ const ConsultationPage = {
                     ` : ''}
                   </div>
                 `).join('')}
+                ${(fd.showRemodelLinks && this._remodelLinks.filter(l => l.title || l.url).length > 0) ? `
+                  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;">
+                    <div style="font-size:13px;font-weight:600;color:#16a34a;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
+                      <svg width="12" height="12" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                      리모델링 사례/영상
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      ${this._remodelLinks.filter(l => l.title || l.url).map(l => `
+                        <div style="display:flex;height:64px;background:white;border:1px solid #f1f5f9;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.02);">
+                          <div style="flex:1;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;">
+                            <div style="font-size:14px;font-weight:700;color:#1e293b;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${Utils.escapeHtml(l.title || l.url || '')}</div>
+                            ${l.url ? '<div style="font-size:12px;color:#94a3b8;margin-top:3px;display:flex;align-items:center;">&#128279; ' + Utils.escapeHtml(l.url.replace(/^https?:\/\//, '').substring(0, 30)) + '...</div>' : ''}
+                          </div>
+                          <div style="width:64px;height:64px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            ${l.thumbnail
+                              ? `<img src="${Utils.escapeHtml(l.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
+                              : `<svg width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>`
+                            }
+                          </div>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                ` : ''}
               </div>
             ` : `${this._renderMobilePreviewCoverageInline(fd) ? `
               <div style="background:white;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.04);border:1px solid rgba(241,245,249,0.5);">
@@ -1217,7 +1423,7 @@ const ConsultationPage = {
                   </div>
                   ${fd.urgentItem ? `
                     <div style="background:#eef2ff;border:1px solid #c7d2fe;padding:12px 14px;border-radius:12px;margin-bottom:12px;">
-                      <div style="font-size:12px;font-weight:800;color:#6366f1;margin-bottom:4px;">필수 보완 타겟</div>
+                      <div style="font-size:12px;font-weight:800;color:#6366f1;margin-bottom:4px;">추천 보험</div>
                       <div style="font-size:15px;color:#1e293b;font-weight:600;">${Utils.escapeHtml(fd.urgentItem)}</div>
                     </div>
                   ` : ''}
@@ -1244,7 +1450,7 @@ const ConsultationPage = {
                         </div>
                       ` : ''}
                       ${p.highlight ? `<div style="font-size:13px;color:#059669;margin-top:8px;padding:8px 10px;background:#ecfdf5;border-radius:8px;">&#10003; ${Utils.escapeHtml(p.highlight)}</div>` : ''}
-                      ${p.opinion ? `<div style="font-size:13px;color:#6366f1;margin-top:8px;padding:8px 10px;background:#eef2ff;border-radius:8px;">${Utils.escapeHtml(p.opinion)}</div>` : ''}
+                      ${p.opinion ? `<div style="font-size:13px;color:#16a34a;margin-top:8px;padding:8px 10px;background:#f0fdf4;border-radius:8px;">${Utils.escapeHtml(p.opinion)}</div>` : ''}
                       ${p.images && p.images.length > 0 ? `
                         <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
                           ${this._renderImageSlider(p.images, 'rp-slider-' + this._recommendedPlans.indexOf(p))}
@@ -1252,6 +1458,30 @@ const ConsultationPage = {
                       ` : ''}
                     </div>
                   `).join('')}
+                  ${(fd.showBrochureLinks && this._brochureLinks.filter(l => l.title || l.url).length > 0) ? `
+                    <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e0e7ff;">
+                      <div style="font-size:13px;font-weight:600;color:#d97706;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
+                        <svg width="12" height="12" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                        추천 상품 브로셔/영상
+                      </div>
+                      <div style="display:flex;flex-direction:column;gap:8px;">
+                        ${this._brochureLinks.filter(l => l.title || l.url).map(l => `
+                          <div style="display:flex;height:64px;background:white;border:1px solid #f1f5f9;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.02);">
+                            <div style="flex:1;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;">
+                              <div style="font-size:14px;font-weight:700;color:#1e293b;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${Utils.escapeHtml(l.title || l.url || '')}</div>
+                              ${l.url ? '<div style="font-size:12px;color:#94a3b8;margin-top:3px;display:flex;align-items:center;">&#128279; ' + Utils.escapeHtml(l.url.replace(/^https?:\/\//, '').substring(0, 30)) + '...</div>' : ''}
+                            </div>
+                            <div style="width:64px;height:64px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                              ${l.thumbnail
+                                ? `<img src="${Utils.escapeHtml(l.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
+                                : `<svg width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>`
+                              }
+                            </div>
+                          </div>
+                        `).join('')}
+                      </div>
+                    </div>
+                  ` : ''}
                 </div>
               </div>
             ` : ''}
@@ -1405,6 +1635,26 @@ const ConsultationPage = {
 
   // ==================== Form Interaction Methods ====================
 
+  toggleMemoSection() {
+    // 닫기 전에 현재 값 수집
+    if (this._memoOpen) {
+      const titleEl = document.getElementById('c-memo-title');
+      const contentEl = document.getElementById('c-memo-content');
+      if (titleEl) this._formData.memoTitle = titleEl.value;
+      if (contentEl) this._formData.memoContent = contentEl.value;
+    }
+    this._memoOpen = !this._memoOpen;
+    App.navigate('consultation', { consultationId: this.currentConsultation.id });
+  },
+
+  toggleHideAddressDetail() {
+    this._formData.hideAddressDetail = document.getElementById('c-hide-address-detail')?.checked || false;
+    const group = document.getElementById('c-address-detail-group');
+    if (group) group.style.display = this._formData.hideAddressDetail ? 'none' : '';
+    this.autoSave();
+    this._refreshPreview();
+  },
+
   toggleTag(key) {
     if (!this._formData.tags) this._formData.tags = {};
     this._formData.tags[key] = !this._formData.tags[key];
@@ -1426,6 +1676,24 @@ const ConsultationPage = {
     list.innerHTML = this._referenceLinks.map((l, i) => this._renderLinkRow(i, l)).join('');
   },
 
+  uploadLinkThumbnail(index) {
+    document.getElementById('link-thumb-' + index).click();
+  },
+
+  async handleLinkThumbnail(index, input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const result = await API.uploadPolicyImage(file);
+      this._referenceLinks[index].thumbnail = result.url;
+      const list = document.getElementById('links-list');
+      list.innerHTML = this._referenceLinks.map((l, i) => this._renderLinkRow(i, l)).join('');
+      this.autoSave();
+    } catch (e) {
+      alert('썸네일 업로드 실패: ' + e.message);
+    }
+  },
+
   updateLink(index, field, value) {
     this._referenceLinks[index][field] = value;
     this.autoSave();
@@ -1435,6 +1703,237 @@ const ConsultationPage = {
     this._referenceLinks.splice(index, 1);
     const list = document.getElementById('links-list');
     list.innerHTML = this._referenceLinks.map((l, i) => this._renderLinkRow(i, l)).join('');
+    this.autoSave();
+  },
+
+  // ==================== Health Links (고지 의무 관련) ====================
+  _renderHealthLinkRow(index, link) {
+    return `
+      <div style="display:flex;gap:8px;margin-bottom:8px;align-items:start;" data-health-link-index="${index}">
+        <div style="width:64px;height:64px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:pointer;position:relative;border:1px dashed ${link.thumbnail ? 'transparent' : '#cbd5e1'};" onclick="ConsultationPage.uploadHealthLinkThumbnail(${index})">
+          ${link.thumbnail
+            ? `<img src="${Utils.escapeHtml(link.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
+            : `<div style="width:100%;height:100%;background:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                <svg width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                <span style="font-size:9px;color:#94a3b8;">썸네일</span>
+              </div>`
+          }
+          <input type="file" id="health-link-thumb-${index}" accept="image/*" style="display:none;" onchange="ConsultationPage.handleHealthLinkThumbnail(${index},this)">
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+          <div class="form-group" style="margin-bottom:0;">
+            ${index === 0 ? '<label class="form-label" style="font-size:12px;">링크 제목</label>' : ''}
+            <input type="text" class="form-input" value="${Utils.escapeHtml(link.title || '')}" oninput="ConsultationPage.updateHealthLink(${index},'title',this.value)" placeholder="제목" style="border-radius:8px;font-size:13px;">
+          </div>
+          <div style="display:flex;gap:6px;">
+            <div class="form-group" style="margin-bottom:0;flex:1;">
+              ${index === 0 ? '<label class="form-label" style="font-size:12px;">URL</label>' : ''}
+              <input type="url" class="form-input" value="${Utils.escapeHtml(link.url || '')}" oninput="ConsultationPage.updateHealthLink(${index},'url',this.value)" placeholder="https://" style="border-radius:8px;font-size:13px;">
+            </div>
+            <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;align-self:${index === 0 ? 'end' : 'center'};height:38px;" onclick="ConsultationPage.removeHealthLink(${index})">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  toggleHealthLinks() {
+    this._formData.showHealthLinks = document.getElementById('c-show-health-links').checked;
+    const container = document.getElementById('health-links-container');
+    container.style.display = this._formData.showHealthLinks ? '' : 'none';
+    this.autoSave();
+    this._refreshPreview();
+  },
+
+  addHealthLink() {
+    this._healthLinks.push({ title: '', url: '' });
+    const list = document.getElementById('health-links-list');
+    list.innerHTML = this._healthLinks.map((l, i) => this._renderHealthLinkRow(i, l)).join('');
+  },
+
+  uploadHealthLinkThumbnail(index) {
+    document.getElementById('health-link-thumb-' + index).click();
+  },
+
+  async handleHealthLinkThumbnail(index, input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const result = await API.uploadPolicyImage(file);
+      this._healthLinks[index].thumbnail = result.url;
+      const list = document.getElementById('health-links-list');
+      list.innerHTML = this._healthLinks.map((l, i) => this._renderHealthLinkRow(i, l)).join('');
+      this.autoSave();
+    } catch (e) {
+      alert('썸네일 업로드 실패: ' + e.message);
+    }
+  },
+
+  updateHealthLink(index, field, value) {
+    this._healthLinks[index][field] = value;
+    this.autoSave();
+  },
+
+  removeHealthLink(index) {
+    this._healthLinks.splice(index, 1);
+    const list = document.getElementById('health-links-list');
+    list.innerHTML = this._healthLinks.map((l, i) => this._renderHealthLinkRow(i, l)).join('');
+    this.autoSave();
+  },
+
+  // ==================== Remodel Links (리모델링 사례) ====================
+  _renderRemodelLinkRow(index, link) {
+    return `
+      <div style="display:flex;gap:8px;margin-bottom:8px;align-items:start;" data-remodel-link-index="${index}">
+        <div style="width:64px;height:64px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:pointer;position:relative;border:1px dashed ${link.thumbnail ? 'transparent' : '#cbd5e1'};" onclick="ConsultationPage.uploadRemodelLinkThumbnail(${index})">
+          ${link.thumbnail
+            ? `<img src="${Utils.escapeHtml(link.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
+            : `<div style="width:100%;height:100%;background:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                <svg width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                <span style="font-size:9px;color:#94a3b8;">썸네일</span>
+              </div>`
+          }
+          <input type="file" id="remodel-link-thumb-${index}" accept="image/*" style="display:none;" onchange="ConsultationPage.handleRemodelLinkThumbnail(${index},this)">
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+          <div class="form-group" style="margin-bottom:0;">
+            ${index === 0 ? '<label class="form-label" style="font-size:12px;">링크 제목</label>' : ''}
+            <input type="text" class="form-input" value="${Utils.escapeHtml(link.title || '')}" oninput="ConsultationPage.updateRemodelLink(${index},'title',this.value)" placeholder="제목" style="border-radius:8px;font-size:13px;">
+          </div>
+          <div style="display:flex;gap:6px;">
+            <div class="form-group" style="margin-bottom:0;flex:1;">
+              ${index === 0 ? '<label class="form-label" style="font-size:12px;">URL</label>' : ''}
+              <input type="url" class="form-input" value="${Utils.escapeHtml(link.url || '')}" oninput="ConsultationPage.updateRemodelLink(${index},'url',this.value)" placeholder="https://" style="border-radius:8px;font-size:13px;">
+            </div>
+            <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;align-self:${index === 0 ? 'end' : 'center'};height:38px;" onclick="ConsultationPage.removeRemodelLink(${index})">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  toggleRemodelLinks() {
+    this._formData.showRemodelLinks = document.getElementById('c-show-remodel-links').checked;
+    const container = document.getElementById('remodel-links-container');
+    container.style.display = this._formData.showRemodelLinks ? '' : 'none';
+    this.autoSave();
+    this._refreshPreview();
+  },
+
+  addRemodelLink() {
+    this._remodelLinks.push({ title: '', url: '' });
+    const list = document.getElementById('remodel-links-list');
+    list.innerHTML = this._remodelLinks.map((l, i) => this._renderRemodelLinkRow(i, l)).join('');
+  },
+
+  uploadRemodelLinkThumbnail(index) {
+    document.getElementById('remodel-link-thumb-' + index).click();
+  },
+
+  async handleRemodelLinkThumbnail(index, input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const result = await API.uploadPolicyImage(file);
+      this._remodelLinks[index].thumbnail = result.url;
+      const list = document.getElementById('remodel-links-list');
+      list.innerHTML = this._remodelLinks.map((l, i) => this._renderRemodelLinkRow(i, l)).join('');
+      this.autoSave();
+    } catch (e) {
+      alert('썸네일 업로드 실패: ' + e.message);
+    }
+  },
+
+  updateRemodelLink(index, field, value) {
+    this._remodelLinks[index][field] = value;
+    this.autoSave();
+  },
+
+  removeRemodelLink(index) {
+    this._remodelLinks.splice(index, 1);
+    const list = document.getElementById('remodel-links-list');
+    list.innerHTML = this._remodelLinks.map((l, i) => this._renderRemodelLinkRow(i, l)).join('');
+    this.autoSave();
+  },
+
+  // ==================== Brochure Links (추천 상품 브로셔) ====================
+  _renderBrochureLinkRow(index, link) {
+    return `
+      <div style="display:flex;gap:8px;margin-bottom:8px;align-items:start;" data-brochure-link-index="${index}">
+        <div style="width:64px;height:64px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:pointer;position:relative;border:1px dashed ${link.thumbnail ? 'transparent' : '#cbd5e1'};" onclick="ConsultationPage.uploadBrochureLinkThumbnail(${index})">
+          ${link.thumbnail
+            ? `<img src="${Utils.escapeHtml(link.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
+            : `<div style="width:100%;height:100%;background:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                <svg width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                <span style="font-size:9px;color:#94a3b8;">썸네일</span>
+              </div>`
+          }
+          <input type="file" id="brochure-link-thumb-${index}" accept="image/*" style="display:none;" onchange="ConsultationPage.handleBrochureLinkThumbnail(${index},this)">
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+          <div class="form-group" style="margin-bottom:0;">
+            ${index === 0 ? '<label class="form-label" style="font-size:12px;">링크 제목</label>' : ''}
+            <input type="text" class="form-input" value="${Utils.escapeHtml(link.title || '')}" oninput="ConsultationPage.updateBrochureLink(${index},'title',this.value)" placeholder="제목" style="border-radius:8px;font-size:13px;">
+          </div>
+          <div style="display:flex;gap:6px;">
+            <div class="form-group" style="margin-bottom:0;flex:1;">
+              ${index === 0 ? '<label class="form-label" style="font-size:12px;">URL</label>' : ''}
+              <input type="url" class="form-input" value="${Utils.escapeHtml(link.url || '')}" oninput="ConsultationPage.updateBrochureLink(${index},'url',this.value)" placeholder="https://" style="border-radius:8px;font-size:13px;">
+            </div>
+            <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;align-self:${index === 0 ? 'end' : 'center'};height:38px;" onclick="ConsultationPage.removeBrochureLink(${index})">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  toggleBrochureLinks() {
+    this._formData.showBrochureLinks = document.getElementById('c-show-brochure-links').checked;
+    const container = document.getElementById('brochure-links-container');
+    container.style.display = this._formData.showBrochureLinks ? '' : 'none';
+    this.autoSave();
+    this._refreshPreview();
+  },
+
+  addBrochureLink() {
+    this._brochureLinks.push({ title: '', url: '' });
+    const list = document.getElementById('brochure-links-list');
+    list.innerHTML = this._brochureLinks.map((l, i) => this._renderBrochureLinkRow(i, l)).join('');
+  },
+
+  uploadBrochureLinkThumbnail(index) {
+    document.getElementById('brochure-link-thumb-' + index).click();
+  },
+
+  async handleBrochureLinkThumbnail(index, input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const result = await API.uploadPolicyImage(file);
+      this._brochureLinks[index].thumbnail = result.url;
+      const list = document.getElementById('brochure-links-list');
+      list.innerHTML = this._brochureLinks.map((l, i) => this._renderBrochureLinkRow(i, l)).join('');
+      this.autoSave();
+    } catch (e) {
+      alert('썸네일 업로드 실패: ' + e.message);
+    }
+  },
+
+  updateBrochureLink(index, field, value) {
+    this._brochureLinks[index][field] = value;
+    this.autoSave();
+  },
+
+  removeBrochureLink(index) {
+    this._brochureLinks.splice(index, 1);
+    const list = document.getElementById('brochure-links-list');
+    list.innerHTML = this._brochureLinks.map((l, i) => this._renderBrochureLinkRow(i, l)).join('');
     this.autoSave();
   },
 
@@ -1764,12 +2263,18 @@ const ConsultationPage = {
       job: jobEl ? jobEl.value : this._formData.job,
       address: addressEl ? addressEl.value : this._formData.address,
       addressDetail: addressDetailEl ? addressDetailEl.value : this._formData.addressDetail,
+      hideAddressDetail: document.getElementById('c-hide-address-detail')?.checked || false,
+      memoTitle: document.getElementById('c-memo-title')?.value ?? this._formData.memoTitle ?? '',
+      memoContent: document.getElementById('c-memo-content')?.value ?? this._formData.memoContent ?? '',
       totalPremium: totalPremiumEl ? Utils.getMoneyValue(totalPremiumEl) : this._formData.totalPremium,
       expertComment: expertCommentEl ? expertCommentEl.value : this._formData.expertComment,
       urgentItem: urgentEl ? urgentEl.value : this._formData.urgentItem,
       proposalReason: proposalReasonEl ? proposalReasonEl.value : this._formData.proposalReason,
       healthDetails,
       referenceLinks: this._referenceLinks,
+      healthLinks: this._healthLinks,
+      remodelLinks: this._remodelLinks,
+      brochureLinks: this._brochureLinks,
       existingPolicies: this._existingPolicies,
       recommendedPlans: this._recommendedPlans,
       coverageAnalysis: this._formData.coverageAnalysis || {},
@@ -2060,6 +2565,10 @@ const ConsultationPage = {
 
   async shareConsultation(id) {
     try {
+      // 공유 전 히스토리 자동 저장
+      try {
+        await API.createConsultationHistory(id, { save_type: 'manual', label: '공유 전 저장' });
+      } catch (e) {}
       const result = await API.shareConsultation(id);
       showToast('공유링크가 생성되었습니다!', 'success');
       await Utils.copyToClipboard(location.origin + result.share_url);
@@ -2076,6 +2585,80 @@ const ConsultationPage = {
         await API.deleteConsultation(id);
         showToast('삭제되었습니다.', 'success');
         App.navigate('consultation');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  },
+
+  // ==================== History ====================
+  async showHistory() {
+    if (!this.currentConsultation) return;
+    const id = this.currentConsultation.id;
+    try {
+      const data = await API.getConsultationHistory(id);
+      const histories = data.histories || [];
+
+      let listHtml = '';
+      if (histories.length > 0) {
+        listHtml = `
+          <div style="max-height:400px;overflow-y:auto;">
+            ${histories.map(h => {
+              const date = Utils.formatDateTime(h.created_at);
+              const isManual = h.save_type === 'manual';
+              const badgeColor = isManual ? '#6366f1' : '#10b981';
+              const badgeLabel = isManual ? '수동' : '자동';
+              return `
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-100);">
+                  <div style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${badgeColor}15;color:${badgeColor};">${badgeLabel}</span>
+                      <span style="font-size:13px;font-weight:600;color:var(--gray-800);">${date}</span>
+                    </div>
+                    ${h.label ? `<div style="font-size:12px;color:var(--gray-500);margin-top:2px;">${Utils.escapeHtml(h.label)}</div>` : ''}
+                  </div>
+                  <button class="btn btn-sm" onclick="ConsultationPage.restoreFromHistory(${id},${h.id})" style="border-radius:8px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;padding:4px 12px;font-size:12px;font-weight:600;">
+                    복원
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      } else {
+        listHtml = '<div style="text-align:center;padding:40px 20px;color:var(--gray-400);font-size:14px;">저장된 이력이 없습니다.<br><span style="font-size:12px;">자동저장 시 5분 간격으로 이력이 생성됩니다.</span></div>';
+      }
+
+      Modal.show('저장 이력', `
+        <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:var(--gray-500);">최근 ${histories.length}건</span>
+          <button class="btn btn-sm" onclick="ConsultationPage.manualSave()" style="border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;padding:6px 14px;font-size:12px;font-weight:600;">
+            현재 상태 저장
+          </button>
+        </div>
+        ${listHtml}
+      `);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
+  async manualSave() {
+    if (!this.currentConsultation) return;
+    try {
+      await API.createConsultationHistory(this.currentConsultation.id, { save_type: 'manual' });
+      showToast('저장되었습니다.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
+  restoreFromHistory(consultationId, historyId) {
+    Modal.confirm('이 시점으로 복원하시겠습니까?<br><span style="font-size:12px;color:var(--gray-500);">현재 상태는 자동 백업됩니다.</span>', async () => {
+      try {
+        await API.restoreConsultationHistory(consultationId, historyId);
+        showToast('이전 버전으로 복원되었습니다.', 'success');
+        App.navigate('consultation', { consultationId });
       } catch (err) {
         showToast(err.message, 'error');
       }

@@ -185,6 +185,10 @@ const SettingsPage = {
             <label class="form-label" style="font-size:12px;">소속</label>
             <input type="text" class="form-input" name="branch" value="${Utils.escapeHtml(a.branch || '프라임에셋')}" style="border-radius:10px;background:var(--gray-50);" readonly>
           </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size:12px;">소개 문구</label>
+            <input type="text" class="form-input" name="profile_intro" value="${Utils.escapeHtml(a.profile_intro || '')}" placeholder="예: 고객의 미래를 함께 설계합니다" style="border-radius:10px;" maxlength="200">
+          </div>
           <button type="button" class="btn" onclick="SettingsPage.saveProfile()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;border-radius:10px;padding:12px 24px;font-weight:600;box-shadow:0 4px 14px rgba(99,102,241,0.3);">저장</button>
         </form>
       </div>
@@ -344,6 +348,7 @@ const SettingsPage = {
   _renderTemplates() {
     const msgTemplates = this._templates.filter(t => t.category === '메시지안내');
     const alimTemplates = this._templates.filter(t => t.category === '알림톡');
+    const specialTemplates = this._templates.filter(t => t.category === '특별알림');
 
     return `
       <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;">
@@ -371,13 +376,23 @@ const SettingsPage = {
         </div>
 
         <!-- 알림톡 -->
-        <div>
+        <div style="margin-bottom:20px;">
           <div style="font-size:12px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
             <span style="width:16px;height:2px;background:#d97706;border-radius:1px;"></span>
             상담진행 알림톡 (${alimTemplates.length}종)
           </div>
           ${alimTemplates.map(t => this._renderTemplateRow(t, '#d97706')).join('')}
           ${alimTemplates.length === 0 ? '<div style="padding:12px;text-align:center;color:var(--gray-400);font-size:13px;">등록된 템플릿이 없습니다</div>' : ''}
+        </div>
+
+        <!-- 특별알림 -->
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#db2777;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+            <span style="width:16px;height:2px;background:#db2777;border-radius:1px;"></span>
+            특별알림 (${specialTemplates.length}종)
+          </div>
+          ${specialTemplates.map(t => this._renderTemplateRow(t, '#db2777')).join('')}
+          ${specialTemplates.length === 0 ? '<div style="padding:12px;text-align:center;color:var(--gray-400);font-size:13px;">등록된 템플릿이 없습니다</div>' : ''}
         </div>
       </div>
     `;
@@ -416,8 +431,9 @@ const SettingsPage = {
           <div class="form-group">
             <label class="form-label" style="font-size:12px;">카테고리</label>
             <select class="form-input" name="category" style="border-radius:10px;">
-              <option value="메시지안내">고객 메시지 안내</option>
-              <option value="알림톡">상담진행 알림톡</option>
+              <option value="메시지안내">안내 항목</option>
+              <option value="알림톡">상담 알림톡</option>
+              <option value="특별알림">특별알림</option>
             </select>
           </div>
           <div class="form-group">

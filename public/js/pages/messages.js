@@ -13,6 +13,36 @@ const MessagesPage = {
   _claimDocs: [],
   _generalDocs: [],
   _showGeneralDocs: false,
+  _currentTab: 'info',
+
+  // 탭 카테고리
+  _tabCategories: [
+    { key: 'info', label: '안내 항목' },
+    { key: 'alimtalk', label: '상담 알림톡' },
+    { key: 'special', label: '특별알림' }
+  ],
+
+  // 탭별 하위 항목
+  _tabItems: {
+    info: [
+      { value: '담당자변경', label: '보험담당자 변경안내', icon: '👤', color: '#6366f1' },
+      { value: '해지', label: '해지안내', icon: '📋', color: '#dc2626' },
+      { value: '실효해지', label: '실효된보험 해지안내', icon: '⚠️', color: '#f59e0b' },
+      { value: '청구서류', label: '보험금 청구서류 안내', icon: '🏥', color: '#059669' },
+      { value: '자동이체해지', label: '자동이체 해지안내', icon: '💳', color: '#8b5cf6' }
+    ],
+    alimtalk: [
+      { value: 'intro', label: '자기소개 및 인사', desc: '첫인상을 결정하는 전문가 인사', icon: '👋', color: '#6366f1' },
+      { value: 'schedule', label: '상담 진행일정 안내', desc: '상담 방식·일시·장소 확정 안내', icon: '📅', color: '#059669' },
+      { value: 'info_doc', label: '보험 자료 안내', desc: '맞춤형 보험 정보 사전 안내', icon: '📚', color: '#d97706' },
+      { value: 'finish', label: '상담종료 인사와 소개', desc: '감사 인사 및 소개 요청', icon: '🎁', color: '#db2777' }
+    ],
+    special: [
+      { value: 'first_greeting', label: '첫 인사 메시지', desc: '신규 고객에게 보내는 첫 인사', icon: '💌', color: '#6366f1' },
+      { value: 'reservation_confirm', label: '상담 예약 확인', desc: '상담 일정 확인 및 리마인드', icon: '📆', color: '#059669' },
+      { value: 'followup', label: '상담 후 팔로업', desc: '상담 이후 만족도 확인 및 후속 안내', icon: '🔄', color: '#d97706' }
+    ]
+  },
 
   // 청구서류 목록
   _claimDocList: [
@@ -39,12 +69,14 @@ const MessagesPage = {
 
   async render(params = {}) {
     try {
-      const [templatesData, customersData, companiesData] = await Promise.all([
+      const [templatesData, alimtalkTemplatesData, specialTemplatesData, customersData, companiesData] = await Promise.all([
         API.getTemplates({ category: '메시지안내' }),
+        API.getTemplates({ category: '알림톡' }),
+        API.getTemplates({ category: '특별알림' }),
         API.getCustomers({ limit: 200 }),
         API.getInsuranceCompanies()
       ]);
-      this.templates = templatesData.templates;
+      this.templates = [...templatesData.templates, ...alimtalkTemplatesData.templates, ...specialTemplatesData.templates];
       this.customers = customersData.customers;
       this.companies = companiesData.companies;
 
@@ -53,9 +85,10 @@ const MessagesPage = {
         this._selectedCustomerId = parseInt(params.customerId);
       }
 
-      // 초기값이 없으면 첫번째 유형 선택
-      if (!this._selectedType && this.templates.length > 0) {
-        this._selectedType = this.templates[0].type;
+      // 초기값이 없으면 현재 탭의 첫번째 항목 선택
+      const currentItems = this._tabItems[this._currentTab] || [];
+      if (!this._selectedType && currentItems.length > 0) {
+        this._selectedType = currentItems[0].value;
       }
 
       return `
@@ -65,7 +98,7 @@ const MessagesPage = {
               <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;">
                 <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
               </span>
-              고객 메세지 안내
+              상담 알림톡
             </h1>
             <p class="page-subtitle">고객 정보와 안내 유형을 선택하면 메시지가 자동으로 생성됩니다</p>
           </div>
@@ -75,14 +108,20 @@ const MessagesPage = {
           </button>
         </div>
 
-        <!-- Main Content: Form + Preview -->
-        <div class="consultation-layout" style="grid-template-columns:1fr 420px;gap:28px;">
-          <!-- LEFT: Form Area -->
-          <div style="display:flex;flex-direction:column;gap:0;" id="msg-form-area">
-            ${this._renderFormArea()}
+        <!-- Main Content: 2-column layout -->
+        <div style="display:grid;grid-template-columns:40% 60%;gap:28px;">
+          <!-- LEFT: 탭 + 폼 -->
+          <div style="display:flex;flex-direction:column;gap:0;">
+            <!-- 알림 유형 선택: 탭 + 카드 UI -->
+            ${this._renderTabSection()}
+
+            <!-- Form Area -->
+            <div id="msg-form-area">
+              ${this._renderFormArea()}
+            </div>
           </div>
 
-          <!-- RIGHT: 메시지 미리보기 -->
+          <!-- RIGHT: 메시지 미리보기 (1줄부터 고정) -->
           <div style="position:sticky;top:24px;align-self:start;">
             <div id="msg-preview-wrapper">
               ${this._renderPreviewPanel()}
@@ -98,6 +137,144 @@ const MessagesPage = {
 
   onRendered() {
     this.generatePreview();
+  },
+
+  // ==================== Claim Docs Inline ====================
+  _renderClaimDocsInline() {
+    return `
+      <div style="padding:14px 16px;background:#eef2ff;border:2px solid #6366f1;border-top:none;border-radius:0 0 14px 14px;" onclick="event.stopPropagation()">
+        <div style="font-size:12px;font-weight:600;color:#059669;margin-bottom:10px;">🏥 보험금 청구 필요 서류 선택</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          ${this._claimDocList.map(doc => `
+            <label style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:8px;cursor:pointer;font-size:11px;background:white;border:1px solid ${this._claimDocs.includes(doc) ? '#86efac' : '#e5e7eb'};color:${this._claimDocs.includes(doc) ? '#166534' : 'var(--gray-600)'};font-weight:${this._claimDocs.includes(doc) ? '600' : '400'};">
+              <input type="checkbox" ${this._claimDocs.includes(doc) ? 'checked' : ''} onchange="MessagesPage.toggleClaimDoc('${doc}')" style="accent-color:#059669;width:13px;height:13px;">
+              ${doc}
+            </label>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  // ==================== Tab Section ====================
+  _renderTabSection() {
+    const items = this._tabItems[this._currentTab] || [];
+    return `
+      <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:16px;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:10px;">
+            <svg width="16" height="16" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          </span>
+          <h3 style="font-size:18px;font-weight:700;color:var(--gray-800);margin:0;">알림 유형 선택</h3>
+        </div>
+
+        <!-- 탭 버튼 -->
+        <div style="display:flex;background:var(--gray-100);border-radius:12px;padding:4px;margin-bottom:20px;">
+          ${this._tabCategories.map(tab => {
+            const isActive = this._currentTab === tab.key;
+            return `
+              <button onclick="MessagesPage.switchTab('${tab.key}')"
+                style="flex:1;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:${isActive ? '700' : '500'};
+                  background:${isActive ? 'white' : 'transparent'};
+                  color:${isActive ? 'var(--gray-800)' : 'var(--gray-500)'};
+                  box-shadow:${isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'};
+                  transition:all 0.2s;">
+                ${tab.label}
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- 탭 하위 항목 카드 -->
+        <div id="msg-tab-items" style="display:flex;flex-direction:column;gap:10px;">
+          ${items.length > 0 ? items.map((item, idx) => {
+            const isSelected = this._selectedType === item.value;
+            return `
+              <div>
+                <div onclick="MessagesPage.selectTabItem('${item.value}')"
+                  style="display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:14px;cursor:pointer;transition:all 0.2s;
+                    border:2px solid ${isSelected ? '#6366f1' : 'var(--gray-200)'};
+                    background:${isSelected ? '#eef2ff' : 'white'};
+                    box-shadow:${isSelected ? '0 2px 8px rgba(99,102,241,0.15)' : 'none'};
+                    ${isSelected && item.value === '청구서류' ? 'border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:1px solid #c7d2fe;' : ''}">
+                  <span style="font-size:22px;">${item.icon}</span>
+                  <div style="flex:1;">
+                    <div style="font-size:15px;font-weight:${isSelected ? '700' : '500'};color:${isSelected ? '#4338ca' : 'var(--gray-700)'};">${item.label}</div>
+                    ${item.desc ? `<div style="font-size:12px;color:${isSelected ? '#6366f1' : 'var(--gray-400)'};margin-top:3px;">${item.desc}</div>` : ''}
+                  </div>
+                  ${isSelected ? '<svg width="20" height="20" fill="none" stroke="#6366f1" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>' : ''}
+                </div>
+                ${isSelected && item.value === '청구서류' ? this._renderClaimDocsInline() : ''}
+              </div>
+            `;
+          }).join('') : `
+            <div style="text-align:center;padding:30px 20px;color:var(--gray-400);font-size:14px;">
+              준비 중입니다
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  },
+
+  switchTab(tabKey) {
+    this._currentTab = tabKey;
+    const items = this._tabItems[tabKey] || [];
+    // 탭 전환 시 해당 탭의 첫번째 항목 자동 선택
+    if (items.length > 0) {
+      this._selectedType = items[0].value;
+    }
+    this._claimDocs = [];
+    this._generalDocs = [];
+    this._showGeneralDocs = false;
+    // 전체 재렌더링
+    this._reRenderAll();
+  },
+
+  selectTabItem(value) {
+    this._selectedType = value;
+    this._claimDocs = [];
+    this._generalDocs = [];
+    this._showGeneralDocs = false;
+    // 탭 카드 UI만 갱신
+    const tabContainer = document.getElementById('msg-tab-items');
+    if (tabContainer) {
+      const items = this._tabItems[this._currentTab] || [];
+      tabContainer.innerHTML = items.map((item, idx) => {
+        const isSelected = this._selectedType === item.value;
+        return `
+          <div>
+            <div onclick="MessagesPage.selectTabItem('${item.value}')"
+              style="display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:14px;cursor:pointer;transition:all 0.2s;
+                border:2px solid ${isSelected ? '#6366f1' : 'var(--gray-200)'};
+                background:${isSelected ? '#eef2ff' : 'white'};
+                box-shadow:${isSelected ? '0 2px 8px rgba(99,102,241,0.15)' : 'none'};
+                ${isSelected && item.value === '청구서류' ? 'border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:1px solid #c7d2fe;' : ''}">
+              <span style="font-size:22px;">${item.icon}</span>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:${isSelected ? '700' : '500'};color:${isSelected ? '#4338ca' : 'var(--gray-700)'};">${item.label}</div>
+                ${item.desc ? `<div style="font-size:12px;color:${isSelected ? '#6366f1' : 'var(--gray-400)'};margin-top:3px;">${item.desc}</div>` : ''}
+              </div>
+              ${isSelected ? '<svg width="20" height="20" fill="none" stroke="#6366f1" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>' : ''}
+            </div>
+            ${isSelected && item.value === '청구서류' ? this._renderClaimDocsInline() : ''}
+          </div>
+        `;
+      }).join('');
+    }
+    // 폼 영역 갱신
+    const formArea = document.getElementById('msg-form-area');
+    if (formArea) formArea.innerHTML = this._renderFormArea();
+    // 메시지 미리보기 갱신
+    this.generatePreview();
+  },
+
+  async _reRenderAll() {
+    const container = document.querySelector('main.main-content');
+    if (container) {
+      container.innerHTML = await this.render();
+      if (this.onRendered) this.onRendered();
+    }
   },
 
   // ==================== Form Area ====================
@@ -118,36 +295,26 @@ const MessagesPage = {
           </h3>
         </div>
 
-        <div class="grid-2" style="gap:12px;">
-          <!-- 고객 선택 (검색형) -->
-          <div class="form-group" style="position:relative;">
-            <label class="form-label" style="font-size:12px;">고객 성함</label>
-            <input type="text" class="form-input" id="msg-customer-search" placeholder="이름 또는 연락처로 검색..."
-              value="${selectedCustomer ? Utils.escapeHtml(selectedCustomer.name) + ' (' + Utils.formatPhone(selectedCustomer.phone) + ')' : ''}"
-              onfocus="MessagesPage.openCustomerDropdown()"
-              oninput="MessagesPage.filterCustomerDropdown(this.value)"
-              autocomplete="off"
-              style="border-radius:10px;">
-            <input type="hidden" id="msg-customer" value="${this._selectedCustomerId || ''}">
-            <div id="msg-customer-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:100;background:white;border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.1);max-height:240px;overflow-y:auto;margin-top:4px;">
-              ${this.customers.map(c => `
-                <div onclick="MessagesPage.selectCustomer(${c.id})" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
-                  <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#4338ca;flex-shrink:0;">${Utils.escapeHtml((c.name || '-')[0])}</div>
-                  <div>
-                    <div style="font-size:13px;font-weight:600;color:var(--gray-800);">${Utils.escapeHtml(c.name)}</div>
-                    <div style="font-size:11px;color:var(--gray-400);">${Utils.formatPhone(c.phone)}</div>
-                  </div>
+        <!-- 고객 선택 (검색형) -->
+        <div class="form-group" style="position:relative;">
+          <label class="form-label" style="font-size:12px;">고객 성함</label>
+          <input type="text" class="form-input" id="msg-customer-search" placeholder="이름 또는 연락처로 검색..."
+            value="${selectedCustomer ? Utils.escapeHtml(selectedCustomer.name) + ' (' + Utils.formatPhone(selectedCustomer.phone) + ')' : ''}"
+            onfocus="MessagesPage.openCustomerDropdown()"
+            oninput="MessagesPage.filterCustomerDropdown(this.value)"
+            autocomplete="off"
+            style="border-radius:10px;">
+          <input type="hidden" id="msg-customer" value="${this._selectedCustomerId || ''}">
+          <div id="msg-customer-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:100;background:white;border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.1);max-height:240px;overflow-y:auto;margin-top:4px;">
+            ${this.customers.map(c => `
+              <div onclick="MessagesPage.selectCustomer(${c.id})" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#4338ca;flex-shrink:0;">${Utils.escapeHtml((c.name || '-')[0])}</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:var(--gray-800);">${Utils.escapeHtml(c.name)}</div>
+                  <div style="font-size:11px;color:var(--gray-400);">${Utils.formatPhone(c.phone)}</div>
                 </div>
-              `).join('')}
-            </div>
-          </div>
-
-          <!-- 안내 항목 선택 -->
-          <div class="form-group">
-            <label class="form-label" style="font-size:12px;">안내 항목</label>
-            <select class="form-input" id="msg-type" onchange="MessagesPage.onTypeChange(this.value)" style="border-radius:10px;">
-              ${this._typeOptions.map(t => `<option value="${t.value}" ${this._selectedType === t.value ? 'selected' : ''}>${t.icon} ${t.label}</option>`).join('')}
-            </select>
+              </div>
+            `).join('')}
           </div>
         </div>
 
@@ -199,21 +366,6 @@ const MessagesPage = {
           </div>
         </div>
 
-        <!-- 조건부: 청구서류 체크리스트 -->
-        ${this._selectedType === '청구서류' ? `
-          <div style="margin-top:16px;padding:16px;background:#ecfdf5;border-radius:12px;border:1px solid #a7f3d0;">
-            <div style="font-size:12px;font-weight:600;color:#059669;margin-bottom:12px;">🏥 보험금 청구 필요 서류 선택</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              ${this._claimDocList.map(doc => `
-                <label style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px;background:white;border:1px solid ${this._claimDocs.includes(doc) ? '#86efac' : '#e5e7eb'};color:${this._claimDocs.includes(doc) ? '#166534' : 'var(--gray-600)'};font-weight:${this._claimDocs.includes(doc) ? '600' : '400'};">
-                  <input type="checkbox" ${this._claimDocs.includes(doc) ? 'checked' : ''} onchange="MessagesPage.toggleClaimDoc('${doc}')" style="accent-color:#059669;width:14px;height:14px;">
-                  ${doc}
-                </label>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
         <!-- 팩스/일반 서류 안내 -->
         ${this._selectedType !== '청구서류' ? `
           <div style="margin-top:16px;">
@@ -238,21 +390,6 @@ const MessagesPage = {
         ` : ''}
       </div>
 
-      <!-- Action Buttons -->
-      <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);">
-        <div style="display:flex;gap:10px;">
-          <button class="btn" onclick="MessagesPage.copyMessage()" id="msg-copy-btn"
-            style="flex:1;padding:12px;border-radius:10px;font-size:13px;font-weight:600;background:white;color:var(--gray-700);border:1.5px solid var(--gray-200);display:flex;align-items:center;justify-content:center;gap:6px;">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-            메시지 텍스트 복사
-          </button>
-          <button class="btn" onclick="MessagesPage.sendMessage()" id="msg-send-btn"
-            style="flex:1;padding:12px;border-radius:10px;font-size:13px;font-weight:600;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;box-shadow:0 4px 14px rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;gap:6px;">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-            발송 기록 저장
-          </button>
-        </div>
-      </div>
     `;
   },
 
@@ -260,32 +397,59 @@ const MessagesPage = {
   _renderPreviewPanel() {
     const agent = API.getAgent();
     const agentName = agent?.name || '설계사';
+    const initial = (agentName[0] || 'P').toUpperCase();
 
     return `
-      <div style="background:white;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);overflow:hidden;">
-        <!-- Header -->
-        <div style="background:linear-gradient(135deg,#0f172a,#312e81);padding:16px 20px;display:flex;align-items:center;gap:12px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#818cf8);display:flex;align-items:center;justify-content:center;">
-            <span style="font-size:14px;font-weight:700;color:white;">${Utils.escapeHtml(agentName[0] || 'P')}</span>
-          </div>
-          <div>
-            <div style="color:white;font-size:14px;font-weight:700;">${Utils.escapeHtml(agentName)}</div>
-            <div style="color:#a5b4fc;font-size:11px;">PRIMEASSET · 고객 안내 메시지</div>
+      <div style="background:white;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06);overflow:hidden;">
+        <!-- Header: 알림톡 미리보기 -->
+        <div style="padding:16px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--gray-100);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3C6.48 3 2 6.58 2 11c0 2.83 1.89 5.29 4.68 6.68L5.5 21l4.2-2.1c.74.13 1.5.1 2.3.1 5.52 0 10-3.58 10-8s-4.48-8-10-8z" fill="#FAE100"/></svg>
+          <span style="font-size:16px;font-weight:700;color:var(--gray-800);">알림톡 미리보기</span>
+          <span id="msg-char-count" style="margin-left:auto;font-size:11px;color:var(--gray-400);">0자</span>
+        </div>
+
+        <!-- 카카오톡 채팅 영역 -->
+        <div style="background:#B2C7D9;padding:20px 16px;min-height:300px;">
+          <!-- 프로필 + 말풍선 -->
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <!-- 프로필 아바타 -->
+            <div style="width:40px;height:40px;border-radius:14px;background:#FAE100;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#3C1E1E;flex-shrink:0;">
+              ${Utils.escapeHtml(initial)}
+            </div>
+            <div style="flex:1;min-width:0;">
+              <!-- 이름 -->
+              <div style="margin-bottom:4px;">
+                <span style="font-size:13px;font-weight:600;color:#333;">${Utils.escapeHtml(agentName)} 설계사</span>
+                <span style="font-size:11px;color:#666;margin-left:6px;">카카오톡 알림톡</span>
+              </div>
+              <!-- 말풍선 -->
+              <div id="msg-bubble" style="background:white;border-radius:0 12px 12px 12px;padding:14px 16px;font-size:13px;line-height:1.8;color:#333;white-space:pre-wrap;word-break:break-word;box-shadow:0 1px 2px rgba(0,0,0,0.06);max-height:400px;overflow-y:auto;">
+                <div style="text-align:center;padding:40px 0;color:#999;">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="margin:0 auto 8px;display:block;"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke="#ccc" stroke-width="1.5"/></svg>
+                  정보를 입력하고<br>알림톡 자동 생성을 눌러주세요
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Editable Content -->
+        <!-- 편집 가능 텍스트 영역 -->
         <div style="padding:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <span style="font-size:12px;font-weight:600;color:var(--gray-500);">메시지 내용 <span style="font-size:11px;color:var(--gray-400);font-weight:400;">(직접 수정 가능)</span></span>
-            <span id="msg-char-count" style="font-size:11px;color:var(--gray-400);">0자</span>
-          </div>
-          <textarea class="form-input" id="msg-content" rows="22" oninput="MessagesPage._updateCharCount()" placeholder="왼쪽에서 고객과 안내 유형을 선택하면 메시지가 자동 생성됩니다..." style="border-radius:10px;font-size:13px;line-height:1.8;font-family:'Pretendard Variable',sans-serif;border:1px solid var(--gray-200);resize:vertical;background:#f8fafc;"></textarea>
+          <textarea class="form-input" id="msg-content" rows="8" oninput="MessagesPage._updateCharCount();MessagesPage._syncBubble()" placeholder="생성된 메시지가 여기에 표시됩니다. 직접 수정도 가능합니다." style="border-radius:12px;font-size:13px;line-height:1.8;font-family:'Pretendard Variable',sans-serif;border:1px solid var(--gray-200);resize:vertical;background:#f8fafc;"></textarea>
         </div>
 
-        <!-- Footer -->
-        <div style="padding:0 16px 12px;text-align:center;font-size:10px;color:var(--gray-400);">
-          PRIMEASSET · ${Utils.escapeHtml(agentName)} · ${new Date().toLocaleDateString('ko-KR')}
+        <!-- Action Buttons -->
+        <div style="padding:0 16px 16px;display:flex;gap:10px;">
+          <button class="btn" onclick="MessagesPage.sendMessage()" id="msg-send-btn"
+            style="flex:1;padding:12px;border-radius:12px;font-size:14px;font-weight:600;background:#FAE100;color:#3C1E1E;border:none;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+            카카오톡 전송
+          </button>
+          <button class="btn" onclick="MessagesPage.copyMessage()" id="msg-copy-btn"
+            style="flex:1;padding:12px;border-radius:12px;font-size:14px;font-weight:600;background:white;color:var(--gray-700);border:1.5px solid var(--gray-200);display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            텍스트 복사
+          </button>
         </div>
       </div>
     `;
@@ -463,6 +627,7 @@ const MessagesPage = {
     if (contentEl) {
       contentEl.value = message;
       this._updateCharCount();
+      this._syncBubble();
     }
   },
 
@@ -484,6 +649,27 @@ const MessagesPage = {
         break;
       case '자동이체해지':
         msg += `\n자동이체 해지 관련 안내입니다.\n아래 보험사 콜센터로 연락하시면 자동이체 변경/해지를 진행하실 수 있습니다.\n`;
+        break;
+      case 'intro':
+        msg += `\n새롭게 고객님의 보험 담당자로 인사드립니다.\n\n앞으로 고객님의 보험 관련 모든 사항을 꼼꼼히 챙겨드리겠습니다.\n궁금하신 점이 있으시면 언제든 편하게 연락 주세요.\n`;
+        break;
+      case 'schedule':
+        msg += `\n상담 일정을 안내드립니다.\n\n상담 방식과 일시를 확인해 주시고, 변경이 필요하시면 말씀해 주세요.\n`;
+        break;
+      case 'info_doc':
+        msg += `\n상담 전 참고하실 보험 자료를 안내드립니다.\n\n고객님의 상황에 맞는 맞춤형 보험 정보를 준비했습니다.\n미리 살펴보시면 상담 시 더 좋은 결과를 얻으실 수 있습니다.\n`;
+        break;
+      case 'finish':
+        msg += `\n오늘 상담에 시간 내주셔서 감사합니다.\n\n상담 내용을 정리하여 보내드리겠습니다.\n주변에 보험 관련 도움이 필요하신 분이 계시면 소개 부탁드립니다.\n`;
+        break;
+      case 'first_greeting':
+        msg += `\n반갑습니다 😊\n프라임에셋 소속 보험전문가 ${agentName}입니다.\n\n고객님의 소중한 보험을 함께 관리해 드리게 되었습니다.\n현재 가입하신 보험에 대한 점검부터 새로운 보장 설계까지,\n궁금하신 사항이 있으시면 언제든 편하게 연락 주세요.\n\n항상 고객님 입장에서 최선의 방법을 찾아드리겠습니다.\n감사합니다 🙏\n`;
+        break;
+      case 'reservation_confirm':
+        msg += `\n상담 예약이 확인되었습니다 ✅\n\n아래 일정으로 상담이 예정되어 있습니다.\n혹시 일정 변경이 필요하시면 미리 말씀해 주세요.\n\n준비된 상담으로 고객님께 꼭 맞는 보장을 안내드리겠습니다.\n당일 뵙겠습니다! 😊\n`;
+        break;
+      case 'followup':
+        msg += `\n지난 상담은 만족스러우셨나요? 😊\n\n상담 후 추가로 궁금하신 점이나\n더 알아보고 싶은 내용이 있으시면 편하게 말씀해 주세요.\n\n고객님께 가장 적합한 보장을 찾아드리는 것이 제 역할입니다.\n언제든 연락 주시면 성심껏 도와드리겠습니다.\n\n감사합니다 🙏\n`;
         break;
     }
 
@@ -509,6 +695,23 @@ const MessagesPage = {
       const type = len > 2000 ? 'LMS' : len > 90 ? 'LMS' : 'SMS';
       const color = len > 2000 ? '#dc2626' : len > 90 ? '#f59e0b' : '#10b981';
       countEl.innerHTML = `<span style="color:${color};font-weight:600;">${len}자</span> <span style="padding:1px 6px;border-radius:3px;background:${color}15;color:${color};font-size:10px;font-weight:600;">${type}</span>`;
+    }
+  },
+
+  _syncBubble() {
+    const contentEl = document.getElementById('msg-content');
+    const bubble = document.getElementById('msg-bubble');
+    if (bubble && contentEl) {
+      const text = contentEl.value.trim();
+      if (text) {
+        bubble.textContent = text;
+      } else {
+        bubble.innerHTML = `
+          <div style="text-align:center;padding:40px 0;color:#999;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="margin:0 auto 8px;display:block;"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke="#ccc" stroke-width="1.5"/></svg>
+            정보를 입력하고<br>알림톡 자동 생성을 눌러주세요
+          </div>`;
+      }
     }
   },
 

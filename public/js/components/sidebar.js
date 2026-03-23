@@ -19,8 +19,7 @@ const Sidebar = {
     { id: 'dashboard', icon: 'dashboard', label: '대시보드' },
     { id: 'customers', icon: 'customers', label: '고객목록' },
     { id: 'consultation', icon: 'consultation', label: '제안서 작성' },
-    { id: 'messages', icon: 'messages', label: '고객 메시지' },
-    { id: 'alimtalk', icon: 'alimtalk', label: '상담 알림톡' },
+    { id: 'messages', icon: 'messages', label: '상담 알림톡' },
     { id: 'infopage', icon: 'infopage', label: '보험 정보' },
     { id: 'settings', icon: 'settings', label: '설정' }
   ],

@@ -52,9 +52,9 @@ router.put('/', async (req, res, next) => {
 router.put('/profile', async (req, res, next) => {
   try {
     const agent = await Agent.findByPk(req.agent.id);
-    const { name, phone, email, position, branch, profile_image } = req.body;
-    await agent.update({ name, phone, email, position, branch, profile_image });
-    res.json({ agent: { id: agent.id, name, phone, email, position, branch, profile_image } });
+    const { name, phone, email, position, branch, profile_image, profile_intro } = req.body;
+    await agent.update({ name, phone, email, position, branch, profile_image, profile_intro });
+    res.json({ agent: { id: agent.id, name, phone, email, position, branch, profile_image, profile_intro } });
   } catch (err) {
     next(err);
   }

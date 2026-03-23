@@ -94,8 +94,9 @@ const App = {
           content = await MessagesPage.render(params);
           break;
         case 'alimtalk':
-          pageObj = AlimtalkPage;
-          content = await AlimtalkPage.render(params);
+          // alimtalk 페이지는 messages 페이지로 통합됨
+          pageObj = MessagesPage;
+          content = await MessagesPage.render(params);
           break;
         case 'coverage':
           content = await CoveragePage.render();

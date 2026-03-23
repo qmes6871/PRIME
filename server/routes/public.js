@@ -9,7 +9,7 @@ router.get('/proposal/:token', async (req, res, next) => {
       where: { share_token: req.params.token },
       include: [
         { model: Customer, attributes: ['id', 'name'] },
-        { model: Agent, attributes: ['id', 'name', 'phone', 'email', 'position', 'branch', 'profile_image'] },
+        { model: Agent, attributes: ['id', 'name', 'phone', 'email', 'position', 'branch', 'profile_image', 'profile_intro'] },
         { model: ConsultationInsurer, as: 'insurers', include: [InsuranceCompany] }
       ]
     });

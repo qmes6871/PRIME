@@ -29,7 +29,7 @@ module.exports = (sequelize) => {
       comment: '템플릿 변수 목록'
     },
     category: {
-      type: DataTypes.ENUM('메시지안내', '알림톡'),
+      type: DataTypes.ENUM('메시지안내', '알림톡', '특별알림'),
       defaultValue: '메시지안내'
     },
     sort_order: {

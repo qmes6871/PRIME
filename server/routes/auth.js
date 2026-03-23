@@ -37,7 +37,9 @@ router.post('/login', async (req, res, next) => {
         phone: agent.phone,
         email: agent.email,
         position: agent.position,
-        branch: agent.branch
+        branch: agent.branch,
+        profile_image: agent.profile_image,
+        profile_intro: agent.profile_intro
       }
     });
   } catch (err) {

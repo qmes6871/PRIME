@@ -36,6 +36,10 @@ module.exports = (sequelize) => {
     profile_image: {
       type: DataTypes.STRING(500)
     },
+    profile_intro: {
+      type: DataTypes.STRING(200),
+      defaultValue: ''
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true
