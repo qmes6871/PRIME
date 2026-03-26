@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 // 제안서 페이지 - 카카오톡 공유 시 고객명 포함 title/OG 태그 동적 생성
 const { Consultation, Customer } = require('./models');
 const fs = require('fs');
-app.get('/prime/proposal.html', async (req, res, next) => {
+app.get('/proposal.html', async (req, res, next) => {
   const token = req.query.token;
   if (!token) return next();
   try {
@@ -28,7 +28,7 @@ app.get('/prime/proposal.html', async (req, res, next) => {
     html = html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
     // OG 메타 태그 추가
     const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const ogTags = `<meta property="og:title" content="${title}">\n  <meta property="og:description" content="보험 전문가가 준비한 맞춤 컨설팅 리포트입니다.">\n  <meta property="og:image" content="${baseUrl}/prime/images/og-proposal.png">\n  <meta property="og:type" content="website">`;
+    const ogTags = `<meta property="og:title" content="${title}">\n  <meta property="og:description" content="보험 전문가가 준비한 맞춤 컨설팅 리포트입니다.">\n  <meta property="og:image" content="${baseUrl}/images/og-proposal.png">\n  <meta property="og:type" content="website">`;
     html = html.replace('</head>', `  ${ogTags}\n</head>`);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -39,7 +39,7 @@ app.get('/prime/proposal.html', async (req, res, next) => {
 });
 
 // Static files (no cache for JS/CSS during development)
-app.use('/prime', express.static(path.join(__dirname, '..', 'public'), {
+app.use('/', express.static(path.join(__dirname, '..', 'public'), {
   etag: false,
   maxAge: 0,
   setHeaders: (res, filePath) => {
@@ -52,27 +52,27 @@ app.use('/prime', express.static(path.join(__dirname, '..', 'public'), {
 }));
 
 // API Routes - Public (no auth)
-app.use('/prime/api/v1/auth', require('./routes/auth'));
-app.use('/prime/api/v1/public', require('./routes/public'));
+app.use('/api/v1/auth', require('./routes/auth'));
+app.use('/api/v1/public', require('./routes/public'));
 
 // API Routes - Protected
-app.use('/prime/api/v1/dashboard', authMiddleware, require('./routes/dashboard'));
-app.use('/prime/api/v1/customers', authMiddleware, require('./routes/customers'));
-app.use('/prime/api/v1/consultations', authMiddleware, require('./routes/consultations'));
-app.use('/prime/api/v1/templates', authMiddleware, require('./routes/templates'));
-app.use('/prime/api/v1/messages', authMiddleware, require('./routes/messages'));
-app.use('/prime/api/v1/customers', authMiddleware, require('./routes/coverages'));
-app.use('/prime/api/v1/check-items', authMiddleware, require('./routes/checkItems'));
-app.use('/prime/api/v1/info-links', authMiddleware, require('./routes/infoLinks'));
-app.use('/prime/api/v1/insurance-companies', authMiddleware, require('./routes/insuranceCompanies'));
-app.use('/prime/api/v1/surveys', authMiddleware, require('./routes/surveys'));
-app.use('/prime/api/v1/settings', authMiddleware, require('./routes/settings'));
-app.use('/prime/api/v1/uploads', authMiddleware, require('./routes/uploads'));
+app.use('/api/v1/dashboard', authMiddleware, require('./routes/dashboard'));
+app.use('/api/v1/customers', authMiddleware, require('./routes/customers'));
+app.use('/api/v1/consultations', authMiddleware, require('./routes/consultations'));
+app.use('/api/v1/templates', authMiddleware, require('./routes/templates'));
+app.use('/api/v1/messages', authMiddleware, require('./routes/messages'));
+app.use('/api/v1/customers', authMiddleware, require('./routes/coverages'));
+app.use('/api/v1/check-items', authMiddleware, require('./routes/checkItems'));
+app.use('/api/v1/info-links', authMiddleware, require('./routes/infoLinks'));
+app.use('/api/v1/insurance-companies', authMiddleware, require('./routes/insuranceCompanies'));
+app.use('/api/v1/surveys', authMiddleware, require('./routes/surveys'));
+app.use('/api/v1/settings', authMiddleware, require('./routes/settings'));
+app.use('/api/v1/uploads', authMiddleware, require('./routes/uploads'));
 
 // SPA fallback - serve index.html for client-side routes
-app.get('/prime/*', (req, res) => {
+app.get('/*', (req, res) => {
   // Don't intercept API calls or static file requests with extensions
-  if (req.path.startsWith('/prime/api/') || path.extname(req.path)) {
+  if (req.path.startsWith('/api/') || path.extname(req.path)) {
     return res.status(404).json({ error: 'Not found' });
   }
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));

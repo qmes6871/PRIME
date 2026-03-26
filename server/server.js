@@ -22,7 +22,7 @@ async function start() {
     // Start server
     app.listen(PORT, () => {
       console.log(`Prime Asset server running on port ${PORT}`);
-      console.log(`Access at: http://localhost:${PORT}/prime`);
+      console.log(`Access at: http://localhost:${PORT}`);
     });
   } catch (err) {
     console.error('Failed to start server:', err);

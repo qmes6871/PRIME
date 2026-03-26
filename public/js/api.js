@@ -1,6 +1,6 @@
 // API Client
 const API = {
-  baseUrl: '/prime/api/v1',
+  baseUrl: '/api/v1',
 
   getToken() {
     return localStorage.getItem('prime_token');

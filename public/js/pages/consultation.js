@@ -676,10 +676,10 @@ const ConsultationPage = {
               </h3>
             </div>
             <div class="alert-box alert-success">
-              <strong>공유 URL:</strong> <a href="/prime/proposal.html?token=${consultation.share_token}" target="_blank" style="word-break:break-all;">${location.origin}/prime/proposal.html?token=${consultation.share_token}</a>
+              <strong>공유 URL:</strong> <a href="/proposal.html?token=${consultation.share_token}" target="_blank" style="word-break:break-all;">${location.origin}/proposal.html?token=${consultation.share_token}</a>
               <br><small>만료: ${Utils.formatDate(consultation.share_expires_at)}</small>
             </div>
-            <button class="btn btn-secondary btn-sm" style="border-radius:8px;" onclick="Utils.copyToClipboard('${location.origin}/prime/proposal.html?token=${consultation.share_token}').then(() => showToast('복사되었습니다','success'))">링크 복사</button>
+            <button class="btn btn-secondary btn-sm" style="border-radius:8px;" onclick="Utils.copyToClipboard('${location.origin}/proposal.html?token=${consultation.share_token}').then(() => showToast('복사되었습니다','success'))">링크 복사</button>
           </div>
           ` : ''}
         </div>

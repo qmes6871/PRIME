@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>보험 설문조사 - 프라임에셋</title>
-  <link rel="stylesheet" href="/prime/css/app.css">
+  <link rel="stylesheet" href="/css/app.css">
   <style>
     body { background: #f0f2f5; }
     .survey-container {
@@ -72,7 +72,7 @@
       }
 
       try {
-        const res = await fetch('/prime/api/v1/public/survey-info/' + agentId);
+        const res = await fetch('/api/v1/public/survey-info/' + agentId);
         const data = await res.json();
 
         if (!res.ok) {
@@ -202,7 +202,7 @@
       };
 
       try {
-        const res = await fetch('/prime/api/v1/public/survey/' + agentId, {
+        const res = await fetch('/api/v1/public/survey/' + agentId, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)

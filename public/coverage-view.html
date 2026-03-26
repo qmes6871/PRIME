@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>보장현황 - 프라임에셋</title>
-  <link rel="stylesheet" href="/prime/css/app.css">
+  <link rel="stylesheet" href="/css/app.css">
   <style>
     body { background: #f0f2f5; }
     .coverage-container {
@@ -41,7 +41,7 @@
       }
 
       try {
-        const res = await fetch(`/prime/api/v1/public/coverage/${customerId}/${token}`);
+        const res = await fetch(`/api/v1/public/coverage/${customerId}/${token}`);
         const data = await res.json();
 
         if (!res.ok) {

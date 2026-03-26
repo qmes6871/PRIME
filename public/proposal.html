@@ -221,7 +221,7 @@
       }
 
       try {
-        const res = await fetch('/prime/api/v1/public/proposal/' + token);
+        const res = await fetch('/api/v1/public/proposal/' + token);
         const data = await res.json();
 
         if (!res.ok) {
