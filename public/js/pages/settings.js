@@ -14,6 +14,7 @@ const SettingsPage = {
     { id: 'templates',  icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', label: '메시지 템플릿', color: '#059669' },
     // { id: 'checkitems', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', label: '보장 점검항목', color: '#d97706' },
     { id: 'links',      icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1', label: '보험정보 링크', color: '#3b82f6' },
+
     { id: 'system',     icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', label: '시스템 설정', color: '#64748b' },
     { id: 'password',   icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', label: '비밀번호 변경', color: '#dc2626' }
   ],
@@ -912,6 +913,112 @@ const SettingsPage = {
       await API.changePassword({ current_password: current, new_password: newPw });
       showToast('비밀번호가 변경되었습니다.', 'success');
       form.reset();
+    } catch (err) { showToast(err.message, 'error'); }
+  },
+
+  // ==================== 보장분석 용어 설정 ====================
+  _defaultCoverageCategories: [
+    { key: 'silson', title: '실손의료비', fields: [
+      { key: 'insurer', label: '보험사' }, { key: 'startDate', label: '가입일자' }, { key: 'generation', label: '세대' }, { key: 'selfBurden', label: '자기부담금' }, { key: 'renewalCycle', label: '갱신주기' }
+    ]},
+    { key: 'dailyLiability', title: '일상생활중배상', fields: [
+      { key: 'insurer', label: '보험사' }, { key: 'startDate', label: '가입일자' }, { key: 'selfBurden', label: '자기부담금' }, { key: 'limit', label: '보장한도' }
+    ]},
+    { key: 'death', title: '사망보장', fields: [
+      { key: 'diseaseDeath', label: '질병사망' }, { key: 'accidentDeath', label: '상해사망' }
+    ]},
+    { key: 'disability', title: '후유장해', fields: [
+      { key: 'diseaseDisability', label: '질병후유장해' }, { key: 'accidentDisability', label: '상해후유장해' }
+    ]},
+    { key: 'cancer', title: '암보장', fields: [
+      { key: 'generalCancer', label: '일반암 진단비' }, { key: 'similarCancer', label: '유사암 진단비' }, { key: 'integratedCancer', label: '통합암 진단비' },
+      { key: 'antiRadiation', label: '항암방사선 치료비' }, { key: 'antiDrug', label: '항암약물 치료비' }, { key: 'targetAntiCancer', label: '표적항암 치료비' },
+      { key: 'davinciRobot', label: '다빈치로봇 수술비' }, { key: 'immuneAntiDrug', label: '면역항암약물 치료비' }, { key: 'protonAntiCancer', label: '항암양성자 치료비' },
+      { key: 'hormoneTherapy', label: '호르몬 치료비' }, { key: 'heavyIonTherapy', label: '중입자 치료비' }
+    ]},
+    { key: 'brain', title: '뇌혈관질환', fields: [
+      { key: 'diagnosis', label: '뇌혈관질환 진단비' }, { key: 'stroke', label: '뇌졸중 진단비' }, { key: 'cerebralHemorrhage', label: '뇌출혈 진단비' },
+      { key: 'specialExpense', label: '산정특례 진단비' }, { key: 'thrombolysis', label: '혈전용해 치료비' }
+    ]},
+    { key: 'heart', title: '심혈관질환', fields: [
+      { key: 'diagnosis', label: '심혈관질환 진단비' }, { key: 'ischemic', label: '허혈성심장질환 진단비' }, { key: 'acuteMyocardial', label: '급성심근경색 진단비' },
+      { key: 'specialExpense', label: '산정특례 진단비' }, { key: 'thrombolysis', label: '혈전용해 치료비' }
+    ]},
+    { key: 'surgery', title: '수술비보장', fields: [
+      { key: 'diseaseSurgery', label: '질병수술비' }, { key: 'accidentSurgery', label: '상해수술비' }, { key: 'diseaseTypeSurgery', label: '질병종수술비 (1~5종)' },
+      { key: 'accidentTypeSurgery', label: '상해종수술비 (1~5종)' }, { key: 'majorDiseaseSurgery', label: 'N대질병 수술비' }
+    ]},
+    { key: 'driver', title: '운전자보험', fields: [
+      { key: 'trafficAccident', label: '교통사고처리 지원금' }, { key: 'lawyerFee', label: '변호사 선임비용' }, { key: 'fine', label: '벌금' }, { key: 'autoInjury', label: '자동차부상 치료비' }
+    ]}
+  ],
+
+  _renderCoverageLabels() {
+    const labels = this._settings?.coverage_labels || {};
+    const cats = this._defaultCoverageCategories;
+    return `
+      <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;">
+        <div style="padding:20px;">
+          <div style="font-size:14px;color:var(--gray-500);margin-bottom:16px;line-height:1.6;">
+            제안서 미리보기에 표시되는 보장분석 항목의 용어를 변경할 수 있습니다.<br>
+            비워두면 기본 용어가 사용됩니다.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            ${cats.map(cat => `
+              <div style="border:1px solid var(--gray-200);border-radius:12px;overflow:hidden;">
+                <div style="padding:10px 14px;background:var(--gray-50);font-size:14px;font-weight:700;color:var(--gray-700);border-bottom:1px solid var(--gray-200);">
+                  ${cat.title}
+                </div>
+                <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
+                  ${cat.fields.map(f => {
+                    const customVal = labels[cat.key]?.[f.key] || '';
+                    return `
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:12px;color:var(--gray-400);width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${f.label}">${f.label}</span>
+                        <input type="text" class="form-input" value="${Utils.escapeHtml(customVal)}" placeholder="${f.label}"
+                          data-cat="${cat.key}" data-field="${f.key}"
+                          style="font-size:13px;border-radius:8px;padding:6px 10px;">
+                      </div>`;
+                  }).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="display:flex;gap:8px;margin-top:20px;">
+            <button class="btn" style="background:#d97706;color:white;border:none;border-radius:10px;padding:10px 20px;font-weight:600;" onclick="SettingsPage.saveCoverageLabels()">저장</button>
+            <button class="btn btn-secondary" style="border-radius:10px;padding:10px 20px;" onclick="SettingsPage.resetCoverageLabels()">초기화</button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  async saveCoverageLabels() {
+    const inputs = document.querySelectorAll('[data-cat][data-field]');
+    const labels = {};
+    inputs.forEach(input => {
+      const cat = input.dataset.cat;
+      const field = input.dataset.field;
+      const val = input.value.trim();
+      if (val) {
+        if (!labels[cat]) labels[cat] = {};
+        labels[cat][field] = val;
+      }
+    });
+    try {
+      await API.updateSettings({ coverage_labels: Object.keys(labels).length > 0 ? labels : null });
+      this._settings.coverage_labels = Object.keys(labels).length > 0 ? labels : null;
+      showToast('보장분석 용어가 저장되었습니다.', 'success');
+    } catch (err) { showToast(err.message, 'error'); }
+  },
+
+  async resetCoverageLabels() {
+    if (!confirm('모든 용어를 기본값으로 초기화하시겠습니까?')) return;
+    try {
+      await API.updateSettings({ coverage_labels: null });
+      this._settings.coverage_labels = null;
+      document.getElementById('settings-content').innerHTML = this._renderTabContent();
+      showToast('기본 용어로 초기화되었습니다.', 'success');
     } catch (err) { showToast(err.message, 'error'); }
   }
 };

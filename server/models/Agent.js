@@ -43,6 +43,10 @@ module.exports = (sequelize) => {
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true
+    },
+    is_admin: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
     }
   }, {
     tableName: 'agents'

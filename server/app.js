@@ -68,6 +68,7 @@ app.use('/api/v1/insurance-companies', authMiddleware, require('./routes/insuran
 app.use('/api/v1/surveys', authMiddleware, require('./routes/surveys'));
 app.use('/api/v1/settings', authMiddleware, require('./routes/settings'));
 app.use('/api/v1/uploads', authMiddleware, require('./routes/uploads'));
+app.use('/api/v1/admin', authMiddleware, require('./routes/admin'));
 
 // SPA fallback - serve index.html for client-side routes
 app.get('/*', (req, res) => {

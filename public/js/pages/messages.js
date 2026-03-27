@@ -39,8 +39,8 @@ const MessagesPage = {
     { key: 'special', label: '특별알림' }
   ],
 
-  // 탭별 하위 항목
-  _tabItems: {
+  // 탭별 기본 하위 항목
+  _defaultTabItems: {
     info: [
       { value: '담당자변경', label: '보험담당자 변경안내', icon: '👤', color: '#6366f1' },
       { value: '해지', label: '해지안내', icon: '📋', color: '#dc2626' },
@@ -59,6 +59,34 @@ const MessagesPage = {
       { value: 'reservation_confirm', label: '상담 예약 확인', desc: '상담 일정 확인 및 리마인드', icon: '📆', color: '#059669' },
       { value: 'followup', label: '상담 후 팔로업', desc: '상담 이후 만족도 확인 및 후속 안내', icon: '🔄', color: '#d97706' }
     ]
+  },
+  _tabItems: { info: [], alimtalk: [], special: [] },
+
+  _categoryToTab: { '메시지안내': 'info', '알림톡': 'alimtalk', '특별알림': 'special' },
+  _tabColors: ['#6366f1', '#059669', '#d97706', '#db2777', '#8b5cf6', '#dc2626', '#0891b2', '#ea580c'],
+
+  _buildTabItemsFromTemplates() {
+    // 기본 항목 복사
+    this._tabItems = {};
+    for (const key in this._defaultTabItems) {
+      this._tabItems[key] = [...this._defaultTabItems[key]];
+    }
+    // DB 템플릿 중 기본 항목에 없는 것 추가
+    this.templates.forEach(t => {
+      const tabKey = this._categoryToTab[t.category];
+      if (!tabKey) return;
+      const exists = this._tabItems[tabKey].some(item => item.value === t.type);
+      if (!exists) {
+        const colorIdx = this._tabItems[tabKey].length % this._tabColors.length;
+        this._tabItems[tabKey].push({
+          value: t.type,
+          label: t.title || t.type,
+          desc: '',
+          icon: '📝',
+          color: this._tabColors[colorIdx]
+        });
+      }
+    });
   },
 
   // 청구서류 목록
@@ -96,6 +124,9 @@ const MessagesPage = {
       this.templates = [...templatesData.templates, ...alimtalkTemplatesData.templates, ...specialTemplatesData.templates];
       this.customers = customersData.customers;
       this.companies = companiesData.companies;
+
+      // 템플릿 기반으로 탭 항목 동적 구성
+      this._buildTabItemsFromTemplates();
 
       // 고객 자동 선택
       if (params.customerId) {

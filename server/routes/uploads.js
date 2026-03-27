@@ -50,7 +50,7 @@ router.post('/policy-image', (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: '파일을 선택해주세요.' });
     }
-    const url = `/prime/uploads/policies/${req.file.filename}`;
+    const url = `/uploads/policies/${req.file.filename}`;
     res.json({ url, filename: req.file.originalname });
   });
 });

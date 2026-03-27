@@ -189,5 +189,11 @@ const API = {
     if (!res.ok) throw new Error(json.error || '업로드에 실패했습니다.');
     return json;
   },
-  deletePolicyImage(filename) { return this.delete(`/uploads/policy-image/${filename}`); }
+  deletePolicyImage(filename) { return this.delete(`/uploads/policy-image/${filename}`); },
+
+  // Admin
+  getAgents() { return this.get('/admin/agents'); },
+  createAgent(data) { return this.post('/admin/agents', data); },
+  updateAgent(id, data) { return this.put(`/admin/agents/${id}`, data); },
+  deleteAgent(id) { return this.delete(`/admin/agents/${id}`); }
 };

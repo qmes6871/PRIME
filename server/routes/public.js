@@ -30,7 +30,7 @@ router.get('/proposal/:token', async (req, res, next) => {
     // 설정 정보도 함께 전달 (온라인예약, 카카오톡 URL 등)
     const settings = await AgentSetting.findOne({
       where: { agent_id: consultation.agent_id },
-      attributes: ['fax_number', 'online_reservation_url', 'kakao_talk_url']
+      attributes: ['fax_number', 'online_reservation_url', 'kakao_talk_url', 'coverage_labels']
     });
 
     res.json({ consultation, settings });

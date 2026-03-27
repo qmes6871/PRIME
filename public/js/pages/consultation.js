@@ -36,11 +36,11 @@ const ConsultationPage = {
         { key: 'selfBurden', label: '자기부담금', type: 'select', options: ['10%','20%','30%'] },
         { key: 'renewalCycle', label: '갱신주기', type: 'select', options: ['1년','3년','5년','15년'] }
       ]},
-    { key: 'dailyLiability', title: '일상생활배상', icon: '🛡️', color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe',
+    { key: 'dailyLiability', title: '일상생활중배상책임', icon: '🛡️', color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe',
       fields: [
         { key: 'insurer', label: '보험사', type: 'insurer' },
         { key: 'startDate', label: '가입일자', type: 'date' },
-        { key: 'selfBurden', label: '자기부담금', type: 'text', placeholder: '예: 없음' },
+        { key: 'selfBurden', label: '자기부담금', type: 'amount', unit: '만원' },
         { key: 'limit', label: '보장한도', type: 'amount', unit: '억원' }
       ]},
     { key: 'death', title: '사망보장', icon: '⚱️', color: '#dc2626', bg: '#fef2f2', border: '#fecaca',
@@ -100,6 +100,18 @@ const ConsultationPage = {
       ]}
   ],
 
+  _applyCoverageLabels() {
+    const labels = this._settings?.coverage_labels;
+    if (!labels) return;
+    this._coverageCategories.forEach(cat => {
+      if (labels[cat.key]) {
+        cat.fields.forEach(f => {
+          if (labels[cat.key][f.key]) f.label = labels[cat.key][f.key];
+        });
+      }
+    });
+  },
+
   _settings: null,
 
   async render(params = {}) {
@@ -114,6 +126,8 @@ const ConsultationPage = {
       this.customers = customersData.customers;
       this.checkItems = checkItemsData.items;
       this._settings = settingsData.settings;
+      if (settingsData.agent) API.setAgent(settingsData.agent);
+      this._applyCoverageLabels();
 
       if (params.consultationId) {
         return await this.renderEditor(params.consultationId);
@@ -297,7 +311,8 @@ const ConsultationPage = {
       proposalReason: savedData.proposalReason || '',
       recommendedPlans: savedData.recommendedPlans || [],
       coverageAnalysis: savedData.coverageAnalysis || {},
-      sectionImages: savedData.sectionImages || []
+      sectionImages: savedData.sectionImages || [],
+      sectionOrder: savedData.sectionOrder || ['referenceLinks','healthCheck','insuranceAnalysis','expertRecommendation']
     };
     this._existingPolicies = this._formData.existingPolicies;
     this._recommendedPlans = this._formData.recommendedPlans;
@@ -453,10 +468,16 @@ const ConsultationPage = {
               <div id="links-list">
                 ${this._referenceLinks.map((link, i) => this._renderLinkRow(i, link)).join('')}
               </div>
-              <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px dashed var(--gray-300);color:var(--gray-500);margin-top:8px;" onclick="ConsultationPage.addLink()">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-                링크 추가
-              </button>
+              <div style="display:flex;gap:8px;margin-top:8px;">
+                <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px dashed var(--gray-300);color:var(--gray-500);" onclick="ConsultationPage.addLink()">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                  링크 추가
+                </button>
+                <button class="btn btn-sm" style="border-radius:8px;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;" onclick="ConsultationPage.loadInfoLinks('reference')">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  불러오기
+                </button>
+              </div>
             </div>
           </div>
 
@@ -500,10 +521,16 @@ const ConsultationPage = {
                 <div id="health-links-list">
                   ${this._healthLinks.map((link, i) => this._renderHealthLinkRow(i, link)).join('')}
                 </div>
-                <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px dashed var(--gray-300);color:var(--gray-500);margin-top:8px;" onclick="ConsultationPage.addHealthLink()">
-                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-                  링크 추가
-                </button>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px dashed var(--gray-300);color:var(--gray-500);" onclick="ConsultationPage.addHealthLink()">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                    링크 추가
+                  </button>
+                  <button class="btn btn-sm" style="border-radius:8px;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;" onclick="ConsultationPage.loadInfoLinks('health')">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    불러오기
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -576,10 +603,16 @@ const ConsultationPage = {
                 <div id="remodel-links-list">
                   ${this._remodelLinks.map((link, i) => this._renderRemodelLinkRow(i, link)).join('')}
                 </div>
-                <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px dashed var(--gray-300);color:var(--gray-500);margin-top:8px;" onclick="ConsultationPage.addRemodelLink()">
-                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-                  링크 추가
-                </button>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px dashed var(--gray-300);color:var(--gray-500);" onclick="ConsultationPage.addRemodelLink()">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                    링크 추가
+                  </button>
+                  <button class="btn btn-sm" style="border-radius:8px;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;" onclick="ConsultationPage.loadInfoLinks('remodel')">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    불러오기
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -646,10 +679,16 @@ const ConsultationPage = {
                 <div id="brochure-links-list">
                   ${this._brochureLinks.map((link, i) => this._renderBrochureLinkRow(i, link)).join('')}
                 </div>
-                <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px dashed var(--gray-300);color:var(--gray-500);margin-top:8px;" onclick="ConsultationPage.addBrochureLink()">
-                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-                  링크 추가
-                </button>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <button class="btn btn-secondary btn-sm" style="border-radius:8px;border:1px dashed var(--gray-300);color:var(--gray-500);" onclick="ConsultationPage.addBrochureLink()">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                    링크 추가
+                  </button>
+                  <button class="btn btn-sm" style="border-radius:8px;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;" onclick="ConsultationPage.loadInfoLinks('brochure')">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    불러오기
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -665,6 +704,21 @@ const ConsultationPage = {
               </h3>
             </div>
             <textarea class="form-input" id="c-memo" rows="4" oninput="ConsultationPage.autoSave()" placeholder="진행 상황이나 특이사항을 메모하세요..." style="border-radius:10px;">${Utils.escapeHtml(consultation.progress_memo || '')}</textarea>
+          </div>
+
+          <!-- Section 8: 섹션 순서 변경 -->
+          <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;">
+            <div class="card-header" style="margin-bottom:16px;">
+              <h3 class="card-title" style="display:flex;align-items:center;gap:8px;">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);border-radius:8px;">
+                  <svg width="14" height="14" fill="none" stroke="#4338ca" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </span>
+                미리보기 섹션 순서
+              </h3>
+            </div>
+            <div id="section-order-list" style="display:flex;flex-direction:column;gap:6px;">
+              ${this._renderSectionOrderList()}
+            </div>
           </div>
 
           ${consultation.share_token ? `
@@ -744,10 +798,22 @@ const ConsultationPage = {
           </div>
         </label>
         ${tooltip ? `<div id="${tipId}" style="display:none;margin-top:10px;padding:12px 14px;border-radius:10px;background:white;border:1px solid #e2e8f0;font-size:12px;color:#475569;line-height:1.7;">${tooltip}</div>` : ''}
-        ${checked ? `
-          <textarea class="form-input" id="health-detail-${key}" rows="2" oninput="ConsultationPage.autoSave()" placeholder="${placeholder || '상세 내용을 입력하세요...'}"
-            style="margin-top:10px;border-radius:10px;font-size:13px;background:white;border-color:#fca5a5;">${Utils.escapeHtml(detail)}</textarea>
-        ` : ''}
+        ${checked ? (() => {
+          const d = typeof detail === 'object' && detail ? detail : { date: '', memo: typeof detail === 'string' ? detail : '' };
+          return `
+          <div style="margin-top:10px;display:flex;gap:8px;">
+            <div style="flex:1;">
+              <label style="font-size:11px;font-weight:600;color:#b91c1c;margin-bottom:4px;display:block;">날짜</label>
+              <textarea class="form-input" id="health-date-${key}" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';ConsultationPage.autoSave()" placeholder="예: 2024년 3월"
+                style="border-radius:10px;font-size:13px;background:white;border-color:#fca5a5;resize:none;overflow:hidden;min-height:38px;">${Utils.escapeHtml(d.date || '')}</textarea>
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:11px;font-weight:600;color:#b91c1c;margin-bottom:4px;display:block;">메모</label>
+              <textarea class="form-input" id="health-memo-${key}" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';ConsultationPage.autoSave()" placeholder="${placeholder || '상세 내용을 입력하세요...'}"
+                style="border-radius:10px;font-size:13px;background:white;border-color:#fca5a5;resize:none;overflow:hidden;min-height:38px;">${Utils.escapeHtml(d.memo || '')}</textarea>
+            </div>
+          </div>`;
+        })() : ''}
       </div>
     `;
   },
@@ -788,6 +854,40 @@ const ConsultationPage = {
     `;
   },
 
+  _getCoverageLabel(catKey, fieldKey, defaultLabel) {
+    const cl = this._formData.coverageLabels;
+    return (cl && cl[catKey] && cl[catKey][fieldKey]) || defaultLabel;
+  },
+
+  _renderCoverageLabelEl(catKey, field) {
+    const noEditKeys = ['silson', 'dailyLiability'];
+    if (noEditKeys.includes(catKey)) {
+      return `<label style="font-size:12px;color:var(--gray-600);font-weight:500;min-width:120px;flex-shrink:0;">${field.label}</label>`;
+    }
+    const customLabel = this._getCoverageLabel(catKey, field.key, null);
+    const displayLabel = customLabel || field.label;
+    return `<label style="font-size:12px;color:var(--gray-600);font-weight:500;min-width:120px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;gap:3px;${customLabel ? 'color:var(--primary);' : ''}" onclick="ConsultationPage.editCoverageLabel('${catKey}','${field.key}','${Utils.escapeHtml(field.label)}')" title="클릭하여 라벨 변경">${Utils.escapeHtml(displayLabel)} <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="opacity:0.4;flex-shrink:0;"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></label>`;
+  },
+
+  editCoverageLabel(catKey, fieldKey, defaultLabel) {
+    const current = this._getCoverageLabel(catKey, fieldKey, defaultLabel);
+    const newLabel = prompt('라벨명을 입력하세요 (비우면 기본값 복원)', current);
+    if (newLabel === null) return;
+    if (!this._formData.coverageLabels) this._formData.coverageLabels = {};
+    if (!this._formData.coverageLabels[catKey]) this._formData.coverageLabels[catKey] = {};
+    if (newLabel.trim() === '' || newLabel.trim() === defaultLabel) {
+      delete this._formData.coverageLabels[catKey][fieldKey];
+      if (Object.keys(this._formData.coverageLabels[catKey]).length === 0) delete this._formData.coverageLabels[catKey];
+      if (Object.keys(this._formData.coverageLabels).length === 0) this._formData.coverageLabels = null;
+    } else {
+      this._formData.coverageLabels[catKey][fieldKey] = newLabel.trim();
+    }
+    this._collectCoverageFields();
+    const container = document.getElementById('coverage-analysis-container');
+    if (container) container.innerHTML = this._coverageCategories.map(cat => this._renderCoverageCategory(cat)).join('');
+    this.autoSave();
+  },
+
   _renderCoverageField(catKey, field, value) {
     const inputId = `ca-${catKey}-${field.key}`;
     if (field.type === 'amount') {
@@ -795,7 +895,7 @@ const ConsultationPage = {
       const displayVal = value && !isNaN(numVal) ? numVal.toLocaleString() : '';
       return `
         <div style="display:flex;align-items:center;gap:8px;">
-          <label style="font-size:12px;color:var(--gray-600);font-weight:500;min-width:120px;flex-shrink:0;">${field.label}</label>
+          ${this._renderCoverageLabelEl(catKey, field)}
           <div style="position:relative;flex:1;">
             <input type="text" class="form-input" id="${inputId}" value="${displayVal}" oninput="Utils.formatMoneyInput(this); ConsultationPage.updateCoverageField('${catKey}','${field.key}',Utils.getMoneyValue(this))" placeholder="0" style="border-radius:8px;font-size:13px;padding-right:${field.unit === '억원' ? '40px' : '36px'};">
             <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--gray-400);">${field.unit}</span>
@@ -805,7 +905,7 @@ const ConsultationPage = {
     } else if (field.type === 'select') {
       return `
         <div style="display:flex;align-items:center;gap:8px;">
-          <label style="font-size:12px;color:var(--gray-600);font-weight:500;min-width:120px;flex-shrink:0;">${field.label}</label>
+          ${this._renderCoverageLabelEl(catKey, field)}
           <select class="form-input" id="${inputId}" onchange="ConsultationPage.updateCoverageField('${catKey}','${field.key}',this.value)" style="border-radius:8px;font-size:13px;flex:1;">
             <option value="">선택</option>
             ${field.options.map(o => `<option value="${o}" ${value === o ? 'selected' : ''}>${o}</option>`).join('')}
@@ -815,14 +915,14 @@ const ConsultationPage = {
     } else if (field.type === 'date') {
       return `
         <div style="display:flex;align-items:center;gap:8px;">
-          <label style="font-size:12px;color:var(--gray-600);font-weight:500;min-width:120px;flex-shrink:0;">${field.label}</label>
+          ${this._renderCoverageLabelEl(catKey, field)}
           <input type="text" class="form-input" id="${inputId}" value="${value}" oninput="Utils.formatBirthInput(this); ConsultationPage.updateCoverageField('${catKey}','${field.key}',this.value)" placeholder="20240101" maxlength="10" style="border-radius:8px;font-size:13px;flex:1;">
         </div>
       `;
     } else if (field.type === 'insurer') {
       return `
         <div style="display:flex;align-items:center;gap:8px;">
-          <label style="font-size:12px;color:var(--gray-600);font-weight:500;min-width:120px;flex-shrink:0;">${field.label}</label>
+          ${this._renderCoverageLabelEl(catKey, field)}
           <select class="form-input" id="${inputId}" onchange="ConsultationPage.updateCoverageField('${catKey}','${field.key}',this.value)" style="border-radius:8px;font-size:13px;flex:1;">
             <option value="">선택</option>
             <optgroup label="생명보험">
@@ -837,7 +937,7 @@ const ConsultationPage = {
     } else {
       return `
         <div style="display:flex;align-items:center;gap:8px;">
-          <label style="font-size:12px;color:var(--gray-600);font-weight:500;min-width:120px;flex-shrink:0;">${field.label}</label>
+          ${this._renderCoverageLabelEl(catKey, field)}
           <input type="text" class="form-input" id="${inputId}" value="${Utils.escapeHtml(value)}" oninput="ConsultationPage.updateCoverageField('${catKey}','${field.key}',this.value)" placeholder="${field.placeholder || ''}" style="border-radius:8px;font-size:13px;flex:1;">
         </div>
       `;
@@ -992,7 +1092,7 @@ const ConsultationPage = {
   },
 
   // ==================== Coverage checkbox items ====================
-  _coverageCheckItems: ['실손의료비','일상생활배상','사망보장','후유장해','암보장','뇌혈관질환','심혈관질환','수술비보장','운전자보험'],
+  _coverageCheckItems: ['실손의료비','일상생활중배상','사망보장','후유장해','암보장','뇌혈관질환','심혈관질환','수술비보장','운전자보험'],
 
   // ==================== Existing Policy Renderer ====================
   _renderExistingPolicy(index, policy) {
@@ -1021,14 +1121,14 @@ const ConsultationPage = {
             <input type="text" class="form-input" value="${Utils.escapeHtml(policy.productName || '')}" oninput="ConsultationPage.updateExistingPolicy(${index},'productName',this.value)" placeholder="상품명" style="border-radius:8px;font-size:13px;">
           </div>
         </div>
-        <div class="grid-3" style="gap:10px;display:grid;grid-template-columns:1fr 1fr 1fr;">
+        <div style="gap:8px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">
           <div class="form-group" style="margin-bottom:8px;">
-            <label class="form-label" style="font-size:12px;">월보험료</label>
-            <input type="text" class="form-input" value="${policy.premium ? Number(policy.premium).toLocaleString() : ''}" oninput="Utils.formatMoneyInput(this); ConsultationPage.updateExistingPolicy(${index},'premium',Utils.getMoneyValue(this))" placeholder="0" style="border-radius:8px;font-size:13px;">
+            <label class="form-label" style="font-size:11px;">월보험료</label>
+            <input type="text" class="form-input" value="${policy.premium ? Number(policy.premium).toLocaleString() : ''}" oninput="Utils.formatMoneyInput(this); ConsultationPage.updateExistingPolicy(${index},'premium',Utils.getMoneyValue(this))" placeholder="0" style="border-radius:8px;font-size:12px;padding:6px 8px;">
           </div>
           <div class="form-group" style="margin-bottom:8px;">
-            <label class="form-label" style="font-size:12px;">납입기간</label>
-            <select class="form-input" style="border-radius:8px;font-size:13px;" onchange="ConsultationPage.updateExistingPolicy(${index},'paymentPeriodEval',this.value)">
+            <label class="form-label" style="font-size:11px;">납입기간</label>
+            <select class="form-input" style="border-radius:8px;font-size:12px;padding:6px 4px;" onchange="ConsultationPage.updateExistingPolicy(${index},'paymentPeriodEval',this.value)">
               <option value="">선택</option>
               <option value="적당함" ${policy.paymentPeriodEval==='적당함'?'selected':''}>적당함</option>
               <option value="너무 김" ${policy.paymentPeriodEval==='너무 김'?'selected':''}>너무 김</option>
@@ -1037,8 +1137,16 @@ const ConsultationPage = {
             </select>
           </div>
           <div class="form-group" style="margin-bottom:8px;">
-            <label class="form-label" style="font-size:12px;">보장내용</label>
-            <select class="form-input" style="border-radius:8px;font-size:13px;" onchange="ConsultationPage.updateExistingPolicy(${index},'coverageEval',this.value)">
+            <label class="form-label" style="font-size:11px;">보장기간</label>
+            <select class="form-input" style="border-radius:8px;font-size:12px;padding:6px 4px;" onchange="ConsultationPage.updateExistingPolicy(${index},'coveragePeriodEval',this.value)">
+              <option value="">선택</option>
+              <option value="짧은" ${policy.coveragePeriodEval==='짧은'?'selected':''}>짧은</option>
+              <option value="충분" ${policy.coveragePeriodEval==='충분'?'selected':''}>충분</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:8px;">
+            <label class="form-label" style="font-size:11px;">보장내용</label>
+            <select class="form-input" style="border-radius:8px;font-size:12px;padding:6px 4px;" onchange="ConsultationPage.updateExistingPolicy(${index},'coverageEval',this.value)">
               <option value="">선택</option>
               <option value="충분" ${policy.coverageEval==='충분'?'selected':''}>충분</option>
               <option value="부족" ${policy.coverageEval==='부족'?'selected':''}>부족</option>
@@ -1216,11 +1324,16 @@ const ConsultationPage = {
 
     // Health checks
     const healthItems = [];
-    if (fd.healthChecks?.checkup) healthItems.push({ label: '건강검진', detail: fd.healthDetails?.checkup });
-    if (fd.healthChecks?.recent3m) healthItems.push({ label: '최근 3개월 이내', detail: fd.healthDetails?.recent3m });
-    if (fd.healthChecks?.recheck1y) healthItems.push({ label: '최근 1년 이내 추가검사', detail: fd.healthDetails?.recheck1y });
-    if (fd.healthChecks?.general5y) healthItems.push({ label: '최근 5년 이내 (일반)', detail: fd.healthDetails?.general5y });
-    if (fd.healthChecks?.disease11) healthItems.push({ label: '최근 5년 이내 (11대 질병)', detail: fd.healthDetails?.disease11 });
+    const parseHealthDetail = (d) => {
+      if (!d) return { date: '', memo: '' };
+      if (typeof d === 'string') return { date: '', memo: d };
+      return { date: d.date || '', memo: d.memo || '' };
+    };
+    if (fd.healthChecks?.checkup) healthItems.push({ label: '건강검진', ...parseHealthDetail(fd.healthDetails?.checkup) });
+    if (fd.healthChecks?.recent3m) healthItems.push({ label: '최근 3개월 이내', ...parseHealthDetail(fd.healthDetails?.recent3m) });
+    if (fd.healthChecks?.recheck1y) healthItems.push({ label: '최근 1년 이내 추가검사', ...parseHealthDetail(fd.healthDetails?.recheck1y) });
+    if (fd.healthChecks?.general5y) healthItems.push({ label: '최근 5년 이내 (일반)', ...parseHealthDetail(fd.healthDetails?.general5y) });
+    if (fd.healthChecks?.disease11) healthItems.push({ label: '최근 5년 이내 (11대 질병)', ...parseHealthDetail(fd.healthDetails?.disease11) });
 
     // Customer info line
     const infoItems = [];
@@ -1272,8 +1385,8 @@ const ConsultationPage = {
                 <span style="font-size:30px;font-weight:700;color:white;">${Utils.escapeHtml(agentName[0] || 'P')}</span>
               </div>`}
             <div style="color:white;font-size:20px;font-weight:700;">${Utils.escapeHtml(agentName)}</div>
-            <div style="color:#a5b4fc;font-size:14px;margin-top:2px;">${Utils.escapeHtml(agentPosition)} | PRIMEASSET</div>
-            ${agentIntro ? `<div style="color:rgba(255,255,255,0.7);font-size:12px;margin-top:6px;">${Utils.escapeHtml(agentIntro)}</div>` : ''}
+            <div style="color:#a5b4fc;font-size:15px;margin-top:2px;">${Utils.escapeHtml(agentPosition)} | PRIMEASSET</div>
+            ${agentIntro ? `<div style="color:rgba(255,255,255,0.7);font-size:13px;margin-top:6px;">${Utils.escapeHtml(agentIntro)}</div>` : ''}
             <div style="display:flex;gap:8px;margin-top:16px;justify-content:center;">
               <button style="flex:1;max-width:100px;padding:8px 4px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.15);color:white;display:flex;flex-direction:column;align-items:center;gap:4px;backdrop-filter:blur(4px);">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -1297,265 +1410,40 @@ const ConsultationPage = {
             <!-- Customer Info Card -->
             <div style="background:white;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.04);border:1px solid rgba(241,245,249,0.5);">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-                <h3 style="font-size:19px;font-weight:800;color:#1e293b;line-height:1.4;margin:0;">
+                <h3 style="font-size:20px;font-weight:800;color:#1e293b;line-height:1.4;margin:0;">
                   <span style="color:#4f46e5;background:#eef2ff;padding:1px 6px;border-radius:4px;">${Utils.escapeHtml(customerName)}</span>고객님을 위한<br>맞춤 컨설팅 리포트
                 </h3>
                 <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-top:2px;">
-                  ${fd.job ? `<span style="background:#f1f5f9;color:#475569;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:700;">${Utils.escapeHtml(fd.job)}</span>` : ''}
-                  ${infoItems.length > 0 ? `<span style="background:#f1f5f9;color:#475569;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:700;">${infoItems.filter(i => i !== fd.job).join(' / ')}</span>` : ''}
+                  ${fd.job ? `<span style="background:#f1f5f9;color:#475569;padding:4px 10px;border-radius:8px;font-size:14px;font-weight:700;">${Utils.escapeHtml(fd.job)}</span>` : ''}
+                  ${infoItems.length > 0 ? `<span style="background:#f1f5f9;color:#475569;padding:4px 10px;border-radius:8px;font-size:14px;font-weight:700;">${infoItems.filter(i => i !== fd.job).join(' / ')}</span>` : ''}
                 </div>
               </div>
-              ${fd.address ? `<div style="font-size:14px;color:#64748b;background:#f8fafc;padding:8px 12px;border-radius:8px;margin-bottom:10px;word-break:break-all;">&#128205; ${Utils.escapeHtml(fd.address)}${fd.addressDetail ? ' ' + Utils.escapeHtml(fd.addressDetail) : ''}</div>` : ''}
+              ${fd.address ? `<div style="font-size:15px;color:#64748b;background:#f8fafc;padding:8px 12px;border-radius:8px;margin-bottom:10px;word-break:break-all;">&#128205; ${Utils.escapeHtml(fd.address)}${fd.addressDetail ? ' ' + Utils.escapeHtml(fd.addressDetail) : ''}</div>` : ''}
               ${tagLabels.length > 0 ? `
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-                  ${tagLabels.map(t => `<span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;color:${t.color};background:${t.bg};">${t.label}</span>`).join('')}
+                  ${tagLabels.map(t => `<span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600;color:${t.color};background:${t.bg};">${t.label}</span>`).join('')}
                 </div>
               ` : ''}
               ${fd.birthdate ? (() => {
                 const anniv = Utils.calculatePolicyAnniversary(fd.birthdate);
                 if (!anniv) return '';
                 const [y, m, d] = anniv.split('-');
-                return '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;margin-top:6px;"><span style="font-size:15px;">&#128197;</span><div><div style="font-size:12px;color:#92400e;font-weight:700;">보험 상령일</div><div style="font-size:15px;color:#78350f;font-weight:800;">' + y + '년 ' + parseInt(m) + '월 ' + parseInt(d) + '일</div></div></div>';
+                return '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;margin-top:6px;"><span style="font-size:15px;">&#128197;</span><div><div style="font-size:13px;color:#92400e;font-weight:700;">보험 상령일</div><div style="font-size:16px;color:#78350f;font-weight:800;">' + y + '년 ' + parseInt(m) + '월 ' + parseInt(d) + '일</div></div></div>';
               })() : ''}
             </div>
 
             <!-- Memo Card -->
             ${fd.memoTitle || fd.memoContent ? `
               <div style="background:white;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.04);border:1px solid rgba(241,245,249,0.5);">
-                <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:10px;display:flex;align-items:center;">
+                <div style="font-size:17px;font-weight:700;color:#1e293b;margin-bottom:10px;display:flex;align-items:center;">
                   <div style="width:28px;height:28px;border-radius:50%;background:#eef2ff;display:flex;align-items:center;justify-content:center;margin-right:8px;"><span style="color:#6366f1;font-size:15px;">&#128221;</span></div>
                   ${fd.memoTitle ? Utils.escapeHtml(fd.memoTitle) : '메모'}
                 </div>
-                ${fd.memoContent ? `<div style="font-size:14px;color:#475569;line-height:1.7;white-space:pre-wrap;background:#f8fafc;padding:14px;border-radius:12px;border:1px solid #f1f5f9;">${Utils.escapeHtml(fd.memoContent)}</div>` : ''}
+                ${fd.memoContent ? `<div style="font-size:15px;color:#475569;line-height:1.7;white-space:pre-wrap;background:#f8fafc;padding:14px;border-radius:12px;border:1px solid #f1f5f9;">${Utils.escapeHtml(fd.memoContent)}</div>` : ''}
               </div>
             ` : ''}
 
-            <!-- Reference Links (bookmark style) -->
-            ${(fd.showLinks && this._referenceLinks.filter(l => l.title || l.url).length > 0) ? `
-              <div style="display:flex;flex-direction:column;gap:8px;">
-                ${this._referenceLinks.filter(l => l.title || l.url).map(l => `
-                  <div style="display:flex;height:64px;background:white;border:1px solid #f1f5f9;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.02);">
-                    <div style="flex:1;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;">
-                      <div style="font-size:14px;font-weight:700;color:#1e293b;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${Utils.escapeHtml(l.title || l.url || '')}</div>
-                      ${l.url ? '<div style="font-size:12px;color:#94a3b8;margin-top:3px;display:flex;align-items:center;">&#128279; ' + Utils.escapeHtml(l.url.replace(/^https?:\/\//, '').substring(0, 30)) + '...</div>' : ''}
-                    </div>
-                    <div style="width:64px;height:64px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                      ${l.thumbnail
-                        ? `<img src="${Utils.escapeHtml(l.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
-                        : `<svg width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>`
-                      }
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-
-            <!-- Health Check -->
-            ${healthItems.length > 0 || fd.chronicDiseases?.hypertension || fd.chronicDiseases?.hyperlipidemia || fd.chronicDiseases?.diabetes ? `
-              <div style="background:white;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.04);border:1px solid rgba(241,245,249,0.5);">
-                <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;">
-                  <div style="width:28px;height:28px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin-right:8px;"><span style="color:#ef4444;font-size:15px;">&#9829;</span></div>
-                  건강 체크리스트
-                </div>
-                <div style="background:#f8fafc;padding:14px;border-radius:12px;border:1px solid #f1f5f9;">
-                  ${healthItems.map(h => `
-                    <div style="padding:6px 0;${healthItems.indexOf(h) < healthItems.length - 1 ? 'border-bottom:1px solid #e2e8f0;' : ''}">
-                      <div style="font-size:14px;font-weight:600;color:#dc2626;">${Utils.escapeHtml(h.label)}</div>
-                      ${h.detail ? `<div style="font-size:13px;color:#64748b;margin-top:2px;line-height:1.5;">${Utils.escapeHtml(h.detail)}</div>` : ''}
-                    </div>
-                  `).join('')}
-                  ${fd.chronicDiseases?.hypertension || fd.chronicDiseases?.hyperlipidemia || fd.chronicDiseases?.diabetes ? `
-                    <div style="${healthItems.length > 0 ? 'padding-top:8px;margin-top:4px;border-top:1px solid #e2e8f0;' : ''}">
-                      <div style="font-size:13px;color:#64748b;margin-bottom:6px;font-weight:600;">3대 만성질환</div>
-                      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                        ${fd.chronicDiseases.hypertension ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:13px;font-weight:600;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">고혈압</span>' : ''}
-                        ${fd.chronicDiseases.hyperlipidemia ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:13px;font-weight:600;background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;">고지혈증</span>' : ''}
-                        ${fd.chronicDiseases.diabetes ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:13px;font-weight:600;background:#fffbeb;color:#d97706;border:1px solid #fde68a;">당뇨</span>' : ''}
-                      </div>
-                    </div>
-                  ` : ''}
-                </div>
-                ${(fd.showHealthLinks && this._healthLinks.filter(l => l.title || l.url).length > 0) ? `
-                  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;">
-                    <div style="font-size:13px;font-weight:600;color:#db2777;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
-                      <svg width="12" height="12" fill="none" stroke="#db2777" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                      고지 의무 관련 영상/자료
-                    </div>
-                    <div style="display:flex;flex-direction:column;gap:8px;">
-                      ${this._healthLinks.filter(l => l.title || l.url).map(l => `
-                        <div style="display:flex;height:64px;background:white;border:1px solid #f1f5f9;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.02);">
-                          <div style="flex:1;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;">
-                            <div style="font-size:14px;font-weight:700;color:#1e293b;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${Utils.escapeHtml(l.title || l.url || '')}</div>
-                            ${l.url ? '<div style="font-size:12px;color:#94a3b8;margin-top:3px;display:flex;align-items:center;">&#128279; ' + Utils.escapeHtml(l.url.replace(/^https?:\/\//, '').substring(0, 30)) + '...</div>' : ''}
-                          </div>
-                          <div style="width:64px;height:64px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            ${l.thumbnail
-                              ? `<img src="${Utils.escapeHtml(l.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
-                              : `<svg width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>`
-                            }
-                          </div>
-                        </div>
-                      `).join('')}
-                    </div>
-                  </div>
-                ` : ''}
-              </div>
-            ` : ''}
-
-            <!-- Current Insurance Analysis -->
-            ${(fd.totalPremium || fd.expertComment || this._existingPolicies.length > 0) ? `
-              <div style="background:white;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.04);border:1px solid rgba(241,245,249,0.5);">
-                <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;">
-                  <div style="width:28px;height:28px;border-radius:50%;background:#fffbeb;display:flex;align-items:center;justify-content:center;margin-right:8px;"><span style="color:#f59e0b;font-size:15px;">&#9679;</span></div>
-                  현재 보험 점검
-                </div>
-                ${fd.totalPremium ? `
-                  <div style="background:linear-gradient(135deg,#1e293b,#334155);padding:16px;border-radius:14px;margin-bottom:12px;color:white;box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-                      <span style="font-size:14px;font-weight:500;opacity:0.9;">현재 월 납입료</span>
-                      <span style="font-size:20px;font-weight:800;">${Number(fd.totalPremium).toLocaleString()}원</span>
-                    </div>
-                    ${fd.premiumEval ? `<div style="text-align:right;font-size:14px;font-weight:700;color:${fd.premiumEval === '부족' ? '#fbbf24' : fd.premiumEval === '적정' ? '#4ade80' : '#f87171'};margin-top:4px;">소득 대비 ${fd.premiumEval}</div>` : ''}
-                  </div>
-                ` : ''}
-                ${fd.expertComment ? `<div style="font-size:14px;color:#475569;line-height:1.6;padding:12px 14px;background:#f8fafc;border-radius:12px;border:1px solid #f1f5f9;margin-bottom:12px;">${Utils.escapeHtml(fd.expertComment)}</div>` : ''}
-                ${this._renderMobilePreviewCoverageInline(fd)}
-                ${this._existingPolicies.filter(p => p.company || p.productName).length > 0 ? `<div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:8px;margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;align-items:center;gap:6px;"><span style="font-size:15px;">&#128203;</span> 상품별 보험 평가</div>` : ''}
-                ${this._existingPolicies.filter(p => p.company || p.productName).map(p => `
-                  <div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:8px;background:white;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                      <div>
-                        <div style="font-size:14px;font-weight:700;color:#1e293b;">${Utils.escapeHtml(p.company || '')}</div>
-                        <div style="font-size:13px;color:#94a3b8;margin-top:1px;">${Utils.escapeHtml(p.productName || '')}</div>
-                      </div>
-                      ${p.premium ? `<div style="font-size:16px;font-weight:800;color:#1e293b;">${Number(p.premium).toLocaleString()}원</div>` : ''}
-                    </div>
-                    ${p.paymentPeriodEval || p.coverageEval ? `
-                      <div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #f1f5f9;">
-                        ${p.paymentPeriodEval ? `<span style="font-size:12px;padding:3px 8px;border-radius:8px;font-weight:600;background:#f1f5f9;color:#475569;">납입 ${p.paymentPeriodEval}</span>` : ''}
-                        ${p.coverageEval ? `<span style="font-size:12px;padding:3px 8px;border-radius:8px;font-weight:600;background:${p.coverageEval === '부족' ? '#fef2f2' : p.coverageEval === '충분' ? '#ecfdf5' : '#fffbeb'};color:${p.coverageEval === '부족' ? '#dc2626' : p.coverageEval === '충분' ? '#16a34a' : '#d97706'};">보장 ${p.coverageEval}</span>` : ''}
-                      </div>
-                    ` : ''}
-                    ${p.coverageChecks && p.coverageChecks.length > 0 ? `
-                      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">
-                        ${p.coverageChecks.map(c => `<span style="font-size:11px;padding:2px 6px;border-radius:8px;background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe;">${Utils.escapeHtml(c)}</span>`).join('')}
-                      </div>
-                    ` : ''}
-                    ${p.opinion ? `<div style="font-size:13px;color:#16a34a;margin-top:8px;padding:8px 10px;background:#f0fdf4;border-radius:8px;">${Utils.escapeHtml(p.opinion)}</div>` : ''}
-                    ${p.images && p.images.length > 0 ? `
-                      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
-                        ${this._renderImageSlider(p.images, 'ep-slider-' + this._existingPolicies.indexOf(p))}
-                      </div>
-                    ` : ''}
-                  </div>
-                `).join('')}
-                ${(fd.showRemodelLinks && this._remodelLinks.filter(l => l.title || l.url).length > 0) ? `
-                  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;">
-                    <div style="font-size:13px;font-weight:600;color:#16a34a;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
-                      <svg width="12" height="12" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                      리모델링 사례/영상
-                    </div>
-                    <div style="display:flex;flex-direction:column;gap:8px;">
-                      ${this._remodelLinks.filter(l => l.title || l.url).map(l => `
-                        <div style="display:flex;height:64px;background:white;border:1px solid #f1f5f9;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.02);">
-                          <div style="flex:1;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;">
-                            <div style="font-size:14px;font-weight:700;color:#1e293b;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${Utils.escapeHtml(l.title || l.url || '')}</div>
-                            ${l.url ? '<div style="font-size:12px;color:#94a3b8;margin-top:3px;display:flex;align-items:center;">&#128279; ' + Utils.escapeHtml(l.url.replace(/^https?:\/\//, '').substring(0, 30)) + '...</div>' : ''}
-                          </div>
-                          <div style="width:64px;height:64px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            ${l.thumbnail
-                              ? `<img src="${Utils.escapeHtml(l.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
-                              : `<svg width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>`
-                            }
-                          </div>
-                        </div>
-                      `).join('')}
-                    </div>
-                  </div>
-                ` : ''}
-              </div>
-            ` : `${this._renderMobilePreviewCoverageInline(fd) ? `
-              <div style="background:white;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.04);border:1px solid rgba(241,245,249,0.5);">
-                <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;">
-                  <div style="width:28px;height:28px;border-radius:50%;background:#fffbeb;display:flex;align-items:center;justify-content:center;margin-right:8px;"><span style="color:#f59e0b;font-size:15px;">&#9679;</span></div>
-                  현재 보험 점검
-                </div>
-                ${this._renderMobilePreviewCoverageInline(fd)}
-              </div>
-            ` : ''}`}
-
-            <!-- Expert Recommendation -->
-            ${(fd.urgentItem || fd.proposalReason || this._recommendedPlans.length > 0) ? `
-              <div style="background:linear-gradient(135deg,#1e3a8a,#312e81);padding:3px;border-radius:22px;box-shadow:0 8px 30px rgba(0,0,0,0.04);">
-                <div style="background:white;padding:18px;border-radius:20px;">
-                  <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;">
-                    <div style="width:28px;height:28px;border-radius:50%;background:#eef2ff;display:flex;align-items:center;justify-content:center;margin-right:8px;"><span style="color:#4f46e5;font-size:15px;">&#9733;</span></div>
-                    전문가의 제안
-                  </div>
-                  ${fd.urgentItem ? `
-                    <div style="background:#eef2ff;border:1px solid #c7d2fe;padding:12px 14px;border-radius:12px;margin-bottom:12px;">
-                      <div style="font-size:12px;font-weight:800;color:#6366f1;margin-bottom:4px;">추천 보험</div>
-                      <div style="font-size:15px;color:#1e293b;font-weight:600;">${Utils.escapeHtml(fd.urgentItem)}</div>
-                    </div>
-                  ` : ''}
-                  ${fd.proposalReason ? `<div style="font-size:14px;color:#475569;line-height:1.6;padding:12px 14px;background:#f8fafc;border-radius:12px;margin-bottom:12px;">${Utils.escapeHtml(fd.proposalReason)}</div>` : ''}
-                  ${this._recommendedPlans.filter(p => p.company || p.productName).map(p => `
-                    <div style="border:1px solid #e0e7ff;border-radius:14px;padding:14px;margin-bottom:8px;background:linear-gradient(135deg,#fafafe,#eef2ff);">
-                      <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div>
-                          <div style="font-size:14px;font-weight:700;color:#1e293b;">${Utils.escapeHtml(p.company || '')}</div>
-                          <div style="font-size:13px;color:#6366f1;margin-top:1px;">${Utils.escapeHtml(p.productName || '')}</div>
-                        </div>
-                        ${p.premium ? `<div style="font-size:16px;font-weight:800;color:#4f46e5;">${Number(p.premium).toLocaleString()}원<span style="font-size:12px;color:#94a3b8;font-weight:400;">/월</span></div>` : ''}
-                      </div>
-                      ${p.paymentPeriodEval || p.maturityAge || p.coverageEval ? `
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #e0e7ff;">
-                          ${p.paymentPeriodEval ? `<span style="font-size:12px;padding:3px 8px;border-radius:8px;font-weight:600;background:#eef2ff;color:#4338ca;">${p.paymentPeriodEval}</span>` : ''}
-                          ${p.maturityAge ? `<span style="font-size:12px;padding:3px 8px;border-radius:8px;font-weight:600;background:#f0fdf4;color:#16a34a;">${p.maturityAge}</span>` : ''}
-                          ${p.coverageEval ? `<span style="font-size:12px;padding:3px 8px;border-radius:8px;font-weight:600;background:${p.coverageEval === '부족' ? '#fef2f2' : p.coverageEval === '충분' ? '#ecfdf5' : '#fffbeb'};color:${p.coverageEval === '부족' ? '#dc2626' : p.coverageEval === '충분' ? '#16a34a' : '#d97706'};">보장 ${p.coverageEval}</span>` : ''}
-                        </div>
-                      ` : ''}
-                      ${p.coverageChecks && p.coverageChecks.length > 0 ? `
-                        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">
-                          ${p.coverageChecks.map(c => `<span style="font-size:11px;padding:2px 6px;border-radius:8px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;">${Utils.escapeHtml(c)}</span>`).join('')}
-                        </div>
-                      ` : ''}
-                      ${p.highlight ? `<div style="font-size:13px;color:#059669;margin-top:8px;padding:8px 10px;background:#ecfdf5;border-radius:8px;">&#10003; ${Utils.escapeHtml(p.highlight)}</div>` : ''}
-                      ${p.opinion ? `<div style="font-size:13px;color:#16a34a;margin-top:8px;padding:8px 10px;background:#f0fdf4;border-radius:8px;">${Utils.escapeHtml(p.opinion)}</div>` : ''}
-                      ${p.images && p.images.length > 0 ? `
-                        <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
-                          ${this._renderImageSlider(p.images, 'rp-slider-' + this._recommendedPlans.indexOf(p))}
-                        </div>
-                      ` : ''}
-                    </div>
-                  `).join('')}
-                  ${(fd.showBrochureLinks && this._brochureLinks.filter(l => l.title || l.url).length > 0) ? `
-                    <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e0e7ff;">
-                      <div style="font-size:13px;font-weight:600;color:#d97706;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
-                        <svg width="12" height="12" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                        추천 상품 브로셔/영상
-                      </div>
-                      <div style="display:flex;flex-direction:column;gap:8px;">
-                        ${this._brochureLinks.filter(l => l.title || l.url).map(l => `
-                          <div style="display:flex;height:64px;background:white;border:1px solid #f1f5f9;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.02);">
-                            <div style="flex:1;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;">
-                              <div style="font-size:14px;font-weight:700;color:#1e293b;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${Utils.escapeHtml(l.title || l.url || '')}</div>
-                              ${l.url ? '<div style="font-size:12px;color:#94a3b8;margin-top:3px;display:flex;align-items:center;">&#128279; ' + Utils.escapeHtml(l.url.replace(/^https?:\/\//, '').substring(0, 30)) + '...</div>' : ''}
-                            </div>
-                            <div style="width:64px;height:64px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                              ${l.thumbnail
-                                ? `<img src="${Utils.escapeHtml(l.thumbnail)}" style="width:100%;height:100%;object-fit:cover;">`
-                                : `<svg width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>`
-                              }
-                            </div>
-                          </div>
-                        `).join('')}
-                      </div>
-                    </div>
-                  ` : ''}
-                </div>
-              </div>
-            ` : ''}
+            ${(fd.sectionOrder || ['referenceLinks','healthCheck','insuranceAnalysis','expertRecommendation']).map(sec => this._renderPreviewSection(sec, fd, healthItems)).join('')}
 
             <!-- CTA Buttons -->
             <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
@@ -1572,7 +1460,7 @@ const ConsultationPage = {
             </div>
 
             <!-- Footer -->
-            <div style="text-align:center;padding:12px 0 4px;font-size:12px;color:#94a3b8;">
+            <div style="text-align:center;padding:12px 0 4px;font-size:13px;color:#94a3b8;">
               PRIMEASSET | ${Utils.escapeHtml(agentName)}<br>
               ${new Date().toLocaleDateString('ko-KR')}
             </div>
@@ -1580,6 +1468,229 @@ const ConsultationPage = {
         </div>
       </div>
     `;
+  },
+
+  // ==================== Section Order ====================
+  _renderSectionOrderList() {
+    const order = this._formData.sectionOrder || ['referenceLinks','healthCheck','insuranceAnalysis','expertRecommendation'];
+    const labels = { referenceLinks: '참고 링크', healthCheck: '건강 체크리스트', insuranceAnalysis: '현재 보험 점검', expertRecommendation: '전문가의 제안' };
+    return order.map((key, i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid #e2e8f0;background:#fafafa;">
+        <span style="font-size:13px;font-weight:700;color:#94a3b8;width:20px;text-align:center;">${i + 1}</span>
+        <span style="flex:1;font-size:13px;font-weight:600;color:#1e293b;">${labels[key] || key}</span>
+        <div style="display:flex;gap:4px;">
+          <button onclick="ConsultationPage.moveSectionOrder(${i},-1)" style="width:28px;height:28px;border-radius:6px;border:1px solid #e2e8f0;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;${i === 0 ? 'opacity:0.3;pointer-events:none;' : ''}" title="위로">
+            <svg width="14" height="14" fill="none" stroke="#64748b" stroke-width="2" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+          </button>
+          <button onclick="ConsultationPage.moveSectionOrder(${i},1)" style="width:28px;height:28px;border-radius:6px;border:1px solid #e2e8f0;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;${i === order.length - 1 ? 'opacity:0.3;pointer-events:none;' : ''}" title="아래로">
+            <svg width="14" height="14" fill="none" stroke="#64748b" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  moveSectionOrder(index, dir) {
+    const order = this._formData.sectionOrder || ['referenceLinks','healthCheck','insuranceAnalysis','expertRecommendation'];
+    const newIndex = index + dir;
+    if (newIndex < 0 || newIndex >= order.length) return;
+    [order[index], order[newIndex]] = [order[newIndex], order[index]];
+    this._formData.sectionOrder = order;
+    const list = document.getElementById('section-order-list');
+    if (list) list.innerHTML = this._renderSectionOrderList();
+    this.autoSave();
+    this._refreshPreview();
+  },
+
+  // ==================== Preview Section Renderers ====================
+  _sectionDefs: [
+    { key: 'referenceLinks', label: '참고 링크' },
+    { key: 'healthCheck', label: '건강 체크리스트' },
+    { key: 'insuranceAnalysis', label: '현재 보험 점검' },
+    { key: 'expertRecommendation', label: '전문가의 제안' },
+  ],
+
+  _renderPreviewSection(sec, fd, healthItems) {
+    switch(sec) {
+      case 'referenceLinks': return this._renderPreviewReferenceLinks(fd);
+      case 'healthCheck': return this._renderPreviewHealthCheck(fd, healthItems);
+      case 'insuranceAnalysis': return this._renderPreviewInsurance(fd);
+      case 'expertRecommendation': return this._renderPreviewExpert(fd);
+      default: return '';
+    }
+  },
+
+  _renderPreviewReferenceLinks(fd) {
+    if (!(fd.showLinks && this._referenceLinks.filter(l => l.title || l.url).length > 0)) return '';
+    return `<div style="display:flex;flex-direction:column;gap:8px;">${this._referenceLinks.filter(l => l.title || l.url).map(l => this._renderPreviewLinkCard(l)).join('')}</div>`;
+  },
+
+  _renderPreviewHealthCheck(fd, healthItems) {
+    const hasHealth = healthItems.length > 0 || fd.chronicDiseases?.hypertension || fd.chronicDiseases?.hyperlipidemia || fd.chronicDiseases?.diabetes;
+    if (!hasHealth) return '';
+    return `
+      <div style="background:white;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.04);border:1px solid rgba(241,245,249,0.5);">
+        <div style="font-size:17px;font-weight:700;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin-right:8px;"><span style="color:#ef4444;font-size:15px;">&#9829;</span></div>
+          건강 체크리스트
+        </div>
+        <div style="background:#f8fafc;padding:14px;border-radius:12px;border:1px solid #f1f5f9;">
+          ${healthItems.map(h => `
+            <div style="padding:6px 0;${healthItems.indexOf(h) < healthItems.length - 1 ? 'border-bottom:1px solid #e2e8f0;' : ''}">
+              <div style="font-size:15px;font-weight:600;color:#dc2626;">${Utils.escapeHtml(h.label)}</div>
+              ${h.date ? `<div style="font-size:14px;color:#475569;white-space:pre-wrap;margin-top:2px;">${Utils.escapeHtml(h.date)}</div>` : ''}
+              ${h.memo ? `<div style="font-size:14px;color:#64748b;white-space:pre-wrap;margin-top:1px;line-height:1.5;">${Utils.escapeHtml(h.memo)}</div>` : ''}
+            </div>
+          `).join('')}
+          ${fd.chronicDiseases?.hypertension || fd.chronicDiseases?.hyperlipidemia || fd.chronicDiseases?.diabetes ? `
+            <div style="${healthItems.length > 0 ? 'padding-top:8px;margin-top:4px;border-top:1px solid #e2e8f0;' : ''}">
+              <div style="font-size:14px;color:#64748b;margin-bottom:6px;font-weight:600;">3대 만성질환</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${fd.chronicDiseases.hypertension ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:14px;font-weight:600;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">고혈압</span>' : ''}
+                ${fd.chronicDiseases.hyperlipidemia ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:14px;font-weight:600;background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;">고지혈증</span>' : ''}
+                ${fd.chronicDiseases.diabetes ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:14px;font-weight:600;background:#fffbeb;color:#d97706;border:1px solid #fde68a;">당뇨</span>' : ''}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+        ${(fd.showHealthLinks && this._healthLinks.filter(l => l.title || l.url).length > 0) ? `
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;">
+            <div style="font-size:14px;font-weight:600;color:#db2777;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
+              <svg width="12" height="12" fill="none" stroke="#db2777" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+              고지 의무 관련 영상/자료
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              ${this._healthLinks.filter(l => l.title || l.url).map(l => this._renderPreviewLinkCard(l)).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>`;
+  },
+
+  _renderPreviewInsurance(fd) {
+    const hasInsurance = fd.totalPremium || fd.expertComment || this._existingPolicies.filter(p => p.company || p.productName).length > 0;
+    const hasCoverage = this._renderMobilePreviewCoverageInline(fd);
+    if (!hasInsurance && !hasCoverage) return '';
+    return `
+      <div style="background:white;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.04);border:1px solid rgba(241,245,249,0.5);">
+        <div style="font-size:17px;font-weight:700;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#fffbeb;display:flex;align-items:center;justify-content:center;margin-right:8px;"><span style="color:#f59e0b;font-size:15px;">&#9679;</span></div>
+          현재 보험 점검
+        </div>
+        ${fd.totalPremium ? `
+          <div style="background:linear-gradient(135deg,#1e293b,#334155);padding:16px;border-radius:14px;margin-bottom:12px;color:white;box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+              <span style="font-size:15px;font-weight:500;opacity:0.9;">현재 월 납입료</span>
+              <span style="font-size:22px;font-weight:800;">${Number(fd.totalPremium).toLocaleString()}원</span>
+            </div>
+            ${fd.premiumEval ? `<div style="text-align:right;font-size:15px;font-weight:700;color:${fd.premiumEval === '부족' ? '#fbbf24' : fd.premiumEval === '적정' ? '#4ade80' : '#f87171'};margin-top:4px;">소득 대비 ${fd.premiumEval}</div>` : ''}
+          </div>
+        ` : ''}
+        ${fd.expertComment ? `<div style="font-size:15px;color:#475569;line-height:1.6;white-space:pre-wrap;padding:12px 14px;background:#f8fafc;border-radius:12px;border:1px solid #f1f5f9;margin-bottom:12px;">${Utils.escapeHtml(fd.expertComment)}</div>` : ''}
+        ${this._renderMobilePreviewCoverageInline(fd)}
+        ${this._existingPolicies.filter(p => p.company || p.productName).length > 0 ? `<div style="font-size:15px;font-weight:700;color:#1e293b;margin-bottom:8px;margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;align-items:center;gap:6px;"><span style="font-size:15px;">&#128203;</span> 상품별 보험 평가</div>` : ''}
+        ${this._existingPolicies.filter(p => p.company || p.productName).map(p => `
+          <div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:8px;background:white;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:15px;font-weight:700;color:#1e293b;">${Utils.escapeHtml(p.company || '')}</div>
+                <div style="font-size:14px;color:#94a3b8;margin-top:1px;">${Utils.escapeHtml(p.productName || '')}</div>
+              </div>
+              ${p.premium ? `<div style="font-size:17px;font-weight:800;color:#1e293b;">${Number(p.premium).toLocaleString()}원</div>` : ''}
+            </div>
+            ${p.paymentPeriodEval || p.coveragePeriodEval || p.coverageEval ? `
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #f1f5f9;">
+                ${p.paymentPeriodEval ? `<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:#f1f5f9;color:#475569;">납입 ${p.paymentPeriodEval}</span>` : ''}
+                ${p.coveragePeriodEval ? `<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:${p.coveragePeriodEval === '짧은' ? '#fef2f2' : '#ecfdf5'};color:${p.coveragePeriodEval === '짧은' ? '#dc2626' : '#16a34a'};">보장기간 ${p.coveragePeriodEval}</span>` : ''}
+                ${p.coverageEval ? `<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:${p.coverageEval === '부족' ? '#fef2f2' : p.coverageEval === '충분' ? '#ecfdf5' : '#fffbeb'};color:${p.coverageEval === '부족' ? '#dc2626' : p.coverageEval === '충분' ? '#16a34a' : '#d97706'};">보장 ${p.coverageEval}</span>` : ''}
+              </div>
+            ` : ''}
+            ${p.coverageChecks && p.coverageChecks.length > 0 ? `
+              <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">
+                ${p.coverageChecks.map(c => `<span style="font-size:12px;padding:2px 6px;border-radius:8px;background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe;">${Utils.escapeHtml(c)}</span>`).join('')}
+              </div>
+            ` : ''}
+            ${p.opinion ? `<div style="font-size:14px;color:#16a34a;white-space:pre-wrap;margin-top:8px;padding:8px 10px;background:#f0fdf4;border-radius:8px;">${Utils.escapeHtml(p.opinion)}</div>` : ''}
+            ${p.images && p.images.length > 0 ? `
+              <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+                ${this._renderImageSlider(p.images, 'ep-slider-' + this._existingPolicies.indexOf(p))}
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+        ${(fd.showRemodelLinks && this._remodelLinks.filter(l => l.title || l.url).length > 0) ? `
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;">
+            <div style="font-size:14px;font-weight:600;color:#16a34a;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
+              <svg width="12" height="12" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+              리모델링 사례/영상
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              ${this._remodelLinks.filter(l => l.title || l.url).map(l => this._renderPreviewLinkCard(l)).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>`;
+  },
+
+  _renderPreviewExpert(fd) {
+    if (!(fd.urgentItem || fd.proposalReason || this._recommendedPlans.filter(p => p.company || p.productName).length > 0)) return '';
+    return `
+      <div style="background:linear-gradient(135deg,#1e3a8a,#312e81);padding:3px;border-radius:22px;box-shadow:0 8px 30px rgba(0,0,0,0.04);">
+        <div style="background:white;padding:18px;border-radius:20px;">
+          <div style="font-size:17px;font-weight:700;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#eef2ff;display:flex;align-items:center;justify-content:center;margin-right:8px;"><span style="color:#4f46e5;font-size:15px;">&#9733;</span></div>
+            전문가의 제안
+          </div>
+          ${fd.urgentItem ? `
+            <div style="background:#eef2ff;border:1px solid #c7d2fe;padding:12px 14px;border-radius:12px;margin-bottom:12px;">
+              <div style="font-size:13px;font-weight:800;color:#6366f1;margin-bottom:4px;">추천 보험</div>
+              <div style="font-size:16px;color:#1e293b;font-weight:600;">${Utils.escapeHtml(fd.urgentItem)}</div>
+            </div>
+          ` : ''}
+          ${fd.proposalReason ? `<div style="font-size:15px;color:#475569;line-height:1.6;white-space:pre-wrap;padding:12px 14px;background:#f8fafc;border-radius:12px;margin-bottom:12px;">${Utils.escapeHtml(fd.proposalReason)}</div>` : ''}
+          ${this._recommendedPlans.filter(p => p.company || p.productName).map(p => `
+            <div style="border:1px solid #e0e7ff;border-radius:14px;padding:14px;margin-bottom:8px;background:linear-gradient(135deg,#fafafe,#eef2ff);">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:15px;font-weight:700;color:#1e293b;">${Utils.escapeHtml(p.company || '')}</div>
+                  <div style="font-size:14px;color:#6366f1;margin-top:1px;">${Utils.escapeHtml(p.productName || '')}</div>
+                </div>
+                ${p.premium ? `<div style="font-size:17px;font-weight:800;color:#4f46e5;">${Number(p.premium).toLocaleString()}원<span style="font-size:13px;color:#94a3b8;font-weight:400;">/월</span></div>` : ''}
+              </div>
+              ${p.paymentPeriodEval || p.maturityAge || p.coverageEval ? `
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #e0e7ff;">
+                  ${p.paymentPeriodEval ? `<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:#eef2ff;color:#4338ca;">납입기간 ${p.paymentPeriodEval}</span>` : ''}
+                  ${p.maturityAge ? `<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:#f0fdf4;color:#16a34a;">보험만기 ${p.maturityAge}</span>` : ''}
+                  ${p.coverageEval ? `<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:${p.coverageEval === '부족' ? '#fef2f2' : p.coverageEval === '충분' ? '#ecfdf5' : '#fffbeb'};color:${p.coverageEval === '부족' ? '#dc2626' : p.coverageEval === '충분' ? '#16a34a' : '#d97706'};">보장 ${p.coverageEval}</span>` : ''}
+                </div>
+              ` : ''}
+              ${p.coverageChecks && p.coverageChecks.length > 0 ? `
+                <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">
+                  ${p.coverageChecks.map(c => `<span style="font-size:12px;padding:2px 6px;border-radius:8px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;">${Utils.escapeHtml(c)}</span>`).join('')}
+                </div>
+              ` : ''}
+              ${p.highlight ? `<div style="font-size:14px;color:#059669;white-space:pre-wrap;margin-top:8px;padding:8px 10px;background:#ecfdf5;border-radius:8px;">&#10003; ${Utils.escapeHtml(p.highlight)}</div>` : ''}
+              ${p.opinion ? `<div style="font-size:14px;color:#16a34a;white-space:pre-wrap;margin-top:8px;padding:8px 10px;background:#f0fdf4;border-radius:8px;">${Utils.escapeHtml(p.opinion)}</div>` : ''}
+              ${p.images && p.images.length > 0 ? `
+                <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+                  ${this._renderImageSlider(p.images, 'rp-slider-' + this._recommendedPlans.indexOf(p))}
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+          ${(fd.showBrochureLinks && this._brochureLinks.filter(l => l.title || l.url).length > 0) ? `
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e0e7ff;">
+              <div style="font-size:14px;font-weight:600;color:#d97706;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
+                <svg width="12" height="12" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                추천 상품 브로셔/영상
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                ${this._brochureLinks.filter(l => l.title || l.url).map(l => this._renderPreviewLinkCard(l)).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>`;
   },
 
   // ==================== Coverage Analysis Mobile Preview ====================
@@ -1607,7 +1718,7 @@ const ConsultationPage = {
       const img = imgItems[0];
       html += `
         <div>
-          <img src="${Utils.escapeHtml(img.url)}" style="width:100%;border-radius:8px;border:1px solid #e2e8f0;">
+          <img src="${Utils.escapeHtml(img.url)}" style="width:100%;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer;" onclick="ConsultationPage.openImageViewer('${Utils.escapeHtml(img.url)}')">
           ${img.comment ? `<div style="font-size:13px;color:#64748b;margin-top:4px;padding:4px 8px;background:#f8fafc;border-radius:6px;">${Utils.escapeHtml(img.comment)}</div>` : ''}
         </div>
       `;
@@ -1621,7 +1732,7 @@ const ConsultationPage = {
           <div id="${id}" style="display:flex;transition:transform 0.3s ease;width:${imgItems.length * 100}%;">
             ${imgItems.map(img => `
               <div style="width:${100 / imgItems.length}%;flex-shrink:0;">
-                <img src="${Utils.escapeHtml(img.url)}" style="width:100%;display:block;">
+                <img src="${Utils.escapeHtml(img.url)}" style="width:100%;display:block;cursor:pointer;" onclick="ConsultationPage.openImageViewer('${Utils.escapeHtml(img.url)}')">
                 ${img.comment ? `<div style="font-size:13px;color:#64748b;padding:6px 8px;background:#f8fafc;">${Utils.escapeHtml(img.comment)}</div>` : ''}
               </div>
             `).join('')}
@@ -1636,6 +1747,28 @@ const ConsultationPage = {
     }
 
     return html;
+  },
+
+  _renderPreviewLinkCard(l) {
+    const btn = l.url ? `<a href="${Utils.escapeHtml(l.url)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;margin-top:8px;padding:6px 14px;background:#3b82f6;color:white;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">보러가기 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a>` : '';
+    if (l.thumbnail) {
+      return `
+        <div style="border:1px solid #f1f5f9;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.02);">
+          <img src="${Utils.escapeHtml(l.thumbnail)}" style="width:100%;display:block;cursor:pointer;" onclick="ConsultationPage.openImageViewer('${Utils.escapeHtml(l.thumbnail)}')">
+          <div style="padding:10px 14px;">
+            <div style="font-size:15px;font-weight:700;color:#1e293b;line-height:1.4;">${Utils.escapeHtml(l.title || '')}</div>
+            ${btn}
+          </div>
+        </div>`;
+    }
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;background:white;border:1px solid #f1f5f9;border-radius:12px;padding:12px 14px;box-shadow:0 2px 10px rgba(0,0,0,0.02);">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+          <svg width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+          <div style="font-size:15px;font-weight:700;color:#1e293b;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;">${Utils.escapeHtml(l.title || l.url || '')}</div>
+        </div>
+        ${l.url ? `<a href="${Utils.escapeHtml(l.url)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:#3b82f6;color:white;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0;">보러가기</a>` : ''}
+      </div>`;
   },
 
   _sliderPositions: {},
@@ -1658,6 +1791,28 @@ const ConsultationPage = {
     }
   },
 
+  openImageViewer(src) {
+    let overlay = document.getElementById('image-viewer-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'image-viewer-overlay';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10000;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+      overlay.innerHTML = '<img id="image-viewer-img" style="max-width:95%;max-height:95%;object-fit:contain;border-radius:4px;">';
+      overlay.addEventListener('click', () => this.closeImageViewer());
+      document.body.appendChild(overlay);
+    }
+    const img = document.getElementById('image-viewer-img');
+    img.src = src;
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  },
+
+  closeImageViewer() {
+    const overlay = document.getElementById('image-viewer-overlay');
+    if (overlay) overlay.style.display = 'none';
+    document.body.style.overflow = '';
+  },
+
   _renderMobilePreviewCoverageInline(fd) {
     const ca = fd.coverageAnalysis;
     if (!ca) return '';
@@ -1678,22 +1833,29 @@ const ConsultationPage = {
         </div>
     `;
 
+    const noGridKeys = ['silson', 'dailyLiability'];
+
     filledCats.forEach(cat => {
       const data = ca[cat.key];
       const filledFields = cat.fields.filter(f => data[f.key] !== undefined && data[f.key] !== '' && data[f.key] !== null);
+      const useGrid = !noGridKeys.includes(cat.key);
 
       html += `
         <div style="border:1px solid ${cat.border};border-radius:10px;padding:10px 12px;margin-bottom:8px;background:${cat.bg};">
           <div style="font-size:14px;font-weight:700;color:${cat.color};margin-bottom:6px;display:flex;align-items:center;gap:6px;">
             <span style="font-size:16px;">${cat.icon}</span> ${cat.title}
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:4px 12px;">
+          <div style="${useGrid ? 'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 6px;' : 'display:flex;flex-wrap:wrap;gap:4px 12px;'}">
             ${filledFields.map(f => {
               const v = data[f.key];
               const unit = f.unit || '';
               const numVal = Number(v);
-              const display = f.type === 'amount' ? (isNaN(numVal) ? '0' : numVal.toLocaleString()) + unit : Utils.escapeHtml(v);
-              return `<div style="font-size:12px;color:#475569;"><span style="color:#94a3b8;">${f.label}:</span> <strong>${display}</strong></div>`;
+              const shortUnit = unit === '만원' ? '만' : unit;
+              const display = f.type === 'amount' ? (isNaN(numVal) ? '0' : numVal.toLocaleString()) + shortUnit : Utils.escapeHtml(v);
+              const lbl = this._getCoverageLabel(cat.key, f.key, f.label);
+              const totalLen = lbl.length + display.length;
+              const fs = totalLen > 14 ? '11px' : '12px';
+              return `<div style="font-size:${fs};color:#475569;white-space:nowrap;min-width:0;"><span style="color:#94a3b8;">${Utils.escapeHtml(lbl)}:</span> <strong>${display}</strong></div>`;
             }).join('')}
           </div>
         </div>
@@ -2001,6 +2163,90 @@ const ConsultationPage = {
     this.autoSave();
   },
 
+  // ==================== 보험 정보 링크 불러오기 ====================
+  async loadInfoLinks(targetType) {
+    try {
+      const res = await API.getInfoLinks();
+      const links = res.links || [];
+      if (links.length === 0) {
+        alert('등록된 보험 정보 링크가 없습니다.\n설정 > 보험 정보 페이지에서 링크를 추가해주세요.');
+        return;
+      }
+      this._showInfoLinkPicker(links, targetType);
+    } catch (e) {
+      alert('링크 불러오기 실패: ' + e.message);
+    }
+  },
+
+  _showInfoLinkPicker(links, targetType) {
+    let overlay = document.getElementById('info-link-picker-overlay');
+    if (overlay) overlay.remove();
+
+    overlay = document.createElement('div');
+    overlay.id = 'info-link-picker-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+    const checkedState = links.map(() => false);
+
+    const renderList = () => links.map((link, i) => `
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid ${checkedState[i] ? '#6366f1' : '#e2e8f0'};background:${checkedState[i] ? '#eef2ff' : '#fff'};cursor:pointer;transition:all 0.15s;" onclick="this.querySelector('input').click()">
+        <input type="checkbox" ${checkedState[i] ? 'checked' : ''} onchange="event.stopPropagation();window._infoLinkPickerToggle(${i})" style="accent-color:#6366f1;width:16px;height:16px;flex-shrink:0;">
+        <span style="font-size:18px;flex-shrink:0;">${Utils.escapeHtml(link.icon || '🔗')}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.escapeHtml(link.title)}</div>
+          <div style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.escapeHtml(link.url)}</div>
+        </div>
+      </label>
+    `).join('');
+
+    overlay.innerHTML = `
+      <div style="background:white;border-radius:16px;width:100%;max-width:400px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+        <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:15px;font-weight:700;color:#1e293b;">보험 정보 링크 불러오기</div>
+          <button onclick="document.getElementById('info-link-picker-overlay').remove()" style="background:none;border:none;cursor:pointer;padding:4px;">
+            <svg width="20" height="20" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div id="info-link-picker-list" style="padding:12px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
+          ${renderList()}
+        </div>
+        <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
+          <button onclick="document.getElementById('info-link-picker-overlay').remove()" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e2e8f0;background:white;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">취소</button>
+          <button id="info-link-picker-confirm" onclick="window._infoLinkPickerConfirm()" style="flex:1;padding:10px;border-radius:10px;border:none;background:#6366f1;color:white;font-size:13px;font-weight:600;cursor:pointer;">추가</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+    window._infoLinkPickerToggle = (idx) => {
+      checkedState[idx] = !checkedState[idx];
+      document.getElementById('info-link-picker-list').innerHTML = renderList();
+    };
+
+    window._infoLinkPickerConfirm = () => {
+      const selected = links.filter((_, i) => checkedState[i]);
+      if (selected.length === 0) { overlay.remove(); return; }
+
+      const targetMap = {
+        reference: { arr: '_referenceLinks', listId: 'links-list', render: '_renderLinkRow' },
+        health: { arr: '_healthLinks', listId: 'health-links-list', render: '_renderHealthLinkRow' },
+        remodel: { arr: '_remodelLinks', listId: 'remodel-links-list', render: '_renderRemodelLinkRow' },
+        brochure: { arr: '_brochureLinks', listId: 'brochure-links-list', render: '_renderBrochureLinkRow' },
+      };
+      const target = targetMap[targetType];
+      selected.forEach(link => {
+        this[target.arr].push({ title: link.title, url: link.url, thumbnail: link.imageUrl || '' });
+      });
+      const list = document.getElementById(target.listId);
+      if (list) list.innerHTML = this[target.arr].map((l, i) => this[target.render](i, l)).join('');
+      this.autoSave();
+      this._refreshPreview();
+      overlay.remove();
+    };
+  },
+
   toggleHealthTip(id) {
     const el = document.getElementById(id);
     if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
@@ -2008,12 +2254,18 @@ const ConsultationPage = {
 
   toggleHealthCheck(key) {
     if (!this._formData.healthChecks) this._formData.healthChecks = {};
-    // Collect any existing health detail text before toggling
+    // Collect any existing health detail data before toggling
     ['checkup', 'recent3m', 'recheck1y', 'general5y', 'disease11'].forEach(k => {
-      const el = document.getElementById('health-detail-' + k);
-      if (el) {
+      const dateEl = document.getElementById('health-date-' + k);
+      const memoEl = document.getElementById('health-memo-' + k);
+      if (dateEl || memoEl) {
         if (!this._formData.healthDetails) this._formData.healthDetails = {};
-        this._formData.healthDetails[k] = el.value;
+        const prev = this._formData.healthDetails[k];
+        const old = typeof prev === 'object' && prev ? prev : { date: '', memo: '' };
+        this._formData.healthDetails[k] = {
+          date: dateEl ? dateEl.value : old.date,
+          memo: memoEl ? memoEl.value : old.memo
+        };
       }
     });
     this._formData.healthChecks[key] = !this._formData.healthChecks[key];
@@ -2251,6 +2503,7 @@ const ConsultationPage = {
   updateRecommendedPlan(index, field, value) {
     this._recommendedPlans[index][field] = value;
     this.autoSave();
+    this._refreshPreview();
   },
 
   removeRecommendedPlan(index) {
@@ -2310,11 +2563,19 @@ const ConsultationPage = {
     const urgentEl = document.getElementById('c-urgent');
     const proposalReasonEl = document.getElementById('c-proposal-reason');
 
-    // Collect health details from textareas
+    // Collect health details (date + memo)
     const healthDetails = { ...this._formData.healthDetails };
-    ['checkup', 'hospital1y', 'recheck1y', 'surgery5y', 'history6y'].forEach(key => {
-      const el = document.getElementById('health-detail-' + key);
-      if (el) healthDetails[key] = el.value;
+    ['checkup', 'recent3m', 'recheck1y', 'general5y', 'disease11'].forEach(key => {
+      const dateEl = document.getElementById('health-date-' + key);
+      const memoEl = document.getElementById('health-memo-' + key);
+      if (dateEl || memoEl) {
+        const prev = healthDetails[key];
+        const old = typeof prev === 'object' && prev ? prev : { date: '', memo: '' };
+        healthDetails[key] = {
+          date: dateEl ? dateEl.value : old.date,
+          memo: memoEl ? memoEl.value : old.memo
+        };
+      }
     });
 
     // Collect coverage analysis fields from open sections
@@ -2341,7 +2602,9 @@ const ConsultationPage = {
       existingPolicies: this._existingPolicies,
       recommendedPlans: this._recommendedPlans,
       coverageAnalysis: this._formData.coverageAnalysis || {},
-      sectionImages: this._formData.sectionImages || []
+      coverageLabels: this._formData.coverageLabels || null,
+      sectionImages: this._formData.sectionImages || [],
+      sectionOrder: this._formData.sectionOrder || ['referenceLinks','healthCheck','insuranceAnalysis','expertRecommendation']
     };
 
     return this._formData;

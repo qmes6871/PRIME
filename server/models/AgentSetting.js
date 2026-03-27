@@ -60,6 +60,10 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(20),
       defaultValue: 'photo',
       comment: '제안서 헤더 레이아웃: photo(배경사진) / circle(동그라미)'
+    },
+    coverage_labels: {
+      type: DataTypes.JSON,
+      comment: '보장분석 용어 커스터마이징 {catKey: {fieldKey: "커스텀라벨"}}'
     }
   }, {
     tableName: 'agent_settings'

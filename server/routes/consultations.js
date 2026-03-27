@@ -152,7 +152,7 @@ router.post('/:id/share', async (req, res, next) => {
 
     res.json({
       share_token: shareToken,
-      share_url: `/prime/proposal.html?token=${shareToken}`,
+      share_url: `/proposal.html?token=${shareToken}`,
       expires_at: shareExpiresAt
     });
   } catch (err) {

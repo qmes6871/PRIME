@@ -107,6 +107,9 @@ const App = {
         case 'settings':
           content = await SettingsPage.render();
           break;
+        case 'admin':
+          content = await AdminPage.render();
+          break;
         default:
           content = '<div class="empty-state"><div class="empty-state-text">페이지를 찾을 수 없습니다.</div></div>';
       }

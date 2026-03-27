@@ -99,12 +99,12 @@ router.post('/profile-image', async (req, res, next) => {
 
     fs.writeFileSync(filepath, buffer);
 
-    const imageUrl = `/prime/uploads/profiles/${filename}`;
+    const imageUrl = `/uploads/profiles/${filename}`;
     const agent = await Agent.findByPk(req.agent.id);
 
     // 이전 프로필 이미지 삭제
     if (agent.profile_image) {
-      const oldPath = path.join(__dirname, '..', '..', 'public', agent.profile_image.replace('/prime/', ''));
+      const oldPath = path.join(__dirname, '..', '..', 'public', agent.profile_image);
       if (fs.existsSync(oldPath)) {
         fs.unlinkSync(oldPath);
       }

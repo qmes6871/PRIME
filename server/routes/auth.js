@@ -23,7 +23,7 @@ router.post('/login', async (req, res, next) => {
     }
 
     const token = jwt.sign(
-      { id: agent.id, login_id: agent.login_id, name: agent.name },
+      { id: agent.id, login_id: agent.login_id, name: agent.name, is_admin: !!agent.is_admin },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -39,7 +39,8 @@ router.post('/login', async (req, res, next) => {
         position: agent.position,
         branch: agent.branch,
         profile_image: agent.profile_image,
-        profile_intro: agent.profile_intro
+        profile_intro: agent.profile_intro,
+        is_admin: !!agent.is_admin
       }
     });
   } catch (err) {

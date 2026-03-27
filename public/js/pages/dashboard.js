@@ -126,8 +126,7 @@ const DashboardPage = {
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0;">
           <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;border-radius:6px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;" onclick="DashboardPage.openProposal(${c.id})" title="제안서">제안서</button>
-          <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;border-radius:6px;background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe;" onclick="App.navigate('alimtalk', {customerId: ${c.id}})" title="알림톡">알림톡</button>
-          <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;border-radius:6px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;" onclick="App.navigate('messages', {customerId: ${c.id}})" title="메시지">메시지</button>
+          <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;border-radius:6px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;" onclick="App.navigate('alimtalk', {customerId: ${c.id}})" title="알림톡">알림톡</button>
         </div>
       </div>
     `).join('');
@@ -231,8 +230,8 @@ const DashboardPage = {
                 <span class="status-badge ${Utils.getStatusClass(c.status)}" style="cursor:pointer;" onclick="DashboardPage.cycleStatus(${c.id}, '${c.status}')">${c.status}</span>
               </td>
               <td style="font-size:12px;color:var(--gray-600);">${c.consult_date ? Utils.escapeHtml(c.consult_date) : ''}</td>
-              <td>${Utils.formatDate(c.created_at)}</td>
-              <td>${Utils.formatDate(c.updated_at)}</td>
+              <td>${Utils.formatDate(c.createdAt)}</td>
+              <td>${Utils.formatDate(c.updatedAt)}</td>
               <td>
                 <div style="display:flex;gap:4px;flex-wrap:wrap;">
                   <button class="btn btn-sm" style="background:#eff6ff;color:#4338ca;border:1px solid #c7d2fe;" onclick="DashboardPage.openProposal(${c.id})">제안서</button>

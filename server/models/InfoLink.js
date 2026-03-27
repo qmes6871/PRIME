@@ -30,6 +30,11 @@ module.exports = (sequelize) => {
       type: DataTypes.INTEGER,
       defaultValue: 0
     },
+    imageUrl: {
+      type: DataTypes.STRING(500),
+      field: 'image_url',
+      comment: '대표 이미지 URL'
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true
