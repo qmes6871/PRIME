@@ -64,6 +64,10 @@ module.exports = (sequelize) => {
     coverage_labels: {
       type: DataTypes.JSON,
       comment: '보장분석 용어 커스터마이징 {catKey: {fieldKey: "커스텀라벨"}}'
+    },
+    custom_coverage_categories: {
+      type: DataTypes.JSON,
+      comment: '사용자 추가 보장 카테고리 [{key, title, icon, color, bg, border, fields:[{key,label,type,unit}]}]'
     }
   }, {
     tableName: 'agent_settings'

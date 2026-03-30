@@ -15,7 +15,7 @@ const CoveragePage = {
       this.checkItems = checkItemsData.items;
 
       return `
-        <div class="page-header" style="display:flex;justify-content:space-between;align-items:start;">
+        <div class="page-header page-header-flex">
           <div>
             <h1 class="page-title">보장 간편보기</h1>
             <p class="page-subtitle">고객별 보장현황을 관리하고 리포트를 생성하세요</p>
@@ -23,7 +23,7 @@ const CoveragePage = {
         </div>
 
         <div class="card" style="margin-bottom:16px;border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;">
-          <div style="display:flex;gap:12px;align-items:center;">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
             <div class="form-group" style="flex:1;margin-bottom:0;position:relative;" id="coverage-customer-wrapper">
               <!-- 선택된 고객 표시 -->
               <div id="cov-selected-customer" style="display:none;">

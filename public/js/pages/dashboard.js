@@ -58,7 +58,7 @@ const DashboardPage = {
         </div>
 
         <!-- 최근 고객 + 사이드바 -->
-        <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start;">
+        <div class="dashboard-grid">
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">최근 고객</h3>
@@ -115,16 +115,16 @@ const DashboardPage = {
       return '<div class="empty-state" style="padding:20px;"><div class="empty-state-text">등록된 고객이 없습니다</div></div>';
     }
     return customers.map(c => `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--gray-100);">
+      <div class="dashboard-recent-item">
         <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#4338ca;flex-shrink:0;">${Utils.escapeHtml((c.name||'?')[0])}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:6px;">
+        <div class="dashboard-recent-item-info">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <strong style="font-size:13px;cursor:pointer;color:var(--blue);" onclick="DashboardPage.showCustomerDetail(${c.id})">${Utils.escapeHtml(c.name)}</strong>
             <span class="status-badge ${Utils.getStatusClass(c.status)}" style="font-size:10px;padding:1px 6px;cursor:pointer;" onclick="DashboardPage.cycleStatus(${c.id}, '${c.status}')">${c.status}</span>
           </div>
-          <div style="font-size:11px;color:var(--gray-400);">${Utils.formatPhone(c.phone)} ${c.birth_date ? '· ' + Utils.formatDate(c.birth_date) : ''}${c.address ? ' · ' + (c.address.split('|')[0].match(/^.*?[시군구]/)?.[0] || '') : ''}${c.consult_date ? ' · <span style="color:#6366f1;">' + Utils.escapeHtml(c.consult_date) + '</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--gray-400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${Utils.formatPhone(c.phone)} ${c.birth_date ? '· ' + Utils.formatDate(c.birth_date) : ''}${c.address ? ' · ' + (c.address.split('|')[0].match(/^.*?[시군구]/)?.[0] || '') : ''}${c.consult_date ? ' · <span style="color:#6366f1;">' + Utils.escapeHtml(c.consult_date) + '</span>' : ''}</div>
         </div>
-        <div style="display:flex;gap:4px;flex-shrink:0;">
+        <div class="dashboard-recent-item-actions">
           <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;border-radius:6px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;" onclick="DashboardPage.openProposal(${c.id})" title="제안서">제안서</button>
           <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;border-radius:6px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;" onclick="App.navigate('alimtalk', {customerId: ${c.id}})" title="알림톡">알림톡</button>
         </div>
@@ -204,7 +204,10 @@ const DashboardPage = {
     if (!customers || customers.length === 0) {
       return '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">등록된 고객이 없습니다</div></div>';
     }
-    return `
+
+    // Desktop: table view
+    const tableView = `
+      <div class="table-responsive customer-table-desktop">
       <table class="data-table">
         <thead>
           <tr>
@@ -243,7 +246,40 @@ const DashboardPage = {
           `).join('')}
         </tbody>
       </table>
+      </div>
     `;
+
+    // Mobile: card view
+    const cardView = `
+      <div class="customer-card-mobile">
+        ${customers.map(c => {
+          const region = c.address ? (c.address.split('|')[0].match(/^.*?[시군구]/)?.[0] || '') : '';
+          return `
+          <div class="customer-card-item" onclick="DashboardPage.showCustomerDetail(${c.id})">
+            <div class="customer-card-top">
+              <div class="customer-card-avatar">${Utils.escapeHtml((c.name || '?')[0])}</div>
+              <div class="customer-card-info">
+                <div class="customer-card-name">${Utils.escapeHtml(c.name)}</div>
+                <div class="customer-card-phone">${Utils.formatPhone(c.phone)}</div>
+              </div>
+              <span class="status-badge ${Utils.getStatusClass(c.status)}" style="cursor:pointer;align-self:flex-start;" onclick="event.stopPropagation(); DashboardPage.cycleStatus(${c.id}, '${c.status}')">${c.status}</span>
+            </div>
+            <div class="customer-card-meta">
+              ${c.birth_date ? `<span>${Utils.formatDate(c.birth_date)}</span>` : ''}
+              ${region ? `<span>${region}</span>` : ''}
+              ${c.consult_date ? `<span style="color:var(--primary);font-weight:600;">${Utils.escapeHtml(c.consult_date)}</span>` : ''}
+            </div>
+            <div class="customer-card-actions" onclick="event.stopPropagation();">
+              <button class="btn btn-sm" style="flex:1;background:#eff6ff;color:#4338ca;border:1px solid #c7d2fe;justify-content:center;" onclick="DashboardPage.openProposal(${c.id})">제안서</button>
+              <button class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;" onclick="DashboardPage.editCustomer(${c.id})">수정</button>
+              <button class="btn btn-sm" style="flex:1;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;justify-content:center;" onclick="DashboardPage.deleteCustomer(${c.id}, '${Utils.escapeHtml(c.name)}')">삭제</button>
+            </div>
+          </div>
+        `}).join('')}
+      </div>
+    `;
+
+    return tableView + cardView;
   },
 
   async searchCustomers(query) {
@@ -491,6 +527,8 @@ const DashboardPage = {
   },
 
   async updateCustomer(id) {
+    if (!confirm('저장하시겠습니까?')) return;
+
     const form = document.getElementById('edit-customer-form');
     const formData = new FormData(form);
     const data = {};
@@ -652,7 +690,7 @@ const DashboardPage = {
         ` : ''}
       `, `
         <button class="btn btn-secondary" onclick="Modal.close()">닫기</button>
-        <button class="btn btn-primary" onclick="Modal.close(); App.navigate('consultation', {customerId: ${id}})">상담 시작</button>
+        <button class="btn btn-primary" onclick="Modal.close(); App.navigate('consultation', {customerId: ${id}})">제안서 작성</button>
       `);
     } catch (err) {
       showToast(err.message, 'error');

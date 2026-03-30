@@ -6,7 +6,9 @@
   <title>보험 상담 제안서 - 프라임에셋</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
   <style>
+    img.emoji { height: 1em; width: 1em; margin: 0 .05em 0 .1em; vertical-align: -0.1em; display: inline; }
     * { font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #f1f5f9; min-height: 100vh; -webkit-font-smoothing: antialiased; font-size: 15px; }
 
@@ -345,6 +347,12 @@
       if (fd.healthChecks?.hospital1y) healthItems.push({ label: '1년 이내 병원 방문', ...parseHD(fd.healthDetails?.hospital1y) });
       if (fd.healthChecks?.surgery5y) healthItems.push({ label: '5년 이내 입원/수술/중대질환', ...parseHD(fd.healthDetails?.surgery5y) });
       if (fd.healthChecks?.history6y) healthItems.push({ label: '6년 이내 기타 병력', ...parseHD(fd.healthDetails?.history6y) });
+      // 커스텀 병력 항목
+      if (fd.customHealthItems) {
+        fd.customHealthItems.filter(h => h.checked && h.title).forEach(h => {
+          healthItems.push({ label: h.title, date: h.date || '', memo: h.memo || '' });
+        });
+      }
 
       const existingPolicies = (fd.existingPolicies || []).filter(p => p.company || p.productName);
       const recommendedPlans = (fd.recommendedPlans || []).filter(p => p.company || p.productName);
@@ -377,7 +385,7 @@
               <div class="header-photo-content">
                 <div class="agent-name">${escapeHtml(agentName)}</div>
                 <div class="agent-title">${escapeHtml(agentPosition)} | PRIMEASSET</div>
-                ${agentIntro ? `<div style="color:rgba(255,255,255,0.7);font-size:13px;margin-top:4px;">${escapeHtml(agentIntro)}</div>` : ''}
+                ${agentIntro ? `<div style="color:rgba(255,255,255,0.7);font-size:13px;margin-top:4px;white-space:pre-line;">${escapeHtml(agentIntro)}</div>` : ''}
                 ${headerActions}
               </div>
             </div>
@@ -449,10 +457,10 @@
               건강 체크리스트
             </div>
             <div style="background:#f8fafc;padding:14px;border-radius:12px;border:1px solid #f1f5f9;">
-              ${healthItems.map((h, i) => '<div style="padding:6px 0;' + (i < healthItems.length - 1 ? 'border-bottom:1px solid #e2e8f0;' : '') + '"><div style="font-size:15px;font-weight:600;color:#dc2626;">' + escapeHtml(h.label) + '</div>' + (h.date ? '<div style="font-size:14px;color:#475569;white-space:pre-wrap;margin-top:2px;">' + escapeHtml(h.date) + '</div>' : '') + (h.memo ? '<div style="font-size:14px;color:#64748b;white-space:pre-wrap;margin-top:1px;line-height:1.5;">' + escapeHtml(h.memo) + '</div>' : '') + '</div>').join('')}
+              ${healthItems.map((h, i) => '<div style="padding:6px 0;' + (i < healthItems.length - 1 ? 'border-bottom:1px solid #e2e8f0;' : '') + '"><div style="font-size:15px;font-weight:600;color:#dc2626;">' + escapeHtml(h.label) + '</div>' + (h.date || h.memo ? '<div style="display:flex;align-items:baseline;margin-top:2px;gap:0;">' + (h.date ? '<div style="font-size:14px;color:#475569;white-space:nowrap;width:50%;flex-shrink:0;font-weight:700;">' + escapeHtml(h.date) + '</div>' : '<div style="width:50%;flex-shrink:0;"></div>') + (h.memo ? '<div style="font-size:14px;color:#64748b;white-space:pre-wrap;line-height:1.5;flex:1;">' + escapeHtml(h.memo) + '</div>' : '') + '</div>' : '') + '</div>').join('')}
               ${hasChronicDiseases ? '<div style="' + (healthItems.length > 0 ? 'padding-top:8px;margin-top:4px;border-top:1px solid #e2e8f0;' : '') + '"><div style="font-size:14px;color:#64748b;margin-bottom:6px;font-weight:600;">3대 만성질환</div><div style="display:flex;gap:6px;flex-wrap:wrap;">' + (fd.chronicDiseases.hypertension ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:14px;font-weight:600;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">고혈압</span>' : '') + (fd.chronicDiseases.hyperlipidemia ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:14px;font-weight:600;background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;">고지혈증</span>' : '') + (fd.chronicDiseases.diabetes ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:14px;font-weight:600;background:#fffbeb;color:#d97706;border:1px solid #fde68a;">당뇨</span>' : '') + '</div></div>' : ''}
             </div>
-            ${fd.showHealthLinks && healthLinks.length > 0 ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;"><div style="font-size:14px;font-weight:600;color:#db2777;margin-bottom:8px;display:flex;align-items:center;gap:4px;"><svg width="12" height="12" fill="none" stroke="#db2777" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg> 고지 의무 관련 영상/자료</div><div style="display:flex;flex-direction:column;gap:8px;">' + healthLinks.map(function(l) { return renderLinkCard(l); }).join('') + '</div></div>' : ''}
+            ${fd.showHealthLinks && healthLinks.length > 0 ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;"><div style="display:flex;flex-direction:column;gap:8px;">' + healthLinks.map(function(l) { return renderLinkCard(l); }).join('') + '</div></div>' : ''}
           </div>
         `;
         _sections.healthCheck = _hc;
@@ -474,6 +482,13 @@
       ];
       // 커스텀 라벨 적용
       coverageCategories.forEach(cat => { if (_cl[cat.key]) { cat.fields.forEach(f => { if (_cl[cat.key][f.key]) f.label = _cl[cat.key][f.key]; }); } });
+      // 커스텀 카테고리 병합
+      const customCats = settings?.custom_coverage_categories;
+      if (customCats && Array.isArray(customCats)) {
+        customCats.forEach(cat => {
+          coverageCategories.push({ key: cat.key, title: cat.title, icon: cat.icon || '🔷', color: cat.color || '#6366f1', bg: cat.bg || '#eef2ff', border: cat.border || '#c7d2fe', fields: (cat.fields || []).map(f => ({ key: f.key, label: f.label, type: f.type || 'amount', unit: f.unit || '만원' })) });
+        });
+      }
       const filledCats = coverageCategories.filter(cat => {
         const data = ca[cat.key];
         if (!data) return false;
@@ -500,11 +515,11 @@
             ${fd.expertComment ? '<div style="font-size:15px;color:#475569;line-height:1.6;white-space:pre-wrap;padding:12px 14px;background:#f8fafc;border-radius:12px;border:1px solid #f1f5f9;margin-bottom:12px;">' + escapeHtml(fd.expertComment) + '</div>' : ''}
         `;
         if (filledCats.length > 0) {
-          _ia += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;"><div style="font-size:14px;font-weight:700;color:#2563eb;margin-bottom:8px;display:flex;align-items:center;gap:6px;"><span style="font-size:15px;">🛡️</span> 전체 주요보장 한눈에 보기</div>';
+          _ia += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;"><div style="font-size:17px;font-weight:700;color:#2563eb;margin-bottom:8px;display:flex;align-items:center;gap:6px;"><span style="font-size:15px;">🛡️</span> 전체 주요보장 한눈에 보기</div>';
           var noGridKeys = ['silson', 'dailyLiability'];
           filledCats.forEach(function(cat) {
             var data = ca[cat.key]; var filledFields = cat.fields.filter(function(f) { return data[f.key] !== undefined && data[f.key] !== '' && data[f.key] !== null; }); var useGrid = noGridKeys.indexOf(cat.key) < 0;
-            _ia += '<div style="border:1px solid ' + cat.border + ';border-radius:10px;padding:10px 12px;margin-bottom:8px;background:' + cat.bg + ';">' + '<div style="font-size:14px;font-weight:700;color:' + cat.color + ';margin-bottom:6px;display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">' + cat.icon + '</span> ' + cat.title + '</div>' + '<div style="' + (useGrid ? 'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 6px;' : 'display:flex;flex-wrap:wrap;gap:4px 12px;') + '">' + filledFields.map(function(f) { var v = data[f.key]; var unit = f.unit || ''; var isAmount = unit && (unit === '만원' || unit === '억원'); var numVal = Number(v); var shortUnit = unit === '만원' ? '만' : unit; var display = isAmount ? (isNaN(numVal) ? '0' : formatMoney(numVal)) + shortUnit : escapeHtml(v); var cl = fd.coverageLabels; var lbl = (cl && cl[cat.key] && cl[cat.key][f.key]) || f.label; var totalLen = lbl.length + display.length; var fs = totalLen > 14 ? '11px' : '12px'; return '<div style="font-size:' + fs + ';color:#475569;white-space:nowrap;min-width:0;"><span style="color:#94a3b8;">' + escapeHtml(lbl) + ':</span> <strong>' + display + '</strong></div>'; }).join('') + '</div></div>';
+            _ia += '<div style="border:1px solid ' + cat.border + ';border-radius:10px;padding:10px 12px;margin-bottom:8px;background:' + cat.bg + ';">' + '<div style="font-size:14px;font-weight:700;color:' + cat.color + ';margin-bottom:6px;display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">' + cat.icon + '</span> ' + cat.title + '</div>' + '<div style="' + (useGrid ? 'display:flex;flex-direction:column;gap:3px;' : 'display:grid;grid-template-columns:1fr 1fr;gap:4px 6px;') + '">' + filledFields.map(function(f, fi) { var v = data[f.key]; var unit = f.unit || ''; var isAmount = unit && (unit === '만원' || unit === '억원'); var numVal = Number(v); var shortUnit = unit === '만원' ? '만' : unit; var display = isAmount ? (isNaN(numVal) ? '0' : formatMoney(numVal)) + shortUnit : escapeHtml(v); var cl = settings?.coverage_labels; var lbl = (cl && cl[cat.key] && cl[cat.key][f.key]) || f.label; if (useGrid) { return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#475569;"><span style="color:#94a3b8;">' + escapeHtml(lbl) + '</span><strong>' + display + '</strong></div>'; } var isRight = fi % 2 === 1; var totalLen = lbl.length + display.length; var fs = totalLen > 14 ? '11px' : '12px'; return '<div style="font-size:' + fs + ';color:#475569;white-space:nowrap;min-width:0;' + (isRight ? 'text-align:right;' : '') + '"><span style="color:#94a3b8;">' + escapeHtml(lbl) + ':</span> <strong>' + display + '</strong></div>'; }).join('') + '</div></div>';
           });
           _ia += '</div><div style="border-top:1px solid #e2e8f0;margin-top:12px;margin-bottom:14px;"></div>';
         }
@@ -513,7 +528,7 @@
           _ia += `<div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:8px;background:white;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:15px;font-weight:700;color:#1e293b;">${escapeHtml(p.company || '')}</div><div style="font-size:14px;color:#94a3b8;margin-top:1px;">${escapeHtml(p.productName || '')}</div></div>${p.premium ? '<div style="font-size:17px;font-weight:800;color:#1e293b;">' + formatMoney(p.premium) + '원</div>' : ''}</div>${p.paymentPeriodEval || p.coveragePeriodEval || p.coverageEval ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #f1f5f9;">' + (p.paymentPeriodEval ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:#f1f5f9;color:#475569;">납입 ' + escapeHtml(p.paymentPeriodEval) + '</span>' : '') + (p.coveragePeriodEval ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:' + (p.coveragePeriodEval === '짧은' ? '#fef2f2' : '#ecfdf5') + ';color:' + (p.coveragePeriodEval === '짧은' ? '#dc2626' : '#16a34a') + ';">보장기간 ' + escapeHtml(p.coveragePeriodEval) + '</span>' : '') + (p.coverageEval ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:' + (p.coverageEval === '부족' ? '#fef2f2' : p.coverageEval === '충분' ? '#ecfdf5' : '#fffbeb') + ';color:' + (p.coverageEval === '부족' ? '#dc2626' : p.coverageEval === '충분' ? '#16a34a' : '#d97706') + ';">보장 ' + escapeHtml(p.coverageEval) + '</span>' : '') + '</div>' : ''}${p.coverageChecks && p.coverageChecks.length > 0 ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">' + p.coverageChecks.map(c => '<span style="font-size:12px;padding:2px 6px;border-radius:8px;background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe;">' + escapeHtml(c) + '</span>').join('') + '</div>' : ''}${p.opinion ? '<div style="font-size:14px;color:#16a34a;white-space:pre-wrap;margin-top:8px;padding:8px 10px;background:#f0fdf4;border-radius:8px;">' + escapeHtml(p.opinion) + '</div>' : ''}${p.images && p.images.length > 0 ? '<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">' + renderImageSlider(p.images, 'slider-' + Math.random().toString(36).substr(2,6)) + '</div>' : ''}</div>`;
         });
         if (fd.showRemodelLinks && remodelLinks.length > 0) {
-          _ia += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;"><div style="font-size:14px;font-weight:600;color:#16a34a;margin-bottom:8px;display:flex;align-items:center;gap:4px;"><svg width="12" height="12" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg> 리모델링 사례/영상</div><div style="display:flex;flex-direction:column;gap:8px;">' + remodelLinks.map(function(l) { return renderLinkCard(l); }).join('') + '</div></div>';
+          _ia += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;"><div style="display:flex;flex-direction:column;gap:8px;">' + remodelLinks.map(function(l) { return renderLinkCard(l); }).join('') + '</div></div>';
         }
         _ia += '</div>';
         _sections.insuranceAnalysis = _ia;
@@ -535,7 +550,7 @@
           _er += `<div style="border:1px solid #e0e7ff;border-radius:14px;padding:14px;margin-bottom:8px;background:linear-gradient(135deg,#fafafe,#eef2ff);"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:15px;font-weight:700;color:#1e293b;">${escapeHtml(p.company || '')}</div><div style="font-size:14px;color:#6366f1;margin-top:1px;">${escapeHtml(p.productName || '')}</div></div>${p.premium ? '<div style="font-size:17px;font-weight:800;color:#4f46e5;">' + formatMoney(p.premium) + '원<span style="font-size:13px;color:#94a3b8;font-weight:400;">/월</span></div>' : ''}</div>${p.paymentPeriodEval || p.maturityAge || p.coverageEval ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #e0e7ff;">' + (p.paymentPeriodEval ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:#eef2ff;color:#4338ca;">납입기간 ' + escapeHtml(p.paymentPeriodEval) + '</span>' : '') + (p.maturityAge ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:#f0fdf4;color:#16a34a;">보험만기 ' + escapeHtml(p.maturityAge) + '</span>' : '') + (p.coverageEval ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:' + (p.coverageEval === '부족' ? '#fef2f2' : p.coverageEval === '충분' ? '#ecfdf5' : '#fffbeb') + ';color:' + (p.coverageEval === '부족' ? '#dc2626' : p.coverageEval === '충분' ? '#16a34a' : '#d97706') + ';">보장 ' + escapeHtml(p.coverageEval) + '</span>' : '') + '</div>' : ''}${p.coverageChecks && p.coverageChecks.length > 0 ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">' + p.coverageChecks.map(c => '<span style="font-size:12px;padding:2px 6px;border-radius:8px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;">' + escapeHtml(c) + '</span>').join('') + '</div>' : ''}${p.highlight ? '<div style="font-size:14px;color:#059669;white-space:pre-wrap;margin-top:8px;padding:8px 10px;background:#ecfdf5;border-radius:8px;">&#10003; ' + escapeHtml(p.highlight) + '</div>' : ''}${p.opinion ? '<div style="font-size:14px;color:#16a34a;white-space:pre-wrap;margin-top:8px;padding:8px 10px;background:#f0fdf4;border-radius:8px;">' + escapeHtml(p.opinion) + '</div>' : ''}${p.images && p.images.length > 0 ? '<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">' + renderImageSlider(p.images, 'slider-' + Math.random().toString(36).substr(2,6)) + '</div>' : ''}</div>`;
         });
         if (fd.showBrochureLinks && brochureLinks.length > 0) {
-          _er += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e0e7ff;"><div style="font-size:14px;font-weight:600;color:#d97706;margin-bottom:8px;display:flex;align-items:center;gap:4px;"><svg width="12" height="12" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg> 추천 상품 브로셔/영상</div><div style="display:flex;flex-direction:column;gap:8px;">' + brochureLinks.map(function(l) { return renderLinkCard(l); }).join('') + '</div></div>';
+          _er += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e0e7ff;"><div style="display:flex;flex-direction:column;gap:8px;">' + brochureLinks.map(function(l) { return renderLinkCard(l); }).join('') + '</div></div>';
         }
         _er += '</div></div>';
         _sections.expertRecommendation = _er;
@@ -565,6 +580,7 @@
       html += '</div>'; // end content
 
       document.getElementById('app').innerHTML = html;
+      if (typeof twemoji !== 'undefined') twemoji.parse(document.getElementById('app'));
     }
 
     loadProposal();

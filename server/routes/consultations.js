@@ -139,21 +139,21 @@ router.post('/:id/share', async (req, res, next) => {
     });
     if (!consultation) return res.status(404).json({ error: '상담을 찾을 수 없습니다.' });
 
-    const shareToken = crypto.randomBytes(12).toString('hex');
-    const shareExpiresAt = new Date();
-    shareExpiresAt.setDate(shareExpiresAt.getDate() + 30);
+    // 기존 토큰이 있으면 재사용, 없으면 새로 생성
+    const shareToken = consultation.share_token || crypto.randomBytes(12).toString('hex');
 
     await consultation.update({
       share_token: shareToken,
-      share_expires_at: shareExpiresAt,
+      share_expires_at: null,
       shared_at: new Date(),
-      status: '발송완료'
+      status: '발송완료',
+      published_proposal: consultation.proposal_html,
+      published_memo: consultation.progress_memo
     });
 
     res.json({
       share_token: shareToken,
-      share_url: `/proposal.html?token=${shareToken}`,
-      expires_at: shareExpiresAt
+      share_url: `/proposal.html?token=${shareToken}`
     });
   } catch (err) {
     next(err);

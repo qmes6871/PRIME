@@ -162,9 +162,6 @@ const App = {
             <button type="submit" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;margin-top:8px;">로그인</button>
           </form>
           <div id="login-error" style="color:var(--red);font-size:13px;text-align:center;margin-top:12px;display:none;"></div>
-          <div style="text-align:center;margin-top:16px;">
-            <a href="javascript:App.showRegister()" style="font-size:13px;color:var(--primary);text-decoration:none;">회원가입</a>
-          </div>
         </div>
       </div>
     `;

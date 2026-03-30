@@ -14,7 +14,7 @@ const SettingsPage = {
     { id: 'templates',  icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', label: '메시지 템플릿', color: '#059669' },
     // { id: 'checkitems', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', label: '보장 점검항목', color: '#d97706' },
     { id: 'links',      icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1', label: '보험정보 링크', color: '#3b82f6' },
-
+    { id: 'coverageLabels', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', label: '보장분석 용어', color: '#d97706' },
     { id: 'system',     icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', label: '시스템 설정', color: '#64748b' },
     { id: 'password',   icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', label: '비밀번호 변경', color: '#dc2626' }
   ],
@@ -31,7 +31,7 @@ const SettingsPage = {
       }
 
       return `
-        <div class="page-header" style="display:flex;justify-content:space-between;align-items:start;">
+        <div class="page-header page-header-flex">
           <div>
             <h1 class="page-title" style="display:flex;align-items:center;gap:10px;">
               <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;background:linear-gradient(135deg,#64748b,#475569);border-radius:10px;">
@@ -44,8 +44,11 @@ const SettingsPage = {
         </div>
 
         <!-- Tab Navigation -->
-        <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:24px;" id="settings-tab-nav">
-          ${this._tabs.map(tab => `
+        <div class="settings-tab-nav" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:24px;" id="settings-tab-nav">
+          ${this._tabs.filter(tab => {
+            if (tab.id === 'menu' && !API.getAgent()?.is_admin) return false;
+            return true;
+          }).map(tab => `
             <div onclick="SettingsPage.showTab('${tab.id}')" id="stab-${tab.id}"
               style="display:flex;align-items:center;gap:6px;padding:10px 16px;border-radius:10px;cursor:pointer;transition:all 0.2s;white-space:nowrap;font-size:13px;font-weight:600;
                 ${this._currentTab === tab.id
@@ -99,6 +102,7 @@ const SettingsPage = {
       this._infoLinks = d.links;
     }
     if (tabId === 'menu') {
+      if (!API.getAgent()?.is_admin) { tabId = 'profile'; this._currentTab = 'profile'; }
       this._menuItems = Sidebar.getMenuItems().map(m => ({ ...m }));
     }
 
@@ -112,6 +116,7 @@ const SettingsPage = {
       case 'templates': return this._renderTemplates();
       case 'checkitems': return this._renderCheckItems();
       case 'links': return this._renderLinks();
+      case 'coverageLabels': return this._renderCoverageLabels();
       case 'system': return this._renderSystem();
       case 'password': return this._renderPassword();
       default: return '';
@@ -188,7 +193,7 @@ const SettingsPage = {
           </div>
           <div class="form-group">
             <label class="form-label" style="font-size:12px;">소개 문구</label>
-            <input type="text" class="form-input" name="profile_intro" value="${Utils.escapeHtml(a.profile_intro || '')}" placeholder="예: 고객의 미래를 함께 설계합니다" style="border-radius:10px;" maxlength="200">
+            <textarea class="form-input" name="profile_intro" rows="3" placeholder="예: 고객의 미래를 함께 설계합니다" style="border-radius:10px;resize:vertical;" maxlength="200">${Utils.escapeHtml(a.profile_intro || '')}</textarea>
           </div>
           <button type="button" class="btn" onclick="SettingsPage.saveProfile()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;border-radius:10px;padding:12px 24px;font-weight:600;box-shadow:0 4px 14px rgba(99,102,241,0.3);">저장</button>
         </form>
@@ -953,17 +958,26 @@ const SettingsPage = {
     ]}
   ],
 
+  _customCoverageCategories: [],
+
   _renderCoverageLabels() {
     const labels = this._settings?.coverage_labels || {};
     const cats = this._defaultCoverageCategories;
+    this._customCoverageCategories = JSON.parse(JSON.stringify(this._settings?.custom_coverage_categories || []));
+
     return `
       <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;">
         <div style="padding:20px;">
           <div style="font-size:14px;color:var(--gray-500);margin-bottom:16px;line-height:1.6;">
-            제안서 미리보기에 표시되는 보장분석 항목의 용어를 변경할 수 있습니다.<br>
-            비워두면 기본 용어가 사용됩니다.
+            보장분석 항목의 용어를 변경하거나, 새로운 보장 카테고리를 추가할 수 있습니다.
           </div>
-          <div style="display:flex;flex-direction:column;gap:16px;">
+
+          <!-- 기본 카테고리 라벨 편집 -->
+          <div style="font-size:15px;font-weight:700;color:var(--gray-700);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+            <svg width="16" height="16" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            기본 보장 용어 편집
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
             ${cats.map(cat => `
               <div style="border:1px solid var(--gray-200);border-radius:12px;overflow:hidden;">
                 <div style="padding:10px 14px;background:var(--gray-50);font-size:14px;font-weight:700;color:var(--gray-700);border-bottom:1px solid var(--gray-200);">
@@ -984,13 +998,135 @@ const SettingsPage = {
               </div>
             `).join('')}
           </div>
-          <div style="display:flex;gap:8px;margin-top:20px;">
-            <button class="btn" style="background:#d97706;color:white;border:none;border-radius:10px;padding:10px 20px;font-weight:600;" onclick="SettingsPage.saveCoverageLabels()">저장</button>
+          <div style="display:flex;gap:8px;margin-bottom:32px;">
+            <button class="btn" style="background:#d97706;color:white;border:none;border-radius:10px;padding:10px 20px;font-weight:600;" onclick="SettingsPage.saveCoverageLabels()">용어 저장</button>
             <button class="btn btn-secondary" style="border-radius:10px;padding:10px 20px;" onclick="SettingsPage.resetCoverageLabels()">초기화</button>
+          </div>
+
+          <!-- 커스텀 카테고리 추가 -->
+          <div style="border-top:2px solid var(--gray-200);padding-top:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-size:15px;font-weight:700;color:var(--gray-700);display:flex;align-items:center;gap:6px;">
+                <svg width="16" height="16" fill="none" stroke="#3b82f6" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                추가 보장 카테고리
+              </div>
+              <button class="btn btn-sm" style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;" onclick="SettingsPage.addCustomCategory()">
+                + 카테고리 추가
+              </button>
+            </div>
+            <div style="font-size:13px;color:var(--gray-400);margin-bottom:16px;">
+              새로운 보장 카테고리를 추가하면 상담 에디터와 미리보기에 자동으로 반영됩니다.
+            </div>
+            <div id="custom-categories-list" style="display:flex;flex-direction:column;gap:12px;">
+              ${this._renderCustomCategories()}
+            </div>
           </div>
         </div>
       </div>
     `;
+  },
+
+  _renderCustomCategories() {
+    if (this._customCoverageCategories.length === 0) {
+      return `<div style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px;border:1px dashed var(--gray-200);border-radius:12px;">추가된 보장 카테고리가 없습니다</div>`;
+    }
+    return this._customCoverageCategories.map((cat, ci) => `
+      <div style="border:1px solid #bfdbfe;border-radius:12px;overflow:hidden;background:#fafcff;">
+        <div style="padding:10px 14px;background:linear-gradient(135deg,#eff6ff,#dbeafe);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #bfdbfe;">
+          <div style="display:flex;align-items:center;gap:8px;flex:1;">
+            <input type="text" class="form-input" value="${Utils.escapeHtml(cat.title || '')}" placeholder="카테고리명 (예: 치아보험)"
+              onchange="SettingsPage.updateCustomCatTitle(${ci}, this.value)"
+              style="font-size:14px;font-weight:700;border-radius:8px;padding:6px 10px;max-width:200px;">
+            <input type="text" class="form-input" value="${Utils.escapeHtml(cat.icon || '')}" placeholder="아이콘"
+              onchange="SettingsPage.updateCustomCatIcon(${ci}, this.value)"
+              style="font-size:14px;width:50px;text-align:center;border-radius:8px;padding:6px;">
+          </div>
+          <button onclick="SettingsPage.removeCustomCategory(${ci})" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600;">삭제</button>
+        </div>
+        <div style="padding:12px 14px;display:flex;flex-direction:column;gap:6px;">
+          ${cat.fields.map((f, fi) => `
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="text" class="form-input" value="${Utils.escapeHtml(f.label || '')}" placeholder="항목명 (예: 치아보철 치료비)"
+                onchange="SettingsPage.updateCustomField(${ci}, ${fi}, 'label', this.value)"
+                style="font-size:13px;border-radius:8px;padding:6px 10px;flex:1;">
+              <select class="form-input" onchange="SettingsPage.updateCustomField(${ci}, ${fi}, 'unit', this.value)"
+                style="font-size:12px;border-radius:8px;padding:6px 8px;width:80px;">
+                <option value="만원" ${f.unit === '만원' ? 'selected' : ''}>만원</option>
+                <option value="억원" ${f.unit === '억원' ? 'selected' : ''}>억원</option>
+                <option value="" ${!f.unit ? 'selected' : ''}>없음</option>
+              </select>
+              <button onclick="SettingsPage.removeCustomField(${ci}, ${fi})" style="background:none;border:none;color:#dc2626;cursor:pointer;padding:4px;font-size:16px;line-height:1;" title="항목 삭제">&times;</button>
+            </div>
+          `).join('')}
+          <button onclick="SettingsPage.addCustomField(${ci})" style="background:none;border:1px dashed #93c5fd;border-radius:8px;padding:6px;color:#3b82f6;cursor:pointer;font-size:12px;font-weight:600;margin-top:4px;">
+            + 항목 추가
+          </button>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  addCustomCategory() {
+    const idx = this._customCoverageCategories.length;
+    this._customCoverageCategories.push({
+      key: 'custom_' + Date.now(),
+      title: '',
+      icon: '🔷',
+      color: '#6366f1',
+      bg: '#eef2ff',
+      border: '#c7d2fe',
+      fields: [{ key: 'field_1', label: '', type: 'amount', unit: '만원' }]
+    });
+    document.getElementById('custom-categories-list').innerHTML = this._renderCustomCategories();
+  },
+
+  removeCustomCategory(ci) {
+    if (!confirm('이 카테고리를 삭제하시겠습니까?')) return;
+    this._customCoverageCategories.splice(ci, 1);
+    document.getElementById('custom-categories-list').innerHTML = this._renderCustomCategories();
+  },
+
+  updateCustomCatTitle(ci, value) {
+    this._customCoverageCategories[ci].title = value;
+  },
+
+  updateCustomCatIcon(ci, value) {
+    this._customCoverageCategories[ci].icon = value;
+  },
+
+  addCustomField(ci) {
+    const fields = this._customCoverageCategories[ci].fields;
+    fields.push({ key: 'field_' + (fields.length + 1) + '_' + Date.now(), label: '', type: 'amount', unit: '만원' });
+    document.getElementById('custom-categories-list').innerHTML = this._renderCustomCategories();
+  },
+
+  removeCustomField(ci, fi) {
+    this._customCoverageCategories[ci].fields.splice(fi, 1);
+    document.getElementById('custom-categories-list').innerHTML = this._renderCustomCategories();
+  },
+
+  updateCustomField(ci, fi, prop, value) {
+    this._customCoverageCategories[ci].fields[fi][prop] = value;
+  },
+
+  async saveCustomCategories() {
+    const cats = this._customCoverageCategories.filter(c => c.title && c.title.trim());
+    cats.forEach(cat => {
+      cat.title = cat.title.trim();
+      cat.fields = cat.fields.filter(f => f.label && f.label.trim());
+      cat.fields.forEach((f, i) => {
+        f.label = f.label.trim();
+        f.type = 'amount';
+        if (!f.key || f.key.startsWith('field_')) f.key = 'f_' + i + '_' + cat.key.replace('custom_', '');
+      });
+    });
+    try {
+      await API.updateSettings({ custom_coverage_categories: cats.length > 0 ? cats : null });
+      this._settings.custom_coverage_categories = cats.length > 0 ? cats : null;
+      this._customCoverageCategories = JSON.parse(JSON.stringify(cats));
+      document.getElementById('custom-categories-list').innerHTML = this._renderCustomCategories();
+      showToast('커스텀 보장 카테고리가 저장되었습니다.', 'success');
+    } catch (err) { showToast(err.message, 'error'); }
   },
 
   async saveCoverageLabels() {
@@ -1005,10 +1141,29 @@ const SettingsPage = {
         labels[cat][field] = val;
       }
     });
+
+    // 커스텀 카테고리도 함께 저장
+    const cats = this._customCoverageCategories.filter(c => c.title && c.title.trim());
+    cats.forEach(cat => {
+      cat.title = cat.title.trim();
+      cat.fields = cat.fields.filter(f => f.label && f.label.trim());
+      cat.fields.forEach((f, i) => {
+        f.label = f.label.trim();
+        f.type = 'amount';
+        if (!f.key || f.key.startsWith('field_')) f.key = 'f_' + i + '_' + cat.key.replace('custom_', '');
+      });
+    });
+
     try {
-      await API.updateSettings({ coverage_labels: Object.keys(labels).length > 0 ? labels : null });
+      await API.updateSettings({
+        coverage_labels: Object.keys(labels).length > 0 ? labels : null,
+        custom_coverage_categories: cats.length > 0 ? cats : null
+      });
       this._settings.coverage_labels = Object.keys(labels).length > 0 ? labels : null;
-      showToast('보장분석 용어가 저장되었습니다.', 'success');
+      this._settings.custom_coverage_categories = cats.length > 0 ? cats : null;
+      this._customCoverageCategories = JSON.parse(JSON.stringify(cats));
+      document.getElementById('custom-categories-list').innerHTML = this._renderCustomCategories();
+      showToast('보장분석 설정이 저장되었습니다.', 'success');
     } catch (err) { showToast(err.message, 'error'); }
   },
 

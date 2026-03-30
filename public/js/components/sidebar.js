@@ -84,7 +84,7 @@ const Sidebar = {
       <nav class="top-nav">
         <div class="top-nav-inner">
           <div class="top-nav-logo" onclick="App.navigate('dashboard')">PRIME<span>ASSET</span></div>
-          <a href="/prime/229/" target="_blank" style="margin-left:10px;padding:6px 14px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;letter-spacing:-0.3px;box-shadow:0 2px 6px rgba(217,119,6,0.3);">
+          <a href="/prime/229/" target="_blank" class="nav-link-229">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             299 업적판
           </a>

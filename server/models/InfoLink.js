@@ -35,6 +35,10 @@ module.exports = (sequelize) => {
       field: 'image_url',
       comment: '대표 이미지 URL'
     },
+    category: {
+      type: DataTypes.STRING(100),
+      comment: '카테고리'
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true

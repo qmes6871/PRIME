@@ -18,10 +18,6 @@ router.get('/proposal/:token', async (req, res, next) => {
       return res.status(404).json({ error: '제안서를 찾을 수 없습니다.' });
     }
 
-    if (consultation.share_expires_at && new Date() > consultation.share_expires_at) {
-      return res.status(410).json({ error: '만료된 링크입니다.' });
-    }
-
     // Mark as viewed
     if (!consultation.viewed_at) {
       await consultation.update({ viewed_at: new Date(), status: '확인완료' });
@@ -30,10 +26,19 @@ router.get('/proposal/:token', async (req, res, next) => {
     // 설정 정보도 함께 전달 (온라인예약, 카카오톡 URL 등)
     const settings = await AgentSetting.findOne({
       where: { agent_id: consultation.agent_id },
-      attributes: ['fax_number', 'online_reservation_url', 'kakao_talk_url', 'coverage_labels']
+      attributes: ['fax_number', 'online_reservation_url', 'kakao_talk_url', 'coverage_labels', 'custom_coverage_categories']
     });
 
-    res.json({ consultation, settings });
+    // 공유용 스냅샷이 있으면 그것을 사용
+    const result = consultation.toJSON();
+    if (result.published_proposal) {
+      result.proposal_html = result.published_proposal;
+    }
+    if (result.published_memo !== null && result.published_memo !== undefined) {
+      result.progress_memo = result.published_memo;
+    }
+
+    res.json({ consultation: result, settings });
   } catch (err) {
     next(err);
   }

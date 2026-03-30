@@ -47,6 +47,14 @@ module.exports = (sequelize) => {
     },
     viewed_at: {
       type: DataTypes.DATE
+    },
+    published_proposal: {
+      type: DataTypes.TEXT('long'),
+      comment: '공유용 제안서 스냅샷 (공유 버튼 클릭 시에만 업데이트)'
+    },
+    published_memo: {
+      type: DataTypes.TEXT,
+      comment: '공유용 진행메모 스냅샷'
     }
   }, {
     tableName: 'consultations'

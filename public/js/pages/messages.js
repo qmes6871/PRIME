@@ -140,7 +140,7 @@ const MessagesPage = {
       }
 
       return `
-        <div class="page-header" style="display:flex;justify-content:space-between;align-items:start;">
+        <div class="page-header page-header-flex">
           <div>
             <h1 class="page-title" style="display:flex;align-items:center;gap:10px;">
               <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;">
@@ -157,7 +157,7 @@ const MessagesPage = {
         </div>
 
         <!-- Main Content: 2-column layout -->
-        <div style="display:grid;grid-template-columns:40% 60%;gap:28px;">
+        <div class="messages-grid">
           <!-- LEFT: 고객선택 + 탭 + 인라인 폼 -->
           <div style="display:flex;flex-direction:column;gap:0;">
             ${this._renderCustomerCard()}
@@ -165,7 +165,7 @@ const MessagesPage = {
           </div>
 
           <!-- RIGHT: 메시지 미리보기 (1줄부터 고정) -->
-          <div style="position:sticky;top:24px;align-self:start;">
+          <div class="messages-grid-right">
             <div id="msg-preview-wrapper">
               ${this._renderPreviewPanel()}
             </div>

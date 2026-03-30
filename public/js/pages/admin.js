@@ -8,11 +8,23 @@ const AdminPage = {
       return '<div class="empty-state"><div class="empty-state-text">관리자 권한이 필요합니다.</div></div>';
     }
 
+    const isSuperAdmin = agent.login_id === '299prime';
+
     try {
-      if (this._currentTab === 'agents') {
+      if (!isSuperAdmin) {
+        this._currentTab = 'performance';
+      }
+
+      if (this._currentTab === 'agents' && isSuperAdmin) {
         const data = await API.getAgents();
         this._agents = data.agents || [];
       }
+
+      const tabs = [];
+      if (isSuperAdmin) {
+        tabs.push({ key: 'agents', label: '설계사 관리', icon: '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>' });
+      }
+      tabs.push({ key: 'performance', label: '299 성과관리', icon: '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>' });
 
       return `
         <div class="page-header">
@@ -26,7 +38,7 @@ const AdminPage = {
               </h1>
               <p class="page-subtitle">설계사 계정과 성과관리를 관리합니다</p>
             </div>
-            ${this._currentTab === 'agents' ? `
+            ${this._currentTab === 'agents' && isSuperAdmin ? `
               <button class="btn btn-primary" onclick="AdminPage.showAddAgent()" style="background:linear-gradient(135deg,#dc2626,#ef4444);border:none;">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
                 설계사 추가
@@ -36,11 +48,9 @@ const AdminPage = {
         </div>
 
         <!-- 탭 -->
+        ${tabs.length > 1 ? `
         <div style="display:flex;background:var(--gray-100);border-radius:12px;padding:4px;margin-bottom:20px;">
-          ${[
-            { key: 'agents', label: '설계사 관리', icon: '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>' },
-            { key: 'performance', label: '299 성과관리', icon: '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>' }
-          ].map(tab => `
+          ${tabs.map(tab => `
             <button onclick="AdminPage.switchTab('${tab.key}')"
               style="flex:1;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:${this._currentTab === tab.key ? '700' : '500'};
                 background:${this._currentTab === tab.key ? 'white' : 'transparent'};
@@ -51,6 +61,7 @@ const AdminPage = {
             </button>
           `).join('')}
         </div>
+        ` : ''}
 
         <div id="admin-tab-content">
           ${this._currentTab === 'agents' ? this._renderAgentsTab() : this._renderPerformanceTab()}
