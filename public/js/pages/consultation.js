@@ -340,7 +340,9 @@ const ConsultationPage = {
       recommendedPlans: savedData.recommendedPlans || [],
       coverageAnalysis: savedData.coverageAnalysis || {},
       sectionImages: savedData.sectionImages || [],
-      sectionOrder: savedData.sectionOrder || ['referenceLinks','healthCheck','insuranceAnalysis','expertRecommendation']
+      sectionOrder: savedData.sectionOrder || ['referenceLinks','healthCheck','insuranceAnalysis','expertRecommendation'],
+      memoTitle: savedData.memoTitle || '',
+      memoContent: savedData.memoContent || ''
     };
     this._existingPolicies = this._formData.existingPolicies;
     this._recommendedPlans = this._formData.recommendedPlans;
