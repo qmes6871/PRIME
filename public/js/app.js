@@ -87,6 +87,7 @@ const App = {
           content = await DashboardPage.renderCustomerListPage();
           break;
         case 'consultation':
+          pageObj = ConsultationPage;
           content = await ConsultationPage.render(params);
           break;
         case 'messages':

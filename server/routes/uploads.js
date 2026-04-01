@@ -51,7 +51,8 @@ router.post('/policy-image', (req, res) => {
       return res.status(400).json({ error: '파일을 선택해주세요.' });
     }
     const url = `/uploads/policies/${req.file.filename}`;
-    res.json({ url, filename: req.file.originalname });
+    const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8').normalize('NFC');
+    res.json({ url, filename: originalName });
   });
 });
 

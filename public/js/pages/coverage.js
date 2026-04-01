@@ -71,7 +71,7 @@ const CoveragePage = {
               <span style="font-size:12px;color:var(--gray-400);">보험 관련 유용한 정보를 한곳에서 확인하세요</span>
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;" id="insurance-info-grid">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:12px;" id="insurance-info-grid">
               ${this._renderInfoCards()}
             </div>
           </div>

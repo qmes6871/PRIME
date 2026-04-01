@@ -1297,11 +1297,14 @@ const ConsultationPage = {
               </div>
             `).join('')}
           </div>
-          <label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px dashed var(--border);border-radius:10px;cursor:pointer;font-size:12px;color:var(--muted-foreground);transition:all 0.15s;" onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)';this.style.background='var(--primary-light)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted-foreground)';this.style.background='transparent'">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-            파일 추가
-            <input type="file" accept="image/*,.pdf" multiple style="display:none;" onchange="ConsultationPage.handlePolicyImageUpload(${index}, this.files)">
-          </label>
+          <div class="drop-zone" data-drop-type="policy" data-drop-index="${index}" style="padding:24px 16px;border:2px dashed var(--gray-300);border-radius:12px;text-align:center;color:var(--gray-400);transition:all 0.2s;cursor:pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px;opacity:0.5;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            <div style="font-size:12px;margin-bottom:8px;">드래그, 붙여넣기(Ctrl+V) 또는</div>
+            <label style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--primary);background:white;transition:all 0.15s;" onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background='white'">
+              파일 선택
+              <input type="file" accept="image/*,.pdf" multiple style="display:none;" onchange="ConsultationPage.handlePolicyImageUpload(${index}, this.files)">
+            </label>
+          </div>
         </div>
       </div>
     `;
@@ -1399,11 +1402,14 @@ const ConsultationPage = {
               </div>
             `).join('')}
           </div>
-          <label style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px dashed var(--border);border-radius:8px;cursor:pointer;font-size:11px;color:var(--muted-foreground);" onmouseover="this.style.borderColor='#d97706';this.style.color='#d97706'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted-foreground)'">
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-            파일 추가
-            <input type="file" accept="image/*,.pdf" multiple style="display:none;" onchange="ConsultationPage.handleRecommendedImageUpload(${index}, this.files)">
-          </label>
+          <div class="drop-zone" data-drop-type="recommended" data-drop-index="${index}" style="padding:24px 16px;border:2px dashed var(--gray-300);border-radius:12px;text-align:center;color:var(--gray-400);transition:all 0.2s;cursor:pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px;opacity:0.5;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            <div style="font-size:12px;margin-bottom:8px;">드래그, 붙여넣기(Ctrl+V) 또는</div>
+            <label style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:#d97706;background:white;transition:all 0.15s;" onmouseover="this.style.background='#fffbeb'" onmouseout="this.style.background='white'">
+              파일 선택
+              <input type="file" accept="image/*,.pdf" multiple style="display:none;" onchange="ConsultationPage.handleRecommendedImageUpload(${index}, this.files)">
+            </label>
+          </div>
         </div>
       </div>
     `;
@@ -3154,6 +3160,118 @@ const ConsultationPage = {
         App.navigate('consultation', { consultationId });
       } catch (err) {
         showToast(err.message, 'error');
+      }
+    });
+  },
+
+  // ==================== Drag & Drop File Upload ====================
+  _dropZonesBound: false,
+
+  onRendered() {
+    this._initDropZones();
+  },
+
+  _initDropZones() {
+    if (this._dropZonesBound) return;
+    this._dropZonesBound = true;
+
+    // 마지막으로 클릭/포커스된 drop-zone 추적
+    this._activeDropZone = null;
+
+    document.addEventListener('click', (e) => {
+      const zone = e.target.closest('.drop-zone');
+      if (zone) {
+        // 이전 활성 zone 스타일 초기화
+        if (this._activeDropZone && this._activeDropZone !== zone) {
+          this._activeDropZone.style.borderColor = 'var(--gray-300)';
+          this._activeDropZone.style.background = 'transparent';
+          this._activeDropZone.style.color = 'var(--gray-400)';
+        }
+        this._activeDropZone = zone;
+        zone.style.borderColor = 'var(--primary)';
+        zone.style.background = 'var(--primary-light, #eff6ff)';
+        zone.style.color = 'var(--primary)';
+      } else if (!e.target.closest('label')) {
+        // drop-zone 바깥 클릭 시 비활성화
+        if (this._activeDropZone) {
+          this._activeDropZone.style.borderColor = 'var(--gray-300)';
+          this._activeDropZone.style.background = 'transparent';
+          this._activeDropZone.style.color = 'var(--gray-400)';
+          this._activeDropZone = null;
+        }
+      }
+    });
+
+    // 클립보드 붙여넣기(Ctrl+V)로 이미지 업로드
+    document.addEventListener('paste', (e) => {
+      const zone = this._activeDropZone;
+      if (!zone) return;
+
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+
+      const files = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file' && (item.type.startsWith('image/') || item.type === 'application/pdf')) {
+          const file = item.getAsFile();
+          if (file) files.push(file);
+        }
+      }
+
+      if (files.length === 0) return;
+
+      e.preventDefault();
+
+      const type = zone.dataset.dropType;
+      const index = parseInt(zone.dataset.dropIndex);
+
+      if (type === 'policy') {
+        ConsultationPage.handlePolicyImageUpload(index, files);
+      } else if (type === 'recommended') {
+        ConsultationPage.handleRecommendedImageUpload(index, files);
+      }
+    });
+
+    // 페이지 전체에서 브라우저 기본 드래그 동작(파일 열기) 방지
+    document.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const zone = e.target.closest('.drop-zone');
+      if (zone) {
+        zone.style.borderColor = 'var(--primary)';
+        zone.style.background = 'var(--primary-light, #eff6ff)';
+        zone.style.color = 'var(--primary)';
+      }
+    });
+
+    document.addEventListener('dragleave', (e) => {
+      const zone = e.target.closest('.drop-zone');
+      if (zone) {
+        zone.style.borderColor = 'var(--gray-300)';
+        zone.style.background = 'transparent';
+        zone.style.color = 'var(--gray-400)';
+      }
+    });
+
+    document.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const zone = e.target.closest('.drop-zone');
+      if (!zone) return;
+
+      zone.style.borderColor = 'var(--gray-300)';
+      zone.style.background = 'transparent';
+      zone.style.color = 'var(--gray-400)';
+
+      const files = e.dataTransfer.files;
+      if (!files || files.length === 0) return;
+
+      const type = zone.dataset.dropType;
+      const index = parseInt(zone.dataset.dropIndex);
+
+      if (type === 'policy') {
+        ConsultationPage.handlePolicyImageUpload(index, files);
+      } else if (type === 'recommended') {
+        ConsultationPage.handleRecommendedImageUpload(index, files);
       }
     });
   }
