@@ -75,16 +75,21 @@ const Utils = {
   },
 
   copyToClipboard(text) {
+    const fallback = () => {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return Promise.resolve();
+    };
     if (navigator.clipboard) {
-      return navigator.clipboard.writeText(text);
+      return navigator.clipboard.writeText(text).catch(fallback);
     }
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-    return Promise.resolve();
+    return fallback();
   },
 
   // 전화번호 입력 시 자동으로 '-' 추가 (input 이벤트에 바인딩)

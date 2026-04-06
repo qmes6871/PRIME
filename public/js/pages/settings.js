@@ -198,6 +198,37 @@ const SettingsPage = {
           <button type="button" class="btn" onclick="SettingsPage.saveProfile()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;border-radius:10px;padding:12px 24px;font-weight:600;box-shadow:0 4px 14px rgba(99,102,241,0.3);">저장</button>
         </form>
       </div>
+
+      <!-- 공유 링크 대표 이미지 설정 -->
+      <div class="card" style="border:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-radius:14px;margin-top:16px;">
+        <div class="card-header" style="margin-bottom:16px;">
+          <h3 class="card-title" style="display:flex;align-items:center;gap:8px;">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-radius:8px;">
+              <svg width="14" height="14" fill="none" stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </span>
+            공유 링크 대표 이미지
+          </h3>
+        </div>
+        <p style="font-size:13px;color:var(--gray-500);margin-bottom:16px;">제안서 공유 링크를 카카오톡 등으로 보낼 때 미리보기에 표시되는 대표 이미지입니다.</p>
+        <div id="share-image-preview" style="margin-bottom:16px;">
+          ${a.share_image
+            ? `<div style="position:relative;display:inline-block;">
+                <img src="${a.share_image}" style="max-width:100%;max-height:200px;border-radius:12px;border:1px solid var(--gray-200);">
+                <button onclick="SettingsPage.deleteShareImage()" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="삭제">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>`
+            : `<div style="padding:30px;border:2px dashed var(--gray-200);border-radius:12px;text-align:center;color:var(--gray-400);font-size:13px;cursor:pointer;" onclick="document.getElementById('share-image-input').click()">
+                <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 8px;display:block;color:var(--gray-300);"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                클릭하여 이미지를 업로드하세요<br><span style="font-size:11px;">권장: 가로 800px 이상, 1200x630 비율</span>
+              </div>`}
+        </div>
+        <input type="file" id="share-image-input" accept="image/*" style="display:none;" onchange="SettingsPage.uploadShareImage(this)">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('share-image-input').click()" style="border-radius:10px;padding:10px 20px;font-weight:600;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px;"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          이미지 ${a.share_image ? '변경' : '업로드'}
+        </button>
+      </div>
     `;
   },
 
@@ -253,6 +284,34 @@ const SettingsPage = {
       } catch (err) { showToast(err.message, 'error'); }
     };
     reader.readAsDataURL(file);
+  },
+
+  async uploadShareImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('이미지 크기는 5MB 이하로 업로드해주세요.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const result = await API.post('/settings/share-image', { image: e.target.result });
+        this._agent.share_image = result.share_image;
+        showToast('공유 링크 대표 이미지가 설정되었습니다.', 'success');
+        document.getElementById('settings-content').innerHTML = this._renderProfile();
+      } catch (err) { showToast(err.message, 'error'); }
+    };
+    reader.readAsDataURL(file);
+  },
+
+  async deleteShareImage() {
+    try {
+      await API.delete('/settings/share-image');
+      this._agent.share_image = null;
+      showToast('대표 이미지가 삭제되었습니다.', 'success');
+      document.getElementById('settings-content').innerHTML = this._renderProfile();
+    } catch (err) { showToast(err.message, 'error'); }
   },
 
   // ==================== 2. Menu Customization ====================

@@ -27,7 +27,7 @@ const Sidebar = {
 
   getMenuItems() {
     const stored = localStorage.getItem('prime_menu_settings');
-    if (!stored) return this.defaultMenuItems;
+    if (!stored) return this._appendAdminMenu(this.defaultMenuItems);
 
     try {
       const { menu_order, menu_labels } = JSON.parse(stored);

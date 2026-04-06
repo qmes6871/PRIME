@@ -37,6 +37,10 @@ module.exports = (sequelize) => {
     address: {
       type: DataTypes.STRING(500)
     },
+    occupation: {
+      type: DataTypes.STRING(100),
+      comment: '직업'
+    },
     insurance_age: {
       type: DataTypes.INTEGER,
       comment: '보험나이'
@@ -46,7 +50,7 @@ module.exports = (sequelize) => {
       comment: '상령일'
     },
     consult_date: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.TEXT,
       comment: '상담 예정일시'
     }
   }, {

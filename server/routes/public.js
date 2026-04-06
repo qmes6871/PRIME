@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Consultation, ConsultationInsurer, InsuranceCompany, Customer, Agent, SurveyResponse, AgentSetting, CustomerCoverage, CoverageCheckItem } = require('../models');
+const { Consultation, ConsultationInsurer, InsuranceCompany, Customer, Agent, SurveyResponse, AgentSetting, CustomerCoverage, CoverageCheckItem, DesignConsent } = require('../models');
 
 // GET /api/v1/public/proposal/:token - 고객용 제안서 (인증 불필요)
 router.get('/proposal/:token', async (req, res, next) => {
@@ -9,7 +9,7 @@ router.get('/proposal/:token', async (req, res, next) => {
       where: { share_token: req.params.token },
       include: [
         { model: Customer, attributes: ['id', 'name'] },
-        { model: Agent, attributes: ['id', 'name', 'phone', 'email', 'position', 'branch', 'profile_image', 'profile_intro'] },
+        { model: Agent, attributes: ['id', 'name', 'phone', 'email', 'position', 'branch', 'profile_image', 'profile_intro', 'share_image'] },
         { model: ConsultationInsurer, as: 'insurers', include: [InsuranceCompany] }
       ]
     });
@@ -99,6 +99,79 @@ router.get('/coverage/:customerId/:token', async (req, res, next) => {
     });
 
     res.json({ customer, coverages });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/public/design-consent/:token - 설계 동의 폼 데이터 조회
+router.get('/design-consent/:token', async (req, res, next) => {
+  try {
+    const consent = await DesignConsent.findOne({
+      where: { token: req.params.token },
+      include: [{ model: Customer, attributes: ['name', 'phone'] }]
+    });
+    if (!consent) return res.status(404).json({ error: '유효하지 않은 링크입니다.' });
+    if (consent.status === '완료') return res.status(400).json({ error: '이미 제출된 설계 동의입니다.' });
+
+    res.json({
+      customer_name: consent.Customer.name,
+      customer_phone: consent.Customer.phone
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/public/design-consent/:token - 설계 동의 제출
+router.post('/design-consent/:token', async (req, res, next) => {
+  try {
+    const consent = await DesignConsent.findOne({
+      where: { token: req.params.token }
+    });
+    if (!consent) return res.status(404).json({ error: '유효하지 않은 링크입니다.' });
+    if (consent.status === '완료') return res.status(400).json({ error: '이미 제출된 설계 동의입니다.' });
+
+    const { address, address_main, address_detail, occupation, military_service, resident_number_front, resident_number_back } = req.body;
+
+    await consent.update({
+      address,
+      occupation,
+      military_service,
+      resident_number_front,
+      resident_number_back,
+      status: '완료',
+      submitted_at: new Date()
+    });
+
+    // 고객 정보 자동 업데이트 (생년월일, 성별, 주소, 직업)
+    try {
+      const customerUpdate = {};
+      if (address_main) {
+        customerUpdate.address = address_detail ? `${address_main}|${address_detail}` : address_main;
+      }
+      if (occupation) customerUpdate.occupation = occupation;
+
+      if (resident_number_front && resident_number_back) {
+        const yy = resident_number_front.substring(0, 2);
+        const mm = resident_number_front.substring(2, 4);
+        const dd = resident_number_front.substring(4, 6);
+        const genderDigit = resident_number_back.substring(0, 1);
+
+        // 1,2: 1900년대 / 3,4: 2000년대
+        const century = ['1', '2', '5', '6'].includes(genderDigit) ? '19' : '20';
+        customerUpdate.birth_date = `${century}${yy}-${mm}-${dd}`;
+        customerUpdate.gender = ['1', '3'].includes(genderDigit) ? 'M' : 'F';
+      }
+
+      if (Object.keys(customerUpdate).length > 0) {
+        await Customer.update(customerUpdate, { where: { id: consent.customer_id } });
+      }
+    } catch (updateErr) {
+      console.error('고객 정보 자동 업데이트 실패:', updateErr.message);
+    }
+
+    res.json({ message: '설계 동의가 제출되었습니다.' });
   } catch (err) {
     next(err);
   }

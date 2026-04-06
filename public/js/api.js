@@ -47,18 +47,18 @@ const API = {
 
     const res = await fetch(this.baseUrl + path, opts);
 
-    if (res.status === 401) {
-      this.removeToken();
-      App.navigate('login');
-      throw new Error('인증이 만료되었습니다.');
-    }
-
     const text = await res.text();
     let json;
     try {
       json = JSON.parse(text);
     } catch (e) {
       throw new Error('서버 응답 오류 (status: ' + res.status + ')');
+    }
+
+    if (res.status === 401 && !path.startsWith('/auth/login')) {
+      this.removeToken();
+      App.navigate('login');
+      throw new Error('인증이 만료되었습니다.');
     }
 
     if (!res.ok) {
@@ -110,6 +110,7 @@ const API = {
   getConsultationHistoryDetail(id, historyId) { return this.get(`/consultations/${id}/history/${historyId}`); },
   createConsultationHistory(id, data) { return this.post(`/consultations/${id}/history`, data); },
   restoreConsultationHistory(id, historyId) { return this.post(`/consultations/${id}/history/${historyId}/restore`); },
+  deleteConsultationHistory(id, historyId) { return this.delete(`/consultations/${id}/history/${historyId}`); },
 
   // Templates
   getTemplates(params = {}) {
@@ -190,6 +191,11 @@ const API = {
     return json;
   },
   deletePolicyImage(filename) { return this.delete(`/uploads/policy-image/${filename}`); },
+
+  // Design Consent
+  createDesignConsent(customerId, data) { return this.post(`/customers/${customerId}/design-consent`, data); },
+  getDesignConsents(customerId) { return this.get(`/customers/${customerId}/design-consent`); },
+  deleteDesignConsent(consentId) { return this.delete(`/customers/design-consent/${consentId}`); },
 
   // Admin
   getAgents() { return this.get('/admin/agents'); },

@@ -21,6 +21,7 @@ const InfoLink = require('./InfoLink')(sequelize);
 const SurveyResponse = require('./SurveyResponse')(sequelize);
 const AgentSetting = require('./AgentSetting')(sequelize);
 const ConsultationHistory = require('./ConsultationHistory')(sequelize);
+const DesignConsent = require('./DesignConsent')(sequelize);
 
 // Associations
 Agent.hasMany(Customer, { foreignKey: 'agent_id' });
@@ -71,6 +72,12 @@ AgentSetting.belongsTo(Agent, { foreignKey: 'agent_id' });
 Consultation.hasMany(ConsultationHistory, { foreignKey: 'consultation_id', as: 'histories' });
 ConsultationHistory.belongsTo(Consultation, { foreignKey: 'consultation_id' });
 
+Customer.hasMany(DesignConsent, { foreignKey: 'customer_id' });
+DesignConsent.belongsTo(Customer, { foreignKey: 'customer_id' });
+
+Agent.hasMany(DesignConsent, { foreignKey: 'agent_id' });
+DesignConsent.belongsTo(Agent, { foreignKey: 'agent_id' });
+
 module.exports = {
   sequelize,
   Agent,
@@ -85,5 +92,6 @@ module.exports = {
   InfoLink,
   SurveyResponse,
   AgentSetting,
-  ConsultationHistory
+  ConsultationHistory,
+  DesignConsent
 };

@@ -251,4 +251,16 @@ router.post('/:id/history/:historyId/restore', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// DELETE /api/v1/consultations/:id/history/:historyId
+router.delete('/:id/history/:historyId', async (req, res, next) => {
+  try {
+    const history = await ConsultationHistory.findOne({
+      where: { id: req.params.historyId, consultation_id: req.params.id, agent_id: req.agent.id }
+    });
+    if (!history) return res.status(404).json({ error: '이력을 찾을 수 없습니다.' });
+    await history.destroy();
+    res.json({ message: '삭제되었습니다.' });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

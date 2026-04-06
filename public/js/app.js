@@ -162,7 +162,7 @@ const App = {
             </div>
             <button type="submit" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;margin-top:8px;">로그인</button>
           </form>
-          <div id="login-error" style="color:var(--red);font-size:13px;text-align:center;margin-top:12px;display:none;"></div>
+          <div id="login-error" style="color:#ef4444;font-size:13px;text-align:center;margin-top:12px;display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;"></div>
         </div>
       </div>
     `;

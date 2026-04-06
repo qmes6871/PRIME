@@ -40,6 +40,9 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(200),
       defaultValue: ''
     },
+    share_image: {
+      type: DataTypes.STRING(500)
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true

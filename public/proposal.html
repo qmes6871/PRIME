@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>보험 상담 제안서 - 프라임에셋</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -193,11 +193,21 @@
       document.body.style.overflow = 'hidden';
     }
 
+    // 이미지 클릭 이벤트 위임 (모바일 호환)
+    document.addEventListener('click', function(e) {
+      var img = e.target.closest('img[data-zoomable]');
+      if (img) {
+        e.preventDefault();
+        e.stopPropagation();
+        openImageViewer(img.src);
+      }
+    });
+
     function renderLinkCard(l) {
       var btn = l.url ? '<a href="' + escapeHtml(l.url) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;margin-top:8px;padding:6px 14px;background:#3b82f6;color:white;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">보러가기 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a>' : '';
       if (l.thumbnail) {
         return '<div style="border:1px solid #f1f5f9;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.02);">' +
-          '<img src="' + escapeHtml(l.thumbnail) + '" style="width:100%;display:block;cursor:pointer;" onclick="openImageViewer(\'' + escapeHtml(l.thumbnail) + '\')">' +
+          '<img src="' + escapeHtml(l.thumbnail) + '" style="width:100%;display:block;cursor:pointer;" data-zoomable>' +
           '<div style="padding:10px 14px;"><div style="font-size:15px;font-weight:700;color:#1e293b;line-height:1.4;">' + escapeHtml(l.title || '') + '</div>' + btn + '</div></div>';
       }
       return '<div style="display:flex;align-items:center;justify-content:space-between;background:white;border:1px solid #f1f5f9;border-radius:12px;padding:12px 14px;box-shadow:0 2px 10px rgba(0,0,0,0.02);">' +
@@ -221,7 +231,7 @@
 
       if (imgItems.length === 1) {
         const img = imgItems[0];
-        html += '<div><img src="' + escapeHtml(img.url) + '" style="width:100%;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer;" onclick="openImageViewer(\'' + escapeHtml(img.url) + '\')">';
+        html += '<div><img src="' + escapeHtml(img.url) + '" style="width:100%;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer;" data-zoomable>';
         if (img.comment) html += '<div style="font-size:11px;color:#64748b;margin-top:4px;padding:4px 8px;background:#f8fafc;border-radius:6px;">' + escapeHtml(img.comment) + '</div>';
         html += '</div>';
       }
@@ -231,7 +241,7 @@
         html += '<div style="position:relative;overflow:hidden;border-radius:8px;border:1px solid #e2e8f0;">';
         html += '<div id="' + id + '" style="display:flex;transition:transform 0.3s ease;width:' + (imgItems.length * 100) + '%;">';
         imgItems.forEach(img => {
-          html += '<div style="width:' + (100 / imgItems.length) + '%;flex-shrink:0;"><img src="' + escapeHtml(img.url) + '" style="width:100%;display:block;cursor:pointer;" onclick="openImageViewer(\'' + escapeHtml(img.url) + '\')">';
+          html += '<div style="width:' + (100 / imgItems.length) + '%;flex-shrink:0;"><img src="' + escapeHtml(img.url) + '" style="width:100%;display:block;cursor:pointer;" data-zoomable>';
           if (img.comment) html += '<div style="font-size:11px;color:#64748b;padding:6px 8px;background:#f8fafc;">' + escapeHtml(img.comment) + '</div>';
           html += '</div>';
         });
@@ -292,6 +302,7 @@
       const agentBranch = agent.branch || '프라임에셋';
       const agentIntro = agent.profile_intro || '';
 
+
       // Parse form data from proposal_html
       let fd = {};
       try { fd = JSON.parse(consultation.proposal_html || '{}'); } catch(e) { fd = {}; }
@@ -330,27 +341,33 @@
       if (fd.tags?.driving) tags.push({ label: '운전', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' });
       if (fd.tags?.pet) tags.push({ label: '반려견', color: '#d97706', bg: '#fffbeb', border: '#fde68a' });
       if (fd.tags?.homeowner) tags.push({ label: '자가 보유', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' });
+      if (fd.monthlyIncome) tags.push({ label: '월 소득 ' + Number(fd.monthlyIncome).toLocaleString() + '만원', color: '#0369a1', bg: '#f0f9ff', border: '#bae6fd' });
 
       // Health checks
       const healthItems = [];
       function parseHD(d) {
-        if (!d) return { date: '', memo: '' };
-        if (typeof d === 'string') return { date: '', memo: d };
-        return { date: d.date || '', memo: d.memo || '' };
+        if (!d) return [{ date: '', memo: '' }];
+        if (typeof d === 'string') return [{ date: '', memo: d }];
+        if (d.entries && Array.isArray(d.entries)) return d.entries;
+        return [{ date: d.date || '', memo: d.memo || '' }];
       }
-      if (fd.healthChecks?.checkup) healthItems.push({ label: '건강검진 내역', ...parseHD(fd.healthDetails?.checkup) });
-      if (fd.healthChecks?.recent3m) healthItems.push({ label: '최근 3개월 이내', ...parseHD(fd.healthDetails?.recent3m) });
-      if (fd.healthChecks?.recheck1y) healthItems.push({ label: '최근 1년 이내 추가검사', ...parseHD(fd.healthDetails?.recheck1y) });
-      if (fd.healthChecks?.general5y) healthItems.push({ label: '최근 5년 이내 (일반)', ...parseHD(fd.healthDetails?.general5y) });
-      if (fd.healthChecks?.disease11) healthItems.push({ label: '최근 5년 이내 (11대 질병)', ...parseHD(fd.healthDetails?.disease11) });
+      function pushHealthItem(label, detail) {
+        healthItems.push({ label: label, entries: parseHD(detail) });
+      }
+      if (fd.healthChecks?.checkup) pushHealthItem('건강검진', fd.healthDetails?.checkup);
+      if (fd.healthChecks?.recent3m) pushHealthItem('최근 3개월 이내', fd.healthDetails?.recent3m);
+      if (fd.healthChecks?.recheck1y) pushHealthItem('최근 1년 이내 추가검사', fd.healthDetails?.recheck1y);
+      if (fd.healthChecks?.general5y) pushHealthItem('최근 5년 이내 (일반)', fd.healthDetails?.general5y);
+      if (fd.healthChecks?.disease11) pushHealthItem('최근 5년 이내 (11대 질병)', fd.healthDetails?.disease11);
       // 하위호환
-      if (fd.healthChecks?.hospital1y) healthItems.push({ label: '1년 이내 병원 방문', ...parseHD(fd.healthDetails?.hospital1y) });
-      if (fd.healthChecks?.surgery5y) healthItems.push({ label: '5년 이내 입원/수술/중대질환', ...parseHD(fd.healthDetails?.surgery5y) });
-      if (fd.healthChecks?.history6y) healthItems.push({ label: '6년 이내 기타 병력', ...parseHD(fd.healthDetails?.history6y) });
+      if (fd.healthChecks?.hospital1y) pushHealthItem('1년 이내 병원 방문', fd.healthDetails?.hospital1y);
+      if (fd.healthChecks?.surgery5y) pushHealthItem('5년 이내 입원/수술/중대질환', fd.healthDetails?.surgery5y);
+      if (fd.healthChecks?.history6y) pushHealthItem('6년 이내 기타 병력', fd.healthDetails?.history6y);
       // 커스텀 병력 항목
       if (fd.customHealthItems) {
         fd.customHealthItems.filter(h => h.checked && h.title).forEach(h => {
-          healthItems.push({ label: h.title, date: h.date || '', memo: h.memo || '' });
+          var entries = h.entries && Array.isArray(h.entries) ? h.entries : [{ date: h.date || '', memo: h.memo || '' }];
+          healthItems.push({ label: h.title, entries: entries });
         });
       }
 
@@ -440,7 +457,7 @@
       const _sections = {};
 
       // -- referenceLinks --
-      if (fd.showLinks && referenceLinks.length > 0) {
+      if (referenceLinks.length > 0) {
         var _rl = '<div style="display:flex;flex-direction:column;gap:8px;">';
         referenceLinks.forEach(l => { _rl += renderLinkCard(l); });
         _rl += '</div>';
@@ -457,7 +474,7 @@
               건강 체크리스트
             </div>
             <div style="background:#f8fafc;padding:14px;border-radius:12px;border:1px solid #f1f5f9;">
-              ${healthItems.map((h, i) => '<div style="padding:6px 0;' + (i < healthItems.length - 1 ? 'border-bottom:1px solid #e2e8f0;' : '') + '"><div style="font-size:15px;font-weight:600;color:#dc2626;">' + escapeHtml(h.label) + '</div>' + (h.date || h.memo ? '<div style="display:flex;align-items:baseline;margin-top:2px;gap:0;">' + (h.date ? '<div style="font-size:14px;color:#475569;white-space:nowrap;width:50%;flex-shrink:0;font-weight:700;">' + escapeHtml(h.date) + '</div>' : '<div style="width:50%;flex-shrink:0;"></div>') + (h.memo ? '<div style="font-size:14px;color:#64748b;white-space:pre-wrap;line-height:1.5;flex:1;">' + escapeHtml(h.memo) + '</div>' : '') + '</div>' : '') + '</div>').join('')}
+              ${healthItems.map((h, i) => '<div style="padding:6px 0;' + (i < healthItems.length - 1 ? 'border-bottom:1px solid #e2e8f0;' : '') + '"><div style="font-size:15px;font-weight:600;color:#dc2626;">' + escapeHtml(h.label) + '</div>' + (h.entries || []).map(function(e) { return (e.date || e.memo) ? '<div style="display:flex;align-items:baseline;margin-top:2px;gap:8px;">' + (e.date ? '<div style="font-size:14px;color:#475569;white-space:nowrap;flex-shrink:0;font-weight:700;">' + escapeHtml(e.date) + '</div>' : '') + (e.memo ? '<div style="font-size:14px;color:#64748b;white-space:pre-wrap;line-height:1.5;">' + escapeHtml(e.memo) + '</div>' : '') + '</div>' : ''; }).join('') + '</div>').join('')}
               ${hasChronicDiseases ? '<div style="' + (healthItems.length > 0 ? 'padding-top:8px;margin-top:4px;border-top:1px solid #e2e8f0;' : '') + '"><div style="font-size:14px;color:#64748b;margin-bottom:6px;font-weight:600;">3대 만성질환</div><div style="display:flex;gap:6px;flex-wrap:wrap;">' + (fd.chronicDiseases.hypertension ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:14px;font-weight:600;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">고혈압</span>' : '') + (fd.chronicDiseases.hyperlipidemia ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:14px;font-weight:600;background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;">고지혈증</span>' : '') + (fd.chronicDiseases.diabetes ? '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:14px;font-weight:600;background:#fffbeb;color:#d97706;border:1px solid #fde68a;">당뇨</span>' : '') + '</div></div>' : ''}
             </div>
             ${fd.showHealthLinks && healthLinks.length > 0 ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;"><div style="display:flex;flex-direction:column;gap:8px;">' + healthLinks.map(function(l) { return renderLinkCard(l); }).join('') + '</div></div>' : ''}
@@ -516,16 +533,16 @@
         `;
         if (filledCats.length > 0) {
           _ia += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;"><div style="font-size:17px;font-weight:700;color:#2563eb;margin-bottom:8px;display:flex;align-items:center;gap:6px;"><span style="font-size:15px;">🛡️</span> 전체 주요보장 한눈에 보기</div>';
-          var noGridKeys = ['silson', 'dailyLiability'];
+          var noGridKeys = [];
           filledCats.forEach(function(cat) {
             var data = ca[cat.key]; var filledFields = cat.fields.filter(function(f) { return data[f.key] !== undefined && data[f.key] !== '' && data[f.key] !== null; }); var useGrid = noGridKeys.indexOf(cat.key) < 0;
-            _ia += '<div style="border:1px solid ' + cat.border + ';border-radius:10px;padding:10px 12px;margin-bottom:8px;background:' + cat.bg + ';">' + '<div style="font-size:14px;font-weight:700;color:' + cat.color + ';margin-bottom:6px;display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">' + cat.icon + '</span> ' + cat.title + '</div>' + '<div style="' + (useGrid ? 'display:flex;flex-direction:column;gap:3px;' : 'display:grid;grid-template-columns:1fr 1fr;gap:4px 6px;') + '">' + filledFields.map(function(f, fi) { var v = data[f.key]; var unit = f.unit || ''; var isAmount = unit && (unit === '만원' || unit === '억원'); var numVal = Number(v); var shortUnit = unit === '만원' ? '만' : unit; var display = isAmount ? (isNaN(numVal) ? '0' : formatMoney(numVal)) + shortUnit : escapeHtml(v); var cl = settings?.coverage_labels; var lbl = (cl && cl[cat.key] && cl[cat.key][f.key]) || f.label; if (useGrid) { return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#475569;"><span style="color:#94a3b8;">' + escapeHtml(lbl) + '</span><strong>' + display + '</strong></div>'; } var isRight = fi % 2 === 1; var totalLen = lbl.length + display.length; var fs = totalLen > 14 ? '11px' : '12px'; return '<div style="font-size:' + fs + ';color:#475569;white-space:nowrap;min-width:0;' + (isRight ? 'text-align:right;' : '') + '"><span style="color:#94a3b8;">' + escapeHtml(lbl) + ':</span> <strong>' + display + '</strong></div>'; }).join('') + '</div></div>';
+            _ia += '<div style="border:1px solid ' + cat.border + ';border-radius:10px;padding:10px 12px;margin-bottom:8px;background:' + cat.bg + ';">' + '<div style="font-size:15px;font-weight:700;color:' + cat.color + ';margin-bottom:6px;display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">' + cat.icon + '</span> ' + cat.title + '</div>' + '<div style="' + (useGrid ? 'display:flex;flex-direction:column;gap:4px;' : 'display:grid;grid-template-columns:1fr 1fr;gap:4px 6px;') + '">' + filledFields.map(function(f, fi) { var v = data[f.key]; var unit = f.unit || ''; var isAmount = unit && (unit === '만원' || unit === '억원'); var numVal = Number(v); var shortUnit = unit === '만원' ? '만' : unit; var display = isAmount ? (isNaN(numVal) ? '0' : formatMoney(numVal)) + shortUnit : escapeHtml(v); var cl = settings?.coverage_labels; var lbl = (cl && cl[cat.key] && cl[cat.key][f.key]) || f.label; if (useGrid) { return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:15px;color:#475569;"><span style="color:#64748b;">' + escapeHtml(lbl) + '</span><strong>' + display + '</strong></div>'; } return '<div style="font-size:15px;color:#475569;white-space:nowrap;min-width:0;"><span style="color:#64748b;">' + escapeHtml(lbl) + ':</span> <strong>' + display + '</strong></div>'; }).join('') + '</div></div>';
           });
           _ia += '</div><div style="border-top:1px solid #e2e8f0;margin-top:12px;margin-bottom:14px;"></div>';
         }
         if (existingPolicies.length > 0) { _ia += '<div style="font-size:15px;font-weight:700;color:#1e293b;margin-bottom:8px;margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;align-items:center;gap:6px;"><span style="font-size:15px;">&#128203;</span> 상품별 보험 평가</div>'; }
         existingPolicies.forEach(p => {
-          _ia += `<div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:8px;background:white;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:15px;font-weight:700;color:#1e293b;">${escapeHtml(p.company || '')}</div><div style="font-size:14px;color:#94a3b8;margin-top:1px;">${escapeHtml(p.productName || '')}</div></div>${p.premium ? '<div style="font-size:17px;font-weight:800;color:#1e293b;">' + formatMoney(p.premium) + '원</div>' : ''}</div>${p.paymentPeriodEval || p.coveragePeriodEval || p.coverageEval ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #f1f5f9;">' + (p.paymentPeriodEval ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:#f1f5f9;color:#475569;">납입 ' + escapeHtml(p.paymentPeriodEval) + '</span>' : '') + (p.coveragePeriodEval ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:' + (p.coveragePeriodEval === '짧은' ? '#fef2f2' : '#ecfdf5') + ';color:' + (p.coveragePeriodEval === '짧은' ? '#dc2626' : '#16a34a') + ';">보장기간 ' + escapeHtml(p.coveragePeriodEval) + '</span>' : '') + (p.coverageEval ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:' + (p.coverageEval === '부족' ? '#fef2f2' : p.coverageEval === '충분' ? '#ecfdf5' : '#fffbeb') + ';color:' + (p.coverageEval === '부족' ? '#dc2626' : p.coverageEval === '충분' ? '#16a34a' : '#d97706') + ';">보장 ' + escapeHtml(p.coverageEval) + '</span>' : '') + '</div>' : ''}${p.coverageChecks && p.coverageChecks.length > 0 ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">' + p.coverageChecks.map(c => '<span style="font-size:12px;padding:2px 6px;border-radius:8px;background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe;">' + escapeHtml(c) + '</span>').join('') + '</div>' : ''}${p.opinion ? '<div style="font-size:14px;color:#16a34a;white-space:pre-wrap;margin-top:8px;padding:8px 10px;background:#f0fdf4;border-radius:8px;">' + escapeHtml(p.opinion) + '</div>' : ''}${p.images && p.images.length > 0 ? '<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">' + renderImageSlider(p.images, 'slider-' + Math.random().toString(36).substr(2,6)) + '</div>' : ''}</div>`;
+          _ia += `<div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:8px;background:white;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:15px;font-weight:700;color:#1e293b;">${escapeHtml(p.company || '')}</div><div style="font-size:14px;color:#94a3b8;margin-top:1px;">${escapeHtml(p.productName || '')}</div></div>${p.premium ? '<div style="font-size:17px;font-weight:800;color:#1e293b;">' + formatMoney(p.premium) + '원</div>' : ''}</div>${p.paymentPeriodEval || p.coveragePeriodEval || p.coverageEval ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #f1f5f9;">' + (p.paymentPeriodEval ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:#f1f5f9;color:#475569;">납입 ' + escapeHtml(p.paymentPeriodEval) + '</span>' : '') + (p.coveragePeriodEval ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:' + (p.coveragePeriodEval === '짦음' ? '#fef2f2' : '#ecfdf5') + ';color:' + (p.coveragePeriodEval === '짦음' ? '#dc2626' : '#16a34a') + ';">보장기간 ' + escapeHtml(p.coveragePeriodEval) + '</span>' : '') + (p.coverageEval ? '<span style="font-size:13px;padding:3px 8px;border-radius:8px;font-weight:600;background:' + (p.coverageEval === '부족' ? '#fef2f2' : p.coverageEval === '충분' ? '#ecfdf5' : '#fffbeb') + ';color:' + (p.coverageEval === '부족' ? '#dc2626' : p.coverageEval === '충분' ? '#16a34a' : '#d97706') + ';">보장 ' + escapeHtml(p.coverageEval) + '</span>' : '') + '</div>' : ''}${p.coverageChecks && p.coverageChecks.length > 0 ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">' + p.coverageChecks.map(c => '<span style="font-size:12px;padding:2px 6px;border-radius:8px;background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe;">' + escapeHtml(c) + '</span>').join('') + '</div>' : ''}${p.opinion ? '<div style="font-size:14px;color:#16a34a;white-space:pre-wrap;margin-top:8px;padding:8px 10px;background:#f0fdf4;border-radius:8px;">' + escapeHtml(p.opinion) + '</div>' : ''}${p.images && p.images.length > 0 ? '<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">' + renderImageSlider(p.images, 'slider-' + Math.random().toString(36).substr(2,6)) + '</div>' : ''}</div>`;
         });
         if (fd.showRemodelLinks && remodelLinks.length > 0) {
           _ia += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;"><div style="display:flex;flex-direction:column;gap:8px;">' + remodelLinks.map(function(l) { return renderLinkCard(l); }).join('') + '</div></div>';

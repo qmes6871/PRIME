@@ -216,7 +216,7 @@ const DashboardPage = {
             <th>생년월일</th>
             <th>지역</th>
             <th>상태</th>
-            <th>상담예정</th>
+            <th>상담내용</th>
             <th>등록일</th>
             <th>최근수정일</th>
             <th>관리</th>
@@ -232,7 +232,7 @@ const DashboardPage = {
               <td>
                 <span class="status-badge ${Utils.getStatusClass(c.status)}" style="cursor:pointer;" onclick="DashboardPage.cycleStatus(${c.id}, '${c.status}')">${c.status}</span>
               </td>
-              <td style="font-size:12px;color:var(--gray-600);">${c.consult_date ? Utils.escapeHtml(c.consult_date) : ''}</td>
+              <td style="font-size:12px;color:var(--gray-600);max-width:150px;">${c.consult_date ? Utils.escapeHtml(c.consult_date) + ' ' : ''}<span style="opacity:0.35;font-size:13px;cursor:pointer;" onclick="DashboardPage.inlineEditMemo(this.parentElement, ${c.id}, 'consult_date')" title="클릭하여 수정">\u270E</span></td>
               <td>${Utils.formatDate(c.createdAt)}</td>
               <td>${Utils.formatDate(c.updatedAt)}</td>
               <td>
@@ -393,29 +393,25 @@ const DashboardPage = {
           </div>
           <input type="text" class="form-input" name="address_detail" placeholder="상세주소 입력" style="margin-top:6px;">
         </div>
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label">상령일 <span style="font-size:11px;color:var(--gray-400);">(자동계산)</span></label>
-            <input type="text" class="form-input" name="policy_anniversary" placeholder="생년월일 입력시 자동계산" readonly style="background:var(--gray-50);">
-          </div>
-          <div class="form-group">
-            <label class="form-label">상담 예정일시</label>
-            <input type="text" class="form-input" name="consult_date" placeholder="예: 3/25 오후 2시">
-          </div>
+        <div class="form-group">
+          <label class="form-label">상령일 <span style="font-size:11px;color:var(--gray-400);">(자동계산)</span></label>
+          <input type="text" class="form-input" name="policy_anniversary" placeholder="생년월일 입력시 자동계산" readonly style="background:var(--gray-50);">
         </div>
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label">상태</label>
-            <select class="form-input" name="status">
-              <option value="상담전">상담전</option>
-              <option value="상담중">상담중</option>
-              <option value="상담완료">상담완료</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">메모</label>
-            <textarea class="form-input" name="memo" rows="1"></textarea>
-          </div>
+        <div class="form-group">
+          <label class="form-label">상태</label>
+          <select class="form-input" name="status">
+            <option value="상담전">상담전</option>
+            <option value="상담중">상담중</option>
+            <option value="상담완료">상담완료</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">상담 내용</label>
+          <textarea class="form-input" name="consult_date" rows="3" style="resize:vertical;" placeholder="상담 내용"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">메모</label>
+          <textarea class="form-input" name="memo" rows="5" style="resize:vertical;"></textarea>
         </div>
       </form>
     `, `
@@ -492,29 +488,25 @@ const DashboardPage = {
             </div>
             <input type="text" class="form-input" name="address_detail" value="${Utils.escapeHtml((customer.address || '').split('|')[1] || '')}" placeholder="상세주소 입력" style="margin-top:6px;">
           </div>
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label">상령일 <span style="font-size:11px;color:var(--gray-400);">(자동계산)</span></label>
-              <input type="text" class="form-input" name="policy_anniversary" value="${customer.policy_anniversary || ''}" readonly style="background:var(--gray-50);">
-            </div>
-            <div class="form-group">
-              <label class="form-label">상담 예정일시</label>
-              <input type="text" class="form-input" name="consult_date" value="${Utils.escapeHtml(customer.consult_date || '')}" placeholder="예: 3/25 오후 2시">
-            </div>
+          <div class="form-group">
+            <label class="form-label">상령일 <span style="font-size:11px;color:var(--gray-400);">(자동계산)</span></label>
+            <input type="text" class="form-input" name="policy_anniversary" value="${customer.policy_anniversary || ''}" readonly style="background:var(--gray-50);">
           </div>
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label">상태</label>
-              <select class="form-input" name="status">
-                <option value="상담전" ${customer.status==='상담전'?'selected':''}>상담전</option>
-                <option value="상담중" ${customer.status==='상담중'?'selected':''}>상담중</option>
-                <option value="상담완료" ${customer.status==='상담완료'?'selected':''}>상담완료</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">메모</label>
-              <textarea class="form-input" name="memo" rows="1">${Utils.escapeHtml(customer.memo || '')}</textarea>
-            </div>
+          <div class="form-group">
+            <label class="form-label">상태</label>
+            <select class="form-input" name="status">
+              <option value="상담전" ${customer.status==='상담전'?'selected':''}>상담전</option>
+              <option value="상담중" ${customer.status==='상담중'?'selected':''}>상담중</option>
+              <option value="상담완료" ${customer.status==='상담완료'?'selected':''}>상담완료</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">상담 내용</label>
+            <textarea class="form-input" name="consult_date" rows="3" style="resize:vertical;">${Utils.escapeHtml(customer.consult_date || '')}</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">메모</label>
+            <textarea class="form-input" name="memo" rows="5" style="resize:vertical;">${Utils.escapeHtml(customer.memo || '')}</textarea>
           </div>
         </form>
       `, `
@@ -610,7 +602,7 @@ const DashboardPage = {
   },
 
   deleteCustomer(id, name) {
-    const pw = prompt(`"${name}" 고객을 삭제하려면 비밀번호를 입력하세요.`);
+    const pw = prompt(`"${name}" 고객을 삭제하려면 비밀번호(0119)를 입력하세요.`);
     if (pw === null) return;
     if (pw !== '0119') {
       showToast('비밀번호가 일치하지 않습니다.', 'error');
@@ -627,6 +619,43 @@ const DashboardPage = {
     });
   },
 
+  inlineEditMemo(td, customerId, field) {
+    if (td.querySelector('textarea')) return;
+    const currentValue = td.textContent.replace(/[\u270E]/g, '').trim();
+    const textarea = document.createElement('textarea');
+    textarea.className = 'form-input';
+    textarea.value = currentValue;
+    textarea.rows = 2;
+    textarea.style.cssText = 'font-size:12px;width:100%;resize:vertical;';
+    td.innerHTML = '';
+    td.appendChild(textarea);
+    textarea.focus();
+
+    const save = async () => {
+      const newValue = textarea.value.trim();
+      const pencil = ' <span style="opacity:0.35;font-size:13px;">\u270E</span>';
+      try {
+        await API.updateCustomer(customerId, { [field]: newValue });
+        td.innerHTML = (newValue ? Utils.escapeHtml(newValue) + ' ' : '') + pencil;
+      } catch (err) {
+        showToast(err.message, 'error');
+        td.innerHTML = (currentValue ? Utils.escapeHtml(currentValue) + ' ' : '') + pencil;
+      }
+    };
+
+    textarea.addEventListener('blur', save);
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        textarea.blur();
+      }
+      if (e.key === 'Escape') {
+        const pencil = ' <span style="opacity:0.35;font-size:13px;">\u270E</span>';
+        td.innerHTML = (currentValue ? Utils.escapeHtml(currentValue) + ' ' : '') + pencil;
+      }
+    });
+  },
+
   autoCalcAnniversary(formPrefix) {
     const form = document.getElementById(formPrefix === 'add' ? 'add-customer-form' : 'edit-customer-form');
     if (!form) return;
@@ -639,7 +668,12 @@ const DashboardPage = {
 
   async showCustomerDetail(id) {
     try {
-      const { customer } = await API.getCustomer(id);
+      const [{ customer }, { consents }] = await Promise.all([
+        API.getCustomer(id),
+        API.getDesignConsents(id)
+      ]);
+      const hasCompleted = consents && consents.some(c => c.status === '완료' && !c.expired);
+      const hasSent = consents && consents.length > 0;
       Modal.show(`${customer.name} 고객 정보`, `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
           <div style="padding:10px;background:var(--gray-50);border-radius:8px;">
@@ -689,11 +723,214 @@ const DashboardPage = {
           </table>
         ` : ''}
       `, `
-        <button class="btn btn-secondary" onclick="Modal.close()">닫기</button>
-        <button class="btn btn-primary" onclick="Modal.close(); App.navigate('consultation', {customerId: ${id}})">제안서 작성</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;justify-content:flex-end;">
+          <button class="btn btn-secondary" onclick="Modal.close()">닫기</button>
+          ${hasCompleted ? `<button class="btn btn-primary" onclick="DashboardPage.showDesignConsentResponse(${id})">설계 동의 답변</button>` : ''}
+          <button class="btn btn-primary" style="background:#10b981;" onclick="DashboardPage.confirmSendDesignConsent(${id}, '${Utils.escapeHtml(customer.name)}', '${Utils.escapeHtml(customer.phone || '')}')">${hasSent ? '설계 동의 알림 재전송' : '설계 동의 알림 전송'}</button>
+          <button class="btn btn-primary" onclick="Modal.close(); App.navigate('consultation', {customerId: ${id}})">제안서 작성</button>
+        </div>
       `);
     } catch (err) {
       showToast(err.message, 'error');
+    }
+  },
+
+  confirmSendDesignConsent(customerId, customerName, customerPhone) {
+    Modal.close();
+    Modal.show('설계 동의 알림 전송', `
+      <p style="font-size:14px;color:var(--gray-600);text-align:center;padding:12px 0 16px;">
+        <strong>${customerName}</strong> 고객님에게<br>설계 동의 알림을 전송합니다.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn btn-primary" style="width:100%;padding:12px;" onclick="DashboardPage.sendDesignConsent(${customerId}, 'link')">
+          링크 복사하기
+        </button>
+        <div style="display:flex;align-items:center;gap:4px;color:var(--gray-400);font-size:12px;">
+          <div style="flex:1;height:1px;background:var(--gray-200);"></div>
+          <span>또는</span>
+          <div style="flex:1;height:1px;background:var(--gray-200);"></div>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--gray-500);margin-bottom:4px;display:block;">수신 번호</label>
+          <div style="display:flex;gap:8px;">
+            <input type="tel" id="consent-sms-phone" value="${DashboardPage.formatPhoneInput(customerPhone)}" placeholder="010-0000-0000" oninput="this.value=DashboardPage.formatPhoneInput(this.value)" maxlength="13" style="flex:1;padding:10px 12px;border:1px solid var(--gray-300);border-radius:8px;font-size:14px;outline:none;">
+            <button class="btn btn-primary" style="white-space:nowrap;padding:10px 16px;" onclick="DashboardPage.sendDesignConsent(${customerId}, 'sms')">
+              링크 전송
+            </button>
+          </div>
+        </div>
+      </div>
+    `, `
+      <button class="btn btn-secondary" onclick="Modal.close(); DashboardPage.showCustomerDetail(${customerId})">취소</button>
+    `);
+  },
+
+  async sendDesignConsent(customerId, method) {
+    try {
+      if (method === 'sms') {
+        const phone = document.getElementById('consent-sms-phone')?.value?.trim();
+        if (!phone) {
+          showToast('수신 번호를 입력해 주세요.', 'error');
+          return;
+        }
+        const { link, sms_sent, sms_error } = await API.createDesignConsent(customerId, { send_sms: true, phone });
+        Modal.close();
+        if (sms_sent) {
+          Modal.show('문자 발송 완료', `
+            <div style="text-align:center;padding:20px 0;">
+              <div style="font-size:40px;margin-bottom:12px;">&#10003;</div>
+              <p style="font-size:14px;color:var(--gray-700);">설계 동의 링크가<br><strong>${phone}</strong>으로 발송되었습니다.</p>
+            </div>
+          `, `<button class="btn btn-primary" onclick="Modal.close()">확인</button>`);
+        } else {
+          Modal.show('발송 실패', `
+            <div style="text-align:center;padding:20px 0;">
+              <p style="font-size:14px;color:#dc2626;margin-bottom:12px;">${Utils.escapeHtml(sms_error || '문자 발송에 실패했습니다.')}</p>
+              <p style="font-size:13px;color:var(--gray-600);margin-bottom:12px;">아래 링크를 직접 전달해 주세요.</p>
+              <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;word-break:break-all;">
+                <input type="text" id="consent-link-input" value="${link}" readonly style="width:100%;border:none;background:transparent;font-size:13px;color:var(--gray-700);outline:none;">
+              </div>
+            </div>
+          `, `
+            <button class="btn btn-secondary" onclick="Modal.close()">닫기</button>
+            <button class="btn btn-primary" onclick="DashboardPage.copyConsentLink()">링크 복사</button>
+          `);
+        }
+      } else {
+        const { link } = await API.createDesignConsent(customerId);
+        Modal.close();
+        Modal.show('설계 동의 링크 생성 완료', `
+          <p style="font-size:13px;color:var(--gray-600);margin-bottom:12px;">아래 링크를 고객님에게 전달해 주세요.</p>
+          <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;word-break:break-all;">
+            <input type="text" id="consent-link-input" value="${link}" readonly style="width:100%;border:none;background:transparent;font-size:13px;color:var(--gray-700);outline:none;">
+          </div>
+        `, `
+          <button class="btn btn-secondary" onclick="Modal.close()">닫기</button>
+          <button class="btn btn-primary" onclick="DashboardPage.copyConsentLink()">링크 복사</button>
+        `);
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
+  formatPhoneInput(value) {
+    const nums = value.replace(/[^0-9]/g, '').substring(0, 11);
+    if (nums.length <= 3) return nums;
+    if (nums.length <= 7) return nums.substring(0, 3) + '-' + nums.substring(3);
+    return nums.substring(0, 3) + '-' + nums.substring(3, 7) + '-' + nums.substring(7);
+  },
+
+  copyConsentLink() {
+    const input = document.getElementById('consent-link-input');
+    if (input) {
+      navigator.clipboard.writeText(input.value).then(() => {
+        showToast('링크가 복사되었습니다.', 'success');
+      }).catch(() => {
+        input.select();
+        document.execCommand('copy');
+        showToast('링크가 복사되었습니다.', 'success');
+      });
+    }
+  },
+
+  async showDesignConsentResponse(customerId) {
+    try {
+      const { consents } = await API.getDesignConsents(customerId);
+      Modal.close();
+
+      if (!consents || consents.length === 0) {
+        Modal.show('설계 동의 답변', `
+          <div style="text-align:center;padding:30px;color:var(--gray-400);">
+            아직 설계 동의 요청 내역이 없습니다.
+          </div>
+        `, `<button class="btn btn-secondary" onclick="Modal.close(); DashboardPage.showCustomerDetail(${customerId})">돌아가기</button>`);
+        return;
+      }
+
+      const content = consents.map(c => {
+        const isExpired = c.expired;
+        const statusLabel = isExpired ? '만료' : c.status;
+        const statusBg = isExpired ? '#fee2e2' : (c.status === '완료' ? '#dcfce7' : '#fef3c7');
+        const statusColor = isExpired ? '#dc2626' : (c.status === '완료' ? '#16a34a' : '#d97706');
+        const cardBg = isExpired ? '#fef2f2' : (c.status === '완료' ? '#f0fdf4' : 'var(--gray-50)');
+
+        return `
+        <div style="border:1px solid var(--gray-200);border-radius:10px;padding:14px;margin-bottom:10px;background:${cardBg};">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:12px;color:var(--gray-400);">${Utils.formatDate(c.created_at)}</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:4px;background:${statusBg};color:${statusColor};">${statusLabel}</span>
+              <button onclick="DashboardPage.deleteDesignConsent(${c.id}, ${customerId})" style="font-size:10px;padding:2px 6px;border:1px solid #fca5a5;border-radius:4px;background:#fff;cursor:pointer;color:#dc2626;">삭제</button>
+            </div>
+          </div>
+          ${isExpired ? `
+            <div style="font-size:12px;color:#dc2626;">개인정보 보유기간(1개월)이 만료되어 데이터가 삭제되었습니다.</div>
+            <div style="margin-top:4px;font-size:11px;color:var(--gray-400);">만료일: ${Utils.formatDate(c.expires_at)}</div>
+          ` : c.status === '완료' ? `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div style="padding:8px;background:white;border-radius:6px;border:1px solid var(--gray-100);grid-column:span 2;">
+                <div style="font-size:10px;color:var(--gray-400);margin-bottom:2px;">주민등록번호</div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span id="ssn-display-${c.id}" style="font-size:12px;color:var(--gray-700);">${Utils.escapeHtml(c.resident_number_front || '')}-*******</span>
+                  <button onclick="DashboardPage.toggleSSNMask(${c.id}, '${Utils.escapeHtml(c.resident_number_front)}', '${Utils.escapeHtml(c.resident_number_back)}')" id="ssn-btn-${c.id}" style="font-size:10px;padding:2px 6px;border:1px solid var(--gray-300);border-radius:4px;background:white;cursor:pointer;color:var(--gray-500);">마스킹 해제</button>
+                </div>
+              </div>
+              <div style="padding:8px;background:white;border-radius:6px;border:1px solid var(--gray-100);grid-column:span 2;">
+                <div style="font-size:10px;color:var(--gray-400);margin-bottom:2px;">주소</div>
+                <div style="font-size:12px;color:var(--gray-700);">${Utils.escapeHtml(c.address || '-')}</div>
+              </div>
+              <div style="padding:8px;background:white;border-radius:6px;border:1px solid var(--gray-100);">
+                <div style="font-size:10px;color:var(--gray-400);margin-bottom:2px;">직업</div>
+                <div style="font-size:12px;color:var(--gray-700);">${Utils.escapeHtml(c.occupation || '-')}</div>
+              </div>
+              <div style="padding:8px;background:white;border-radius:6px;border:1px solid var(--gray-100);">
+                <div style="font-size:10px;color:var(--gray-400);margin-bottom:2px;">병력</div>
+                <div style="font-size:12px;color:var(--gray-700);">${Utils.escapeHtml(c.military_service || '-')}</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;">
+              <span style="font-size:11px;color:var(--gray-400);">제출일: ${c.submitted_at ? Utils.formatDate(c.submitted_at) : '-'}</span>
+              <span style="font-size:11px;color:#f59e0b;">만료일: ${c.expires_at ? Utils.formatDate(c.expires_at) : '-'}</span>
+            </div>
+          ` : `
+            <div style="font-size:12px;color:var(--gray-400);">고객 응답 대기중...</div>
+          `}
+        </div>`;
+      }).join('');
+
+      Modal.show('설계 동의 답변', content, `
+        <button class="btn btn-secondary" onclick="Modal.close(); DashboardPage.showCustomerDetail(${customerId})">돌아가기</button>
+      `);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
+  async deleteDesignConsent(consentId, customerId) {
+    Modal.close();
+    Modal.confirm('이 설계 동의 답변을 삭제하시겠습니까?', async () => {
+      try {
+        await API.deleteDesignConsent(consentId);
+        showToast('삭제되었습니다.', 'success');
+        DashboardPage.showDesignConsentResponse(customerId);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  },
+
+  toggleSSNMask(id, front, back) {
+    const display = document.getElementById(`ssn-display-${id}`);
+    const btn = document.getElementById(`ssn-btn-${id}`);
+    if (!display || !btn) return;
+    const isMasked = display.textContent.includes('*******');
+    if (isMasked) {
+      display.textContent = `${front}-${back}`;
+      btn.textContent = '마스킹';
+    } else {
+      display.textContent = `${front}-*******`;
+      btn.textContent = '마스킹 해제';
     }
   }
 };

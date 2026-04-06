@@ -503,7 +503,7 @@ const MessagesPage = {
           ${this._tabCategories.map(tab => {
             const isActive = this._currentTab === tab.key;
             return `
-              <button onclick="MessagesPage.switchTab('${tab.key}')"
+              <button data-tab-key="${tab.key}" onclick="MessagesPage.switchTab('${tab.key}')"
                 style="flex:1;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:${isActive ? '700' : '500'};
                   background:${isActive ? 'white' : 'transparent'};
                   color:${isActive ? 'var(--gray-800)' : 'var(--gray-500)'};
@@ -558,8 +558,16 @@ const MessagesPage = {
     this._claimDocs = [];
     this._generalDocs = [];
     this._showGeneralDocs = false;
-    // 전체 재렌더링
-    this._reRenderAll();
+    // 탭 버튼 활성 상태 업데이트
+    document.querySelectorAll('[data-tab-key]').forEach(btn => {
+      const isActive = btn.dataset.tabKey === tabKey;
+      btn.style.fontWeight = isActive ? '700' : '500';
+      btn.style.background = isActive ? 'white' : 'transparent';
+      btn.style.color = isActive ? 'var(--gray-800)' : 'var(--gray-500)';
+      btn.style.boxShadow = isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none';
+    });
+    // 항목 목록만 갱신
+    this._refreshTabItems();
   },
 
   selectTabItem(value) {

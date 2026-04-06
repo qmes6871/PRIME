@@ -54,7 +54,7 @@ router.put('/profile', async (req, res, next) => {
     const agent = await Agent.findByPk(req.agent.id);
     const { name, phone, email, position, branch, profile_image, profile_intro } = req.body;
     await agent.update({ name, phone, email, position, branch, profile_image, profile_intro });
-    res.json({ agent: { id: agent.id, name, phone, email, position, branch, profile_image, profile_intro } });
+    res.json({ agent: { id: agent.id, name, phone, email, position, branch, profile_image, profile_intro, share_image: agent.share_image } });
   } catch (err) {
     next(err);
   }
@@ -112,6 +112,61 @@ router.post('/profile-image', async (req, res, next) => {
 
     await agent.update({ profile_image: imageUrl });
     res.json({ profile_image: imageUrl });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/settings/share-image - 공유 링크 대표 이미지 업로드
+router.post('/share-image', async (req, res, next) => {
+  try {
+    const { image } = req.body;
+    if (!image) {
+      return res.status(400).json({ error: '이미지가 필요합니다.' });
+    }
+
+    const matches = image.match(/^data:image\/(png|jpeg|jpg|gif|webp);base64,(.+)$/);
+    if (!matches) {
+      return res.status(400).json({ error: '올바른 이미지 형식이 아닙니다.' });
+    }
+
+    const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+    const buffer = Buffer.from(matches[2], 'base64');
+    const filename = `share_${req.agent.id}_${Date.now()}.${ext}`;
+    const filepath = path.join(uploadDir, filename);
+
+    fs.writeFileSync(filepath, buffer);
+
+    const imageUrl = `/uploads/profiles/${filename}`;
+    const agent = await Agent.findByPk(req.agent.id);
+
+    // 이전 공유 이미지 삭제
+    if (agent.share_image) {
+      const oldPath = path.join(__dirname, '..', '..', 'public', agent.share_image);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+
+    await agent.update({ share_image: imageUrl });
+    res.json({ share_image: imageUrl });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/v1/settings/share-image - 공유 링크 대표 이미지 삭제
+router.delete('/share-image', async (req, res, next) => {
+  try {
+    const agent = await Agent.findByPk(req.agent.id);
+    if (agent.share_image) {
+      const oldPath = path.join(__dirname, '..', '..', 'public', agent.share_image);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+      await agent.update({ share_image: null });
+    }
+    res.json({ message: '삭제되었습니다.' });
   } catch (err) {
     next(err);
   }

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>설계 동의서 - 프라임에셋</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <style>
+    body { background: #f0f2f5; }
+    .consent-container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 16px;
+      min-height: 100vh;
+    }
+    .consent-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+    .info-row {
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .info-label {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+    .info-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+    .form-label { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; display: block; }
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: #3b82f6; }
+    .form-group { margin-bottom: 14px; }
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-submit:hover { background: #2563eb; }
+    .btn-submit:disabled { background: #9ca3af; cursor: not-allowed; }
+    .address-wrap { display: flex; gap: 8px; margin-bottom: 8px; }
+    .address-wrap .form-input { flex: 1; }
+    .btn-address {
+      padding: 10px 14px;
+      background: #6b7280;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-address:hover { background: #4b5563; }
+    .ssn-wrap { display: flex; align-items: center; gap: 8px; }
+    .ssn-wrap .form-input { flex: 1; text-align: center; letter-spacing: 2px; }
+    .ssn-divider { font-size: 20px; font-weight: 700; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="consent-container" id="consent-app">
+    <div style="display:flex;align-items:center;justify-content:center;height:60vh;">
+      <div class="loading-spinner"></div>
+    </div>
+  </div>
+
+  <script>
+    let consentToken = null;
+
+    async function loadConsent() {
+      const params = new URLSearchParams(window.location.search);
+      consentToken = params.get('token');
+
+      if (!consentToken) {
+        showError('유효하지 않은 링크입니다.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/v1/public/design-consent/' + consentToken);
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.error || '오류가 발생했습니다.');
+          return;
+        }
+
+        renderForm(data);
+      } catch (err) {
+        showError('오류가 발생했습니다.');
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('consent-app').innerHTML = `
+        <div class="consent-card">
+          <div style="text-align:center;padding:40px;color:#6b7280;">${escapeHtml(msg)}</div>
+        </div>`;
+    }
+
+    function renderForm(data) {
+      document.getElementById('consent-app').innerHTML = `
+        <div class="consent-card" style="text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#1e3a5f;margin-bottom:4px;">설계 동의서</div>
+          <div style="font-size:13px;color:#6b7280;">아래 정보를 입력해 주세요.</div>
+        </div>
+
+        <div class="consent-card">
+          <h3 style="font-size:15px;font-weight:600;color:#1e3a5f;margin-bottom:14px;">기본 정보</h3>
+          <div class="info-row">
+            <div class="info-label">이름</div>
+            <div class="info-value">${escapeHtml(data.customer_name)}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">연락처</div>
+            <div class="info-value">${formatPhone(data.customer_phone)}</div>
+          </div>
+        </div>
+
+        <form id="consent-form" onsubmit="submitConsent(event)">
+          <div class="consent-card">
+            <h3 style="font-size:15px;font-weight:600;color:#1e3a5f;margin-bottom:14px;">추가 정보 입력</h3>
+
+            <div class="form-group">
+              <label class="form-label">주민등록번호 *</label>
+              <div class="ssn-wrap">
+                <input type="text" class="form-input" name="resident_number_front" maxlength="6" placeholder="앞 6자리" inputmode="numeric" pattern="[0-9]{6}" required>
+                <span class="ssn-divider">-</span>
+                <input type="password" class="form-input" name="resident_number_back" maxlength="7" placeholder="뒤 7자리" inputmode="numeric" pattern="[0-9]{7}" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">주소 *</label>
+              <div class="address-wrap">
+                <input type="text" class="form-input" id="postcode" name="postcode" placeholder="우편번호" readonly>
+                <button type="button" class="btn-address" onclick="searchAddress()">주소 검색</button>
+              </div>
+              <input type="text" class="form-input" id="address-main" name="address_main" placeholder="기본 주소" readonly style="margin-bottom:8px;">
+              <input type="text" class="form-input" id="address-detail" name="address_detail" placeholder="상세 주소 입력">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">직업 *</label>
+              <input type="text" class="form-input" name="occupation" placeholder="직업을 입력해 주세요" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">병력 *</label>
+              <div id="medical-history-options" style="display:flex;flex-wrap:wrap;gap:8px;">
+                <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#f9fafb;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#374151;cursor:pointer;transition:all 0.2s;">
+                  <input type="checkbox" name="medical_history" value="없음" style="width:16px;height:16px;accent-color:#3b82f6;cursor:pointer;" onchange="handleNoneCheck(this)"> 없음
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#f9fafb;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#374151;cursor:pointer;transition:all 0.2s;">
+                  <input type="checkbox" name="medical_history" value="고혈압" style="width:16px;height:16px;accent-color:#3b82f6;cursor:pointer;" onchange="handleConditionCheck(this)"> 고혈압
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#f9fafb;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#374151;cursor:pointer;transition:all 0.2s;">
+                  <input type="checkbox" name="medical_history" value="고지혈증" style="width:16px;height:16px;accent-color:#3b82f6;cursor:pointer;" onchange="handleConditionCheck(this)"> 고지혈증
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#f9fafb;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#374151;cursor:pointer;transition:all 0.2s;">
+                  <input type="checkbox" name="medical_history" value="당뇨" style="width:16px;height:16px;accent-color:#3b82f6;cursor:pointer;" onchange="handleConditionCheck(this)"> 당뇨
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#f9fafb;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#374151;cursor:pointer;transition:all 0.2s;">
+                  <input type="checkbox" name="medical_history" value="중대질환" style="width:16px;height:16px;accent-color:#3b82f6;cursor:pointer;" onchange="handleConditionCheck(this)"> 중대질환 (암, 뇌, 심장질환)
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="consent-card">
+            <h3 style="font-size:15px;font-weight:600;color:#1e3a5f;margin-bottom:14px;">개인정보 수집 및 이용 동의 *</h3>
+            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px;max-height:200px;overflow-y:auto;font-size:12px;color:#4b5563;line-height:1.7;">
+              <p style="font-weight:700;margin-bottom:6px;">1. 수집하는 개인정보 항목</p>
+              <p style="margin-bottom:10px;">이름, 연락처, 주민등록번호, 주소, 직업, 병력사항</p>
+
+              <p style="font-weight:700;margin-bottom:6px;">2. 개인정보의 수집 및 이용 목적</p>
+              <p style="margin-bottom:10px;">보험 설계 및 컨설팅 서비스 제공, 보험 가입 심사 및 계약 체결, 고객 상담 및 사후 관리</p>
+
+              <p style="font-weight:700;margin-bottom:6px;">3. 개인정보의 보유 및 이용 기간</p>
+              <p style="margin-bottom:10px;">수집일로부터 <strong>1개월</strong> (이후 자동 파기됩니다)</p>
+
+              <p style="font-weight:700;margin-bottom:6px;">4. 동의를 거부할 권리 및 거부 시 불이익</p>
+              <p>귀하는 개인정보 수집 및 이용에 대한 동의를 거부할 권리가 있습니다. 다만, 동의를 거부하실 경우 보험 설계 서비스 제공이 제한될 수 있습니다.</p>
+            </div>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;color:#1f2937;">
+              <input type="checkbox" id="privacy-agree" style="width:18px;height:18px;accent-color:#3b82f6;cursor:pointer;">
+              위 개인정보 수집 및 이용에 동의합니다.
+            </label>
+          </div>
+
+          <button type="submit" class="btn-submit" id="submit-btn" disabled>동의 및 제출</button>
+        </form>
+      `;
+      bindPrivacyCheckbox();
+    }
+
+    function bindPrivacyCheckbox() {
+      const cb = document.getElementById('privacy-agree');
+      const btn = document.getElementById('submit-btn');
+      if (cb && btn) {
+        cb.addEventListener('change', () => { btn.disabled = !cb.checked; });
+      }
+
+    }
+
+    function searchAddress() {
+      new daum.Postcode({
+        oncomplete: function(data) {
+          document.getElementById('postcode').value = data.zonecode;
+          document.getElementById('address-main').value = data.roadAddress || data.jibunAddress;
+          document.getElementById('address-detail').focus();
+        }
+      }).open();
+    }
+
+    async function submitConsent(e) {
+      e.preventDefault();
+      const form = document.getElementById('consent-form');
+      const formData = new FormData(form);
+
+      if (!document.getElementById('privacy-agree').checked) {
+        alert('개인정보 수집 및 이용에 동의해 주세요.');
+        return;
+      }
+
+      const addressMain = formData.get('address_main');
+      const addressDetail = formData.get('address_detail');
+      if (!addressMain) {
+        alert('주소를 검색해 주세요.');
+        return;
+      }
+
+      const fullAddress = addressDetail ? `${addressMain} ${addressDetail}` : addressMain;
+
+      const checkedItems = document.querySelectorAll('input[name="medical_history"]:checked');
+      if (checkedItems.length === 0) {
+        alert('병력을 선택해 주세요.');
+        return;
+      }
+      const militaryService = Array.from(checkedItems).map(cb => cb.value).join(', ');
+
+      const body = {
+        address: fullAddress,
+        address_main: addressMain,
+        address_detail: addressDetail || '',
+        occupation: formData.get('occupation'),
+        military_service: militaryService,
+        resident_number_front: formData.get('resident_number_front'),
+        resident_number_back: formData.get('resident_number_back')
+      };
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = '제출 중...';
+
+      try {
+        const res = await fetch('/api/v1/public/design-consent/' + consentToken, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+          document.getElementById('consent-app').innerHTML = `
+            <div class="consent-card" style="text-align:center;padding:40px;">
+              <div style="font-size:48px;margin-bottom:16px;">&#10003;</div>
+              <h2 style="color:#1e3a5f;margin-bottom:8px;">설계 동의가 완료되었습니다!</h2>
+              <p style="color:#6b7280;font-size:14px;">감사합니다. 담당 설계사가 확인 후 연락드리겠습니다.</p>
+            </div>
+          `;
+        } else {
+          const data = await res.json();
+          alert(data.error || '제출에 실패했습니다.');
+          btn.disabled = false;
+          btn.textContent = '동의 및 제출';
+        }
+      } catch (err) {
+        alert('오류가 발생했습니다.');
+        btn.disabled = false;
+        btn.textContent = '동의 및 제출';
+      }
+    }
+
+    function handleNoneCheck(el) {
+      if (el.checked) {
+        document.querySelectorAll('input[name="medical_history"]').forEach(cb => {
+          if (cb !== el) cb.checked = false;
+        });
+      }
+    }
+
+    function handleConditionCheck(el) {
+      if (el.checked) {
+        const noneBox = document.querySelector('input[name="medical_history"][value="없음"]');
+        if (noneBox) noneBox.checked = false;
+      }
+    }
+
+    function formatPhone(phone) {
+      if (!phone) return '-';
+      const cleaned = phone.replace(/[^0-9]/g, '');
+      if (cleaned.length === 11) return cleaned.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+      if (cleaned.length === 10) return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+      return phone;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    loadConsent();
+  </script>
+</body>
+</html>
