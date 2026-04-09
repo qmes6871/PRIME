@@ -177,4 +177,19 @@ router.post('/design-consent/:token', async (req, res, next) => {
   }
 });
 
+// GET /api/v1/public/article/:id - 공개 블로그 글 조회
+router.get('/article/:id', async (req, res, next) => {
+  try {
+    const { InfoLink, Agent } = require('../models');
+    const link = await InfoLink.findOne({
+      where: { id: req.params.id, type: 'article', is_active: true },
+      include: [{ model: Agent, attributes: ['name', 'position', 'branch', 'profile_image'] }]
+    });
+    if (!link) return res.status(404).json({ error: '글을 찾을 수 없습니다.' });
+    res.json({ article: link });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

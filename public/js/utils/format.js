@@ -33,6 +33,7 @@ const Utils = {
     switch(status) {
       case '상담전': return 'before';
       case '상담중': return 'ing';
+      case '청약완료': return 'signed';
       case '상담완료': return 'done';
       case '신규': return 'new';
       default: return '';

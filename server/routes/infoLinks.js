@@ -15,6 +15,19 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// GET /api/v1/info-links/:id
+router.get('/:id', async (req, res, next) => {
+  try {
+    const link = await InfoLink.findOne({
+      where: { id: req.params.id, agent_id: req.agent.id }
+    });
+    if (!link) return res.status(404).json({ error: '글을 찾을 수 없습니다.' });
+    res.json({ link });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/v1/info-links
 router.post('/', async (req, res, next) => {
   try {

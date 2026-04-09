@@ -45,7 +45,7 @@ const DashboardPage = {
             </div>
             <div class="summary-card-label">전체 고객</div>
             <div class="summary-card-value">${summary.totalCustomers}</div>
-            <div class="summary-card-sub">상담전 ${sc['상담전'] || 0} · 상담중 ${sc['상담중'] || 0} · 완료 ${sc['상담완료'] || 0}</div>
+            <div class="summary-card-sub">상담전 ${sc['상담전'] || 0} · 상담중 ${sc['상담중'] || 0} · 청약 ${sc['청약완료'] || 0} · 완료 ${sc['상담완료'] || 0}</div>
           </div>
           <div class="summary-card green">
             <div class="summary-card-icon">
@@ -79,6 +79,7 @@ const DashboardPage = {
               ${[
                 { label: '상담 전', count: sc['상담전'] || 0, color: '#f59e0b', bg: '#fef3c7' },
                 { label: '상담 중', count: sc['상담중'] || 0, color: '#f97316', bg: '#ffedd5' },
+                { label: '청약 완료', count: sc['청약완료'] || 0, color: '#3b82f6', bg: '#dbeafe' },
                 { label: '상담 완료', count: sc['상담완료'] || 0, color: '#22c55e', bg: '#dcfce7' }
               ].map(s => `
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
@@ -186,6 +187,7 @@ const DashboardPage = {
               <option value="">전체 상태</option>
               <option value="상담전">상담전</option>
               <option value="상담중">상담중</option>
+              <option value="청약완료">청약완료</option>
               <option value="상담완료">상담완료</option>
             </select>
           </div>
@@ -402,6 +404,7 @@ const DashboardPage = {
           <select class="form-input" name="status">
             <option value="상담전">상담전</option>
             <option value="상담중">상담중</option>
+            <option value="청약완료">청약완료</option>
             <option value="상담완료">상담완료</option>
           </select>
         </div>
@@ -497,6 +500,7 @@ const DashboardPage = {
             <select class="form-input" name="status">
               <option value="상담전" ${customer.status==='상담전'?'selected':''}>상담전</option>
               <option value="상담중" ${customer.status==='상담중'?'selected':''}>상담중</option>
+              <option value="청약완료" ${customer.status==='청약완료'?'selected':''}>청약완료</option>
               <option value="상담완료" ${customer.status==='상담완료'?'selected':''}>상담완료</option>
             </select>
           </div>
@@ -552,7 +556,7 @@ const DashboardPage = {
   },
 
   async cycleStatus(id, currentStatus) {
-    const order = ['상담전', '상담중', '상담완료'];
+    const order = ['상담전', '상담중', '청약완료', '상담완료'];
     const nextIdx = (order.indexOf(currentStatus) + 1) % order.length;
     const nextStatus = order[nextIdx];
     try {

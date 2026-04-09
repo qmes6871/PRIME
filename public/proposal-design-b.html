@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보험 상담 제안서 - 프리미엄 매거진</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f8f6f1; min-height: 100vh; -webkit-font-smoothing: antialiased; font-size: 15px; color: #2c2c2c; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #d4c9b8; border-radius: 10px; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .container { max-width: 480px; margin: 0 auto; min-height: 100vh; background: #faf8f4; }
+
+    /* Hero Header */
+    .hero {
+      position: relative; height: 320px; overflow: hidden;
+      background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    }
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(26,26,46,0.2) 0%, rgba(26,26,46,0.85) 60%, #1a1a2e 100%);
+      z-index: 1;
+    }
+    .hero-pattern {
+      position: absolute; inset: 0; opacity: 0.08;
+      background-image: repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(212,175,55,0.3) 35px, rgba(212,175,55,0.3) 36px);
+    }
+    .hero-content {
+      position: absolute; bottom: 0; left: 0; right: 0; padding: 0 28px 28px;
+      z-index: 2; animation: fadeIn 0.8s ease both;
+    }
+    .hero-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 3px; color: #d4af37;
+      margin-bottom: 10px;
+    }
+    .hero-name {
+      font-size: 28px; font-weight: 800; color: #ffffff; line-height: 1.2;
+    }
+    .hero-title {
+      font-size: 14px; color: rgba(255,255,255,0.6); margin-top: 6px; font-weight: 400;
+    }
+    .hero-avatar {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -60%);
+      width: 100px; height: 100px; border-radius: 50%;
+      background: linear-gradient(135deg, #d4af37, #f4e4a6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 38px; font-weight: 700; color: #1a1a2e;
+      box-shadow: 0 8px 32px rgba(212,175,55,0.3);
+      border: 3px solid rgba(212,175,55,0.5);
+      z-index: 2;
+    }
+
+    /* Gold Divider */
+    .gold-divider {
+      height: 1px; margin: 0 28px;
+      background: linear-gradient(90deg, transparent, #d4af37, transparent);
+    }
+
+    /* Action Buttons */
+    .actions {
+      display: flex; gap: 0; margin: 0; border-bottom: 1px solid #e8e2d6;
+      animation: fadeInUp 0.5s ease both;
+    }
+    .action-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 16px 0; border: none; background: transparent;
+      font-size: 11px; font-weight: 600; color: #8b7e6a; cursor: pointer;
+      transition: all 0.2s; text-decoration: none;
+      border-right: 1px solid #e8e2d6;
+    }
+    .action-btn:last-child { border-right: none; }
+    .action-btn:hover { color: #d4af37; background: rgba(212,175,55,0.05); }
+    .action-btn i { font-size: 16px; color: #d4af37; }
+
+    /* Content */
+    .content { padding: 28px 24px 40px; }
+
+    /* Section */
+    .section {
+      margin-bottom: 32px; animation: fadeInUp 0.5s ease both;
+    }
+    .section:nth-child(1) { animation-delay: 0.1s; }
+    .section:nth-child(2) { animation-delay: 0.15s; }
+    .section:nth-child(3) { animation-delay: 0.2s; }
+    .section:nth-child(4) { animation-delay: 0.25s; }
+
+    .section-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+    }
+    .section-number {
+      font-size: 32px; font-weight: 200; color: #d4af37; line-height: 1;
+      font-style: italic;
+    }
+    .section-title-group {}
+    .section-subtitle {
+      font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #d4af37;
+      margin-bottom: 2px;
+    }
+    .section-title {
+      font-size: 18px; font-weight: 700; color: #2c2c2c;
+    }
+
+    .section-divider {
+      height: 1px; margin-top: 28px;
+      background: linear-gradient(90deg, #d4af37 30%, transparent 100%);
+    }
+
+    /* Customer Info */
+    .customer-card {
+      background: #ffffff; border-radius: 2px; padding: 22px;
+      border: 1px solid #e8e2d6; position: relative;
+    }
+    .customer-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #d4af37, #f4e4a6);
+    }
+    .customer-name-row {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+    }
+    .customer-monogram {
+      width: 44px; height: 44px; border-radius: 2px;
+      background: #1a1a2e; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: #d4af37;
+    }
+    .customer-name { font-size: 18px; font-weight: 700; color: #2c2c2c; }
+    .customer-desc { font-size: 13px; color: #8b7e6a; margin-top: 2px; }
+    .customer-details {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .detail-item {}
+    .detail-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #8b7e6a; margin-bottom: 3px; }
+    .detail-value { font-size: 14px; font-weight: 600; color: #2c2c2c; }
+
+    /* Health Items */
+    .health-item {
+      padding: 18px 20px; background: #ffffff; border: 1px solid #e8e2d6;
+      border-radius: 2px; margin-bottom: 10px; position: relative;
+      padding-left: 24px;
+    }
+    .health-item::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: #d4af37;
+    }
+    .health-label {
+      font-size: 14px; font-weight: 700; color: #2c2c2c; margin-bottom: 4px;
+    }
+    .health-detail {
+      font-size: 12px; color: #8b7e6a; line-height: 1.6;
+    }
+
+    /* Coverage Analysis */
+    .coverage-card {
+      background: #ffffff; border: 1px solid #e8e2d6; border-radius: 2px;
+      padding: 20px; margin-bottom: 10px;
+    }
+    .coverage-top {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .coverage-name { font-size: 15px; font-weight: 700; color: #2c2c2c; }
+    .coverage-badge {
+      padding: 4px 12px; border-radius: 2px; font-size: 11px; font-weight: 700;
+    }
+    .badge-good { background: #f0f7f0; color: #2e7d32; }
+    .badge-warn { background: #fdf6e3; color: #c68a00; }
+    .coverage-meter {
+      height: 4px; background: #e8e2d6; border-radius: 0; margin-bottom: 10px;
+    }
+    .coverage-meter-fill { height: 100%; }
+    .meter-good { background: linear-gradient(90deg, #2e7d32, #4caf50); }
+    .meter-warn { background: linear-gradient(90deg, #c68a00, #d4af37); }
+    .coverage-note { font-size: 12px; color: #8b7e6a; line-height: 1.5; }
+
+    /* Recommendation */
+    .rec-card {
+      background: #ffffff; border: 1px solid #e8e2d6; border-radius: 2px;
+      padding: 22px; margin-bottom: 10px; position: relative;
+    }
+    .rec-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #d4af37;
+      margin-bottom: 8px;
+    }
+    .rec-company {
+      font-size: 16px; font-weight: 700; color: #2c2c2c;
+    }
+    .rec-product {
+      font-size: 13px; color: #8b7e6a; margin-top: 2px;
+    }
+    .rec-price-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-top: 14px; padding-top: 14px;
+      border-top: 1px solid #e8e2d6;
+    }
+    .rec-price-label { font-size: 12px; color: #8b7e6a; }
+    .rec-price {
+      font-size: 22px; font-weight: 800; color: #d4af37;
+    }
+    .rec-price span { font-size: 13px; font-weight: 400; color: #8b7e6a; }
+    .rec-features { margin-top: 14px; }
+    .rec-feature {
+      font-size: 13px; color: #5c5c5c; line-height: 2;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .rec-feature::before {
+      content: ''; width: 4px; height: 4px;
+      background: #d4af37; border-radius: 50%; flex-shrink: 0;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center; padding: 32px 24px 48px;
+      border-top: 1px solid #e8e2d6;
+      animation: fadeInUp 0.5s ease both; animation-delay: 0.35s;
+    }
+    .footer-logo {
+      font-size: 14px; font-weight: 800; letter-spacing: 4px; color: #d4af37;
+      margin-bottom: 8px;
+    }
+    .footer-text {
+      font-size: 11px; color: #8b7e6a; line-height: 1.7;
+    }
+    .footer-divider {
+      width: 40px; height: 1px; background: #d4af37; margin: 16px auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Hero Header -->
+    <div class="hero">
+      <div class="hero-pattern"></div>
+      <div class="hero-overlay"></div>
+      <div class="hero-avatar">김</div>
+      <div class="hero-content">
+        <div class="hero-label">INSURANCE CONSULTANT</div>
+        <div class="hero-name">김예준</div>
+        <div class="hero-title">본부장 | 프라임에셋</div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <a href="#" class="action-btn"><i class="fas fa-id-card"></i> 온라인명함</a>
+      <a href="#" class="action-btn"><i class="fas fa-phone"></i> 전화</a>
+      <a href="#" class="action-btn"><i class="fas fa-comment"></i> 카카오톡</a>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Customer Info -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">01</div>
+          <div class="section-title-group">
+            <div class="section-subtitle">CLIENT</div>
+            <div class="section-title">고객 정보</div>
+          </div>
+        </div>
+        <div class="customer-card">
+          <div class="customer-name-row">
+            <div class="customer-monogram">홍</div>
+            <div>
+              <div class="customer-name">홍길동</div>
+              <div class="customer-desc">보장분석 의뢰 고객</div>
+            </div>
+          </div>
+          <div class="customer-details">
+            <div class="detail-item">
+              <div class="detail-label">나이</div>
+              <div class="detail-value">35세</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">성별</div>
+              <div class="detail-value">남성</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">직업</div>
+              <div class="detail-value">회사원</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">흡연여부</div>
+              <div class="detail-value">비흡연</div>
+            </div>
+          </div>
+        </div>
+        <div class="section-divider"></div>
+      </div>
+
+      <!-- Health Checklist -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">02</div>
+          <div class="section-title-group">
+            <div class="section-subtitle">HEALTH</div>
+            <div class="section-title">건강 체크리스트</div>
+          </div>
+        </div>
+        <div class="health-item">
+          <div class="health-label">고혈압 가족력</div>
+          <div class="health-detail">부친 고혈압 진단 이력이 있으며, 정기적인 혈압 모니터링을 권장합니다.</div>
+        </div>
+        <div class="health-item">
+          <div class="health-label">건강검진 예정</div>
+          <div class="health-detail">2026년 상반기 국가건강검진 대상자입니다. 위내시경을 포함한 종합검진을 권장합니다.</div>
+        </div>
+        <div class="health-item">
+          <div class="health-label">과거 수술 이력</div>
+          <div class="health-detail">2020년 충수절제술(맹장수술). 완치 후 경과 양호합니다.</div>
+        </div>
+        <div class="section-divider"></div>
+      </div>
+
+      <!-- Coverage Analysis -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">03</div>
+          <div class="section-title-group">
+            <div class="section-subtitle">ANALYSIS</div>
+            <div class="section-title">보장 분석</div>
+          </div>
+        </div>
+        <div class="coverage-card">
+          <div class="coverage-top">
+            <div class="coverage-name">실손의료비</div>
+            <span class="coverage-badge badge-good">충분</span>
+          </div>
+          <div class="coverage-meter"><div class="coverage-meter-fill meter-good" style="width: 85%;"></div></div>
+          <div class="coverage-note">현재 4세대 실손보험 가입 중. 입원 및 통원 보장이 적정 수준입니다.</div>
+        </div>
+        <div class="coverage-card">
+          <div class="coverage-top">
+            <div class="coverage-name">암보장</div>
+            <span class="coverage-badge badge-warn">보완 필요</span>
+          </div>
+          <div class="coverage-meter"><div class="coverage-meter-fill meter-warn" style="width: 40%;"></div></div>
+          <div class="coverage-note">일반암 진단금이 1,000만원으로 부족합니다. 최소 3,000만원 이상을 권장합니다.</div>
+        </div>
+        <div class="section-divider"></div>
+      </div>
+
+      <!-- Recommendation -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">04</div>
+          <div class="section-title-group">
+            <div class="section-subtitle">RECOMMENDATION</div>
+            <div class="section-title">추천 상품</div>
+          </div>
+        </div>
+        <div class="rec-card">
+          <div class="rec-label">BEST PICK</div>
+          <div class="rec-company">삼성화재</div>
+          <div class="rec-product">무배당 뉴 암보험 플러스</div>
+          <div class="rec-features">
+            <div class="rec-feature">일반암 진단금 3,000만원</div>
+            <div class="rec-feature">소액암 진단금 500만원</div>
+            <div class="rec-feature">암 수술비 500만원</div>
+          </div>
+          <div class="rec-price-row">
+            <div class="rec-price-label">월 납입료</div>
+            <div class="rec-price">32,400원 <span>/월</span></div>
+          </div>
+        </div>
+        <div class="rec-card">
+          <div class="rec-label">ALTERNATIVE</div>
+          <div class="rec-company">현대해상</div>
+          <div class="rec-product">무배당 굿앤굿 건강보험</div>
+          <div class="rec-features">
+            <div class="rec-feature">3대질병 진단금 2,000만원</div>
+            <div class="rec-feature">입원일당 5만원</div>
+          </div>
+          <div class="rec-price-row">
+            <div class="rec-price-label">월 납입료</div>
+            <div class="rec-price">28,700원 <span>/월</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-logo">PRIME ASSET</div>
+      <div class="footer-divider"></div>
+      <div class="footer-text">
+        본 제안서는 고객님의 보장 현황을 분석하여<br>
+        최적의 보험 설계를 제안드리기 위해 작성되었습니다.<br><br>
+        &copy; 2026 프라임에셋. All rights reserved.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

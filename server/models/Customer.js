@@ -28,7 +28,7 @@ module.exports = (sequelize) => {
       type: DataTypes.ENUM('M', 'F'),
     },
     status: {
-      type: DataTypes.ENUM('상담전', '상담중', '상담완료'),
+      type: DataTypes.ENUM('상담전', '상담중', '청약완료', '상담완료'),
       defaultValue: '상담전'
     },
     memo: {

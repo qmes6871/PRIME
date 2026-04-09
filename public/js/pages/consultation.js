@@ -2441,16 +2441,34 @@ const ConsultationPage = {
     });
     const catOrder = Object.keys(grouped).sort((a, b) => a === '미분류' ? 1 : b === '미분류' ? -1 : a.localeCompare(b));
 
-    const renderItem = (link, i) => `
-      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid ${checkedState[i] ? '#6366f1' : '#e2e8f0'};background:${checkedState[i] ? '#eef2ff' : '#fff'};cursor:pointer;transition:all 0.15s;" onclick="this.querySelector('input').click()">
-        <input type="checkbox" ${checkedState[i] ? 'checked' : ''} onchange="event.stopPropagation();window._infoLinkPickerToggle(${i})" style="accent-color:#6366f1;width:16px;height:16px;flex-shrink:0;">
-        <span style="font-size:18px;flex-shrink:0;">${Utils.escapeHtml(link.icon || '🔗')}</span>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.escapeHtml(link.title)}</div>
-          <div style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.escapeHtml(link.url)}</div>
+    // 블로그 글의 URL 모드: 'blog' = 블로그 뷰, 'url' = 원본 URL
+    const isDevAccount = API.getAgent() && API.getAgent().id === 11;
+    const urlModeState = links.map(link => link.type === 'article' ? 'blog' : 'url');
+    const blogBaseUrl = location.origin + '/blog.html?id=';
+
+    const renderItem = (link, i) => {
+      const isArticle = isDevAccount && link.type === 'article';
+      return `
+      <div style="border-radius:10px;border:1px solid ${checkedState[i] ? '#6366f1' : '#e2e8f0'};background:${checkedState[i] ? '#eef2ff' : '#fff'};transition:all 0.15s;">
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;" onclick="this.querySelector('input').click()">
+          <input type="checkbox" ${checkedState[i] ? 'checked' : ''} onchange="event.stopPropagation();window._infoLinkPickerToggle(${i})" style="accent-color:#6366f1;width:16px;height:16px;flex-shrink:0;">
+          <span style="font-size:18px;flex-shrink:0;">${isArticle ? '📝' : Utils.escapeHtml(link.icon || '🔗')}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px;">
+              ${Utils.escapeHtml(link.title)}
+              ${isArticle ? '<span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;flex-shrink:0;">블로그</span>' : ''}
+            </div>
+            <div style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${isArticle ? (urlModeState[i] === 'blog' ? '블로그 뷰로 연결' : Utils.escapeHtml(link.url || '')) : Utils.escapeHtml(link.url || '')}</div>
+          </div>
+        </label>
+        ${isArticle && checkedState[i] ? `
+        <div style="padding:0 12px 10px 42px;display:flex;gap:6px;" onclick="event.stopPropagation();">
+          <button onclick="window._infoLinkPickerUrlMode(${i},'blog')" style="padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid ${urlModeState[i] === 'blog' ? '#6366f1' : '#e2e8f0'};background:${urlModeState[i] === 'blog' ? '#eef2ff' : 'white'};color:${urlModeState[i] === 'blog' ? '#6366f1' : '#94a3b8'};">블로그로 보기</button>
+          ${link.url ? `<button onclick="window._infoLinkPickerUrlMode(${i},'url')" style="padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid ${urlModeState[i] === 'url' ? '#6366f1' : '#e2e8f0'};background:${urlModeState[i] === 'url' ? '#eef2ff' : 'white'};color:${urlModeState[i] === 'url' ? '#6366f1' : '#94a3b8'};">원본 URL로 연결</button>` : ''}
         </div>
-      </label>
-    `;
+        ` : ''}
+      </div>`;
+    };
 
     const renderList = () => {
       if (catOrder.length <= 1 && catOrder[0] === '미분류') {
@@ -2495,8 +2513,16 @@ const ConsultationPage = {
       document.getElementById('info-link-picker-list').innerHTML = renderList();
     };
 
+    window._infoLinkPickerUrlMode = (idx, mode) => {
+      urlModeState[idx] = mode;
+      document.getElementById('info-link-picker-list').innerHTML = renderList();
+    };
+
     window._infoLinkPickerConfirm = () => {
-      const selected = links.filter((_, i) => checkedState[i]);
+      const selected = [];
+      links.forEach((link, i) => {
+        if (checkedState[i]) selected.push({ link, mode: urlModeState[i] });
+      });
       if (selected.length === 0) { overlay.remove(); return; }
 
       const targetMap = {
@@ -2506,8 +2532,12 @@ const ConsultationPage = {
         brochure: { arr: '_brochureLinks', listId: 'brochure-links-list', render: '_renderBrochureLinkRow' },
       };
       const target = targetMap[targetType];
-      selected.forEach(link => {
-        this[target.arr].push({ title: link.title, url: link.url, thumbnail: link.imageUrl || '' });
+      selected.forEach(({ link, mode }) => {
+        let finalUrl = link.url || '';
+        if (link.type === 'article' && mode === 'blog') {
+          finalUrl = blogBaseUrl + link.id;
+        }
+        this[target.arr].push({ title: link.title, url: finalUrl, thumbnail: link.imageUrl || '' });
       });
       const list = document.getElementById(target.listId);
       if (list) list.innerHTML = this[target.arr].map((l, i) => this[target.render](i, l)).join('');

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>블로그</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard+Variable:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Pretendard Variable', -apple-system, sans-serif;
+      background: #f8f9fa;
+      color: #333;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 상단 바 */
+    .top-bar {
+      background: white;
+      border-bottom: 1px solid #e9ecef;
+      padding: 14px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .top-bar-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .top-bar-logo {
+      font-size: 16px;
+      font-weight: 800;
+      color: #1a1a1a;
+    }
+    .top-bar-logo span { color: #6366f1; }
+
+    /* 히어로 이미지 */
+    .hero-image {
+      width: 100%;
+      max-height: 420px;
+      object-fit: cover;
+    }
+
+    /* 본문 컨테이너 */
+    .article-container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+
+    /* 카테고리 뱃지 */
+    .category-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #eef2ff;
+      color: #6366f1;
+      border: 1px solid #c7d2fe;
+      margin-bottom: 14px;
+    }
+
+    /* 제목 */
+    .article-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: #1a1a1a;
+      line-height: 1.45;
+      margin-bottom: 16px;
+      word-break: keep-all;
+    }
+
+    /* 작성자 정보 */
+    .author-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+      border-bottom: 1px solid #e9ecef;
+    }
+    .author-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #e9ecef;
+    }
+    .author-avatar-placeholder {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .author-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .author-detail {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    /* 본문 */
+    .article-body {
+      font-size: 16.5px;
+      line-height: 1.9;
+      color: #333;
+      word-break: keep-all;
+    }
+    .article-body p {
+      margin-bottom: 18px;
+    }
+    .article-body h1 {
+      font-size: 24px;
+      font-weight: 800;
+      margin: 36px 0 16px;
+      color: #1a1a1a;
+    }
+    .article-body h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 32px 0 14px;
+      color: #1a1a1a;
+    }
+    .article-body h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 28px 0 12px;
+      color: #1a1a1a;
+    }
+    .article-body img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      margin: 24px 0;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    }
+    .article-body blockquote {
+      border-left: 4px solid #6366f1;
+      background: #f0f0ff;
+      margin: 24px 0;
+      padding: 18px 22px;
+      border-radius: 0 10px 10px 0;
+      color: #475569;
+      font-style: italic;
+      line-height: 1.8;
+    }
+    .article-body ul, .article-body ol {
+      padding-left: 24px;
+      margin-bottom: 18px;
+    }
+    .article-body li {
+      margin-bottom: 8px;
+    }
+    .article-body a {
+      color: #6366f1;
+      text-decoration: underline;
+    }
+    .article-body strong {
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    /* 하단 프로필 카드 */
+    .author-card {
+      margin-top: 48px;
+      padding: 24px;
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e9ecef;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .author-card-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .author-card-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 2px;
+    }
+    .author-card-desc {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    /* 로딩 */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 60vh;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+    .error-page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 60vh;
+      color: #94a3b8;
+      text-align: center;
+    }
+    .error-page h2 { font-size: 20px; color: #64748b; margin-bottom: 8px; }
+
+    @media (max-width: 640px) {
+      .article-title { font-size: 22px; }
+      .article-body { font-size: 15.5px; }
+      .article-container { padding: 24px 16px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="top-bar-inner">
+      <div class="top-bar-logo">PRIME<span>ASSET</span></div>
+    </div>
+  </div>
+
+  <div id="app">
+    <div class="loading">불러오는 중...</div>
+  </div>
+
+  <script>
+    const BASE = '/api/v1/public';
+
+    function getArticleId() {
+      const params = new URLSearchParams(location.search);
+      return params.get('id');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    async function loadArticle() {
+      const id = getArticleId();
+      if (!id) {
+        document.getElementById('app').innerHTML = '<div class="error-page"><h2>잘못된 접근입니다</h2><p>글 ID가 없습니다.</p></div>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BASE}/article/${id}`);
+        if (!res.ok) {
+          document.getElementById('app').innerHTML = '<div class="error-page"><h2>글을 찾을 수 없습니다</h2><p>삭제되었거나 존재하지 않는 글입니다.</p></div>';
+          return;
+        }
+
+        const data = await res.json();
+        const article = data.article;
+        const agent = article.Agent || {};
+
+        // 페이지 타이틀 업데이트
+        document.title = article.title + ' | 프라임에셋';
+
+        const createdDate = new Date(article.createdAt || article.created_at);
+        const dateStr = `${createdDate.getFullYear()}.${String(createdDate.getMonth()+1).padStart(2,'0')}.${String(createdDate.getDate()).padStart(2,'0')}`;
+
+        let html = '';
+
+        // 히어로 이미지
+        if (article.image_url || article.imageUrl) {
+          const imgUrl = article.image_url || article.imageUrl;
+          html += `<img class="hero-image" src="${escapeHtml(imgUrl)}" alt="">`;
+        }
+
+        html += '<div class="article-container">';
+
+        // 카테고리
+        if (article.category) {
+          html += `<span class="category-badge">${escapeHtml(article.category)}</span>`;
+        }
+
+        // 제목
+        html += `<h1 class="article-title">${escapeHtml(article.title)}</h1>`;
+
+        // 작성자 정보
+        html += '<div class="author-info">';
+        if (agent.profile_image) {
+          html += `<img class="author-avatar" src="${escapeHtml(agent.profile_image)}" alt="">`;
+        } else {
+          html += `<div class="author-avatar-placeholder">${escapeHtml((agent.name || '?')[0])}</div>`;
+        }
+        html += `<div>
+          <div class="author-name">${escapeHtml(agent.name || '')}</div>
+          <div class="author-detail">${escapeHtml(agent.position || '')} ${agent.branch ? '| ' + escapeHtml(agent.branch) : ''} · ${dateStr}</div>
+        </div>`;
+        html += '</div>';
+
+        // 본문
+        html += `<div class="article-body">${article.content || ''}</div>`;
+
+        // 하단 작성자 카드
+        html += '<div class="author-card">';
+        if (agent.profile_image) {
+          html += `<img class="author-card-avatar" src="${escapeHtml(agent.profile_image)}" alt="">`;
+        }
+        html += `<div>
+          <div class="author-card-name">${escapeHtml(agent.name || '')}</div>
+          <div class="author-card-desc">${escapeHtml(agent.position || '')} ${agent.branch ? '| ' + escapeHtml(agent.branch) : ''}</div>
+        </div>`;
+        html += '</div>';
+
+        html += '</div>';
+
+        document.getElementById('app').innerHTML = html;
+      } catch (err) {
+        document.getElementById('app').innerHTML = '<div class="error-page"><h2>오류 발생</h2><p>' + escapeHtml(err.message) + '</p></div>';
+      }
+    }
+
+    loadArticle();
+  </script>
+</body>
+</html>

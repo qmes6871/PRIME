@@ -17,10 +17,19 @@ module.exports = (sequelize) => {
     },
     url: {
       type: DataTypes.STRING(1000),
-      allowNull: false
+      allowNull: true
     },
     description: {
       type: DataTypes.STRING(500)
+    },
+    content: {
+      type: DataTypes.TEXT('long'),
+      comment: '블로그 글 본문 (HTML)'
+    },
+    type: {
+      type: DataTypes.STRING(20),
+      defaultValue: 'link',
+      comment: 'link 또는 article'
     },
     icon: {
       type: DataTypes.STRING(50),

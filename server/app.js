@@ -44,6 +44,39 @@ app.get('/proposal.html', async (req, res, next) => {
   }
 });
 
+// 블로그 글 공개 페이지 - OG 태그 동적 생성
+const { InfoLink } = require('./models');
+app.get('/blog.html', async (req, res, next) => {
+  const id = req.query.id;
+  if (!id) return next();
+  try {
+    const article = await InfoLink.findOne({
+      where: { id, type: 'article', is_active: true },
+      include: [{ model: Agent, attributes: ['name', 'position', 'branch', 'profile_image'] }]
+    });
+    if (!article) return next();
+
+    const title = article.title || '블로그';
+    const desc = article.content ? article.content.replace(/<[^>]*>/g, '').substring(0, 120) : '';
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const ogImage = article.image_url ? `${baseUrl}${article.image_url}` : '';
+
+    let html = fs.readFileSync(path.join(__dirname, '..', 'public', 'blog.html'), 'utf-8');
+    html = html.replace(/<title>.*?<\/title>/, `<title>${title} | 프라임에셋</title>`);
+    const ogTags = `<meta property="og:title" content="${title}">
+  <meta property="og:description" content="${desc}">
+  ${ogImage ? `<meta property="og:image" content="${ogImage}">` : ''}
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="${baseUrl}/blog.html?id=${id}">`;
+    html = html.replace('</head>', `  ${ogTags}\n</head>`);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.send(html);
+  } catch (err) {
+    next();
+  }
+});
+
 // Static files (no cache for JS/CSS during development)
 app.use('/', express.static(path.join(__dirname, '..', 'public'), {
   etag: false,

@@ -143,6 +143,7 @@ const API = {
 
   // Info Links
   getInfoLinks() { return this.get('/info-links'); },
+  getInfoLink(id) { return this.get(`/info-links/${id}`); },
   createInfoLink(data) { return this.post('/info-links', data); },
   updateInfoLink(id, data) { return this.put(`/info-links/${id}`, data); },
   deleteInfoLink(id) { return this.delete(`/info-links/${id}`); },

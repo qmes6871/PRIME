@@ -105,6 +105,13 @@ const App = {
         case 'infopage':
           content = await InfoPagePage.render();
           break;
+        case 'article-write':
+          pageObj = InfoPagePage;
+          content = await InfoPagePage.renderArticleEditor(params);
+          break;
+        case 'article-view':
+          content = await InfoPagePage.renderArticleView(params);
+          break;
         case 'settings':
           content = await SettingsPage.render();
           break;

@@ -520,14 +520,19 @@ body {
 }
 
 .status-badge.before {
-  background: var(--muted);
-  color: var(--muted-foreground);
+  background: #4b5563;
+  color: #fff;
 }
 
 .status-badge.ing {
-  background: var(--yellow-light);
-  color: var(--yellow);
+  background: #ea580c;
+  color: #fff;
   animation: badge-pulse 2s ease-in-out infinite;
+}
+
+.status-badge.signed {
+  background: #1d4ed8;
+  color: #fff;
 }
 
 .status-badge.done {
@@ -1965,6 +1970,87 @@ a:hover {
   .infopage-list-content {
     min-width: 0;
   }
+}
+
+/* === Quill Editor 커스텀 === */
+.ql-toolbar.ql-snow {
+  border-radius: 8px 8px 0 0;
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+.ql-container.ql-snow {
+  border-radius: 0 0 8px 8px;
+  border-color: #e2e8f0;
+  font-family: 'Pretendard Variable', sans-serif;
+  font-size: 16px;
+}
+.ql-editor {
+  min-height: 400px;
+  line-height: 1.8;
+  padding: 20px 24px;
+}
+.ql-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+/* === 블로그 글 보기 스타일 === */
+.article-content {
+  font-family: 'Pretendard Variable', sans-serif;
+}
+.article-content p {
+  margin-bottom: 16px;
+}
+.article-content h1 {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 32px 0 16px;
+  color: #1a1a1a;
+}
+.article-content h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 28px 0 14px;
+  color: #1a1a1a;
+}
+.article-content h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 24px 0 12px;
+  color: #1a1a1a;
+}
+.article-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  margin: 20px 0;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+.article-content blockquote {
+  border-left: 4px solid #3b82f6;
+  background: #f0f7ff;
+  margin: 20px 0;
+  padding: 16px 20px;
+  border-radius: 0 8px 8px 0;
+  color: #475569;
+  font-style: italic;
+}
+.article-content ul, .article-content ol {
+  padding-left: 24px;
+  margin-bottom: 16px;
+}
+.article-content li {
+  margin-bottom: 6px;
+}
+.article-content a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+.article-content strong {
+  font-weight: 700;
+  color: #1e293b;
 }
 
 /* Legacy sidebar support - hidden, using top nav instead */

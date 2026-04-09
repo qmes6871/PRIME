@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보험 상담 제안서 - 모던 그라데이션</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f0f1a; min-height: 100vh; -webkit-font-smoothing: antialiased; font-size: 15px; color: #ffffff; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+    .container { max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; overflow: hidden; }
+
+    /* Background Blobs */
+    .bg-blob {
+      position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.4; pointer-events: none;
+    }
+    .blob-1 { width: 300px; height: 300px; background: #6366f1; top: -50px; left: -100px; }
+    .blob-2 { width: 250px; height: 250px; background: #ec4899; top: 400px; right: -80px; }
+    .blob-3 { width: 200px; height: 200px; background: #06b6d4; bottom: 100px; left: -60px; }
+
+    /* Agent Header */
+    .agent-header {
+      padding: 48px 24px 24px; text-align: center; position: relative; z-index: 1;
+      animation: fadeInUp 0.5s ease both;
+    }
+    .agent-avatar {
+      width: 72px; height: 72px; border-radius: 20px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 700; color: white;
+      margin: 0 auto 14px;
+      box-shadow: 0 8px 32px rgba(99,102,241,0.4);
+    }
+    .agent-name { font-size: 20px; font-weight: 800; color: #ffffff; }
+    .agent-role { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+    .agent-badge {
+      display: inline-block; margin-top: 8px; padding: 4px 14px;
+      border-radius: 20px; font-size: 11px; font-weight: 700;
+      background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7);
+      backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Action Buttons - Floating */
+    .actions {
+      display: flex; gap: 8px; margin: 0 20px 20px; position: relative; z-index: 1;
+      animation: fadeInUp 0.5s ease both; animation-delay: 0.05s;
+    }
+    .action-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 12px 0; border-radius: 14px; border: none; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.3s; text-decoration: none;
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    }
+    .action-btn i { font-size: 14px; }
+    .action-btn.phone {
+      background: linear-gradient(135deg, rgba(99,102,241,0.8), rgba(139,92,246,0.8));
+      color: white; box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+    }
+    .action-btn.phone:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(99,102,241,0.4); }
+    .action-btn.kakao {
+      background: rgba(254,229,0,0.9); color: #3c1e1e;
+      box-shadow: 0 4px 16px rgba(254,229,0,0.2);
+    }
+    .action-btn.kakao:hover { transform: translateY(-2px); }
+    .action-btn.card {
+      background: rgba(255,255,255,0.1); color: white;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .action-btn.card:hover { background: rgba(255,255,255,0.18); transform: translateY(-2px); }
+
+    /* Content */
+    .content { padding: 4px 16px 40px; position: relative; z-index: 1; }
+
+    /* Glass Card */
+    .glass-card {
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 22px; margin-bottom: 14px;
+      animation: fadeInUp 0.5s ease both;
+    }
+    .glass-card:nth-child(1) { animation-delay: 0.1s; }
+    .glass-card:nth-child(2) { animation-delay: 0.15s; }
+    .glass-card:nth-child(3) { animation-delay: 0.2s; }
+    .glass-card:nth-child(4) { animation-delay: 0.25s; }
+
+    /* Gradient Section Cards */
+    .gradient-card-blue {
+      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(6,182,212,0.1));
+      border-color: rgba(99,102,241,0.2);
+    }
+    .gradient-card-pink {
+      background: linear-gradient(135deg, rgba(236,72,153,0.12), rgba(249,115,22,0.08));
+      border-color: rgba(236,72,153,0.2);
+    }
+    .gradient-card-green {
+      background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(6,182,212,0.08));
+      border-color: rgba(34,197,94,0.2);
+    }
+    .gradient-card-purple {
+      background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.1));
+      border-color: rgba(139,92,246,0.2);
+    }
+
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .label-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+    }
+    .dot-blue { background: #6366f1; box-shadow: 0 0 8px rgba(99,102,241,0.5); }
+    .dot-pink { background: #ec4899; box-shadow: 0 0 8px rgba(236,72,153,0.5); }
+    .dot-green { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.5); }
+    .dot-purple { background: #8b5cf6; box-shadow: 0 0 8px rgba(139,92,246,0.5); }
+
+    .section-title {
+      font-size: 17px; font-weight: 700; color: #ffffff; margin-bottom: 16px;
+    }
+
+    /* Customer Info */
+    .customer-row {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+    }
+    .customer-avatar {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; color: white; flex-shrink: 0;
+    }
+    .customer-name { font-size: 17px; font-weight: 700; color: #ffffff; }
+    .customer-sub { font-size: 13px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+
+    .info-chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .info-chip {
+      padding: 5px 12px; border-radius: 10px; font-size: 12px; font-weight: 600;
+      background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    /* Health Items */
+    .health-item {
+      padding: 14px 16px; border-radius: 14px;
+      background: rgba(255,255,255,0.05); margin-bottom: 8px;
+      display: flex; align-items: flex-start; gap: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .health-icon {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(249,115,22,0.2));
+      display: flex; align-items: center; justify-content: center;
+      color: #f472b6; font-size: 14px; flex-shrink: 0;
+    }
+    .health-label { font-size: 13px; font-weight: 700; color: #ffffff; }
+    .health-detail { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px; line-height: 1.5; }
+
+    /* Coverage */
+    .coverage-item {
+      padding: 16px; border-radius: 14px;
+      background: rgba(255,255,255,0.05); margin-bottom: 8px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .coverage-top {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .coverage-name { font-size: 14px; font-weight: 700; color: #ffffff; }
+    .coverage-badge {
+      padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700;
+    }
+    .badge-ok {
+      background: rgba(34,197,94,0.15); color: #4ade80;
+      border: 1px solid rgba(34,197,94,0.2);
+    }
+    .badge-warn {
+      background: rgba(251,191,36,0.15); color: #fbbf24;
+      border: 1px solid rgba(251,191,36,0.2);
+    }
+    .coverage-bar {
+      height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px;
+      overflow: hidden; margin-bottom: 8px;
+    }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .bar-ok { background: linear-gradient(90deg, #22c55e, #4ade80); box-shadow: 0 0 10px rgba(34,197,94,0.3); }
+    .bar-warn { background: linear-gradient(90deg, #f59e0b, #fbbf24); box-shadow: 0 0 10px rgba(251,191,36,0.3); }
+    .coverage-note { font-size: 12px; color: rgba(255,255,255,0.4); line-height: 1.5; }
+
+    /* Recommendation */
+    .rec-card {
+      padding: 18px; border-radius: 16px;
+      background: rgba(255,255,255,0.06); margin-bottom: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: all 0.3s;
+    }
+    .rec-card:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+    .rec-tag {
+      display: inline-block; padding: 3px 10px; border-radius: 6px;
+      font-size: 10px; font-weight: 800; margin-bottom: 10px;
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      color: white; letter-spacing: 0.5px;
+    }
+    .rec-company { font-size: 15px; font-weight: 700; color: #ffffff; }
+    .rec-product { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+    .rec-price {
+      margin-top: 12px; font-size: 22px; font-weight: 800;
+      background: linear-gradient(135deg, #818cf8, #c084fc);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .rec-price span { font-size: 13px; font-weight: 400; }
+    .rec-features { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .rec-feature {
+      font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.8;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .rec-feature i { font-size: 10px; color: #8b5cf6; }
+
+    /* Floating Bottom Actions */
+    .floating-actions {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px; padding: 12px 16px 24px;
+      background: linear-gradient(180deg, transparent, rgba(15,15,26,0.95) 30%);
+      z-index: 10; display: flex; gap: 8px;
+      animation: fadeInUp 0.5s ease both; animation-delay: 0.4s;
+    }
+    .float-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 14px 0; border-radius: 14px; border: none; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: all 0.3s; text-decoration: none;
+    }
+    .float-btn i { font-size: 15px; }
+    .float-btn.primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white; box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+    }
+    .float-btn.primary:hover { box-shadow: 0 6px 28px rgba(99,102,241,0.5); animation: float 2s ease infinite; }
+    .float-btn.secondary {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px); color: white;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center; padding: 24px 16px 100px;
+      animation: fadeInUp 0.5s ease both; animation-delay: 0.35s;
+    }
+    .footer-brand {
+      font-size: 13px; font-weight: 800; letter-spacing: 3px;
+      background: linear-gradient(135deg, #818cf8, #c084fc);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 6px;
+    }
+    .footer-text { font-size: 11px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Background Blobs -->
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <!-- Agent Header -->
+    <div class="agent-header">
+      <div class="agent-avatar">김</div>
+      <div class="agent-name">김예준</div>
+      <div class="agent-role">본부장 | 프라임에셋</div>
+      <div class="agent-badge">Insurance Consultant</div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <a href="#" class="action-btn card"><i class="fas fa-id-card"></i> 명함</a>
+      <a href="#" class="action-btn phone"><i class="fas fa-phone"></i> 전화</a>
+      <a href="#" class="action-btn kakao"><i class="fas fa-comment"></i> 카카오톡</a>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Customer Info -->
+      <div class="glass-card gradient-card-blue">
+        <div class="section-label"><span class="label-dot dot-blue"></span> 고객 정보</div>
+        <div class="customer-row">
+          <div class="customer-avatar">홍</div>
+          <div>
+            <div class="customer-name">홍길동</div>
+            <div class="customer-sub">35세 / 남성</div>
+          </div>
+        </div>
+        <div class="info-chips">
+          <span class="info-chip">회사원</span>
+          <span class="info-chip">비흡연</span>
+          <span class="info-chip">건강체</span>
+        </div>
+      </div>
+
+      <!-- Health Checklist -->
+      <div class="glass-card gradient-card-pink">
+        <div class="section-label"><span class="label-dot dot-pink"></span> 건강 체크리스트</div>
+        <div class="health-item">
+          <div class="health-icon"><i class="fas fa-heartbeat"></i></div>
+          <div>
+            <div class="health-label">고혈압 가족력</div>
+            <div class="health-detail">부친 고혈압 진단 이력. 정기적인 혈압 모니터링 권장.</div>
+          </div>
+        </div>
+        <div class="health-item">
+          <div class="health-icon"><i class="fas fa-stethoscope"></i></div>
+          <div>
+            <div class="health-label">건강검진 예정</div>
+            <div class="health-detail">2026년 상반기 국가건강검진 대상. 위내시경 포함 권장.</div>
+          </div>
+        </div>
+        <div class="health-item">
+          <div class="health-icon"><i class="fas fa-notes-medical"></i></div>
+          <div>
+            <div class="health-label">과거 수술 이력</div>
+            <div class="health-detail">2020년 충수절제술(맹장수술). 완치 후 경과 양호.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coverage Analysis -->
+      <div class="glass-card gradient-card-green">
+        <div class="section-label"><span class="label-dot dot-green"></span> 보장 분석</div>
+        <div class="coverage-item">
+          <div class="coverage-top">
+            <div class="coverage-name">실손의료비</div>
+            <span class="coverage-badge badge-ok">충분</span>
+          </div>
+          <div class="coverage-bar"><div class="bar-fill bar-ok" style="width: 85%;"></div></div>
+          <div class="coverage-note">현재 4세대 실손보험 가입 중 (입원/통원 적정)</div>
+        </div>
+        <div class="coverage-item">
+          <div class="coverage-top">
+            <div class="coverage-name">암보장</div>
+            <span class="coverage-badge badge-warn">보완 필요</span>
+          </div>
+          <div class="coverage-bar"><div class="bar-fill bar-warn" style="width: 40%;"></div></div>
+          <div class="coverage-note">일반암 진단금 1,000만원. 3,000만원 이상 권장.</div>
+        </div>
+      </div>
+
+      <!-- Recommendation -->
+      <div class="glass-card gradient-card-purple">
+        <div class="section-label"><span class="label-dot dot-purple"></span> 추천 상품</div>
+        <div class="rec-card">
+          <span class="rec-tag">BEST</span>
+          <div class="rec-company">삼성화재</div>
+          <div class="rec-product">무배당 뉴 암보험 플러스</div>
+          <div class="rec-price">32,400원 <span>/월</span></div>
+          <div class="rec-features">
+            <div class="rec-feature"><i class="fas fa-check"></i> 일반암 진단금 3,000만원</div>
+            <div class="rec-feature"><i class="fas fa-check"></i> 소액암 진단금 500만원</div>
+            <div class="rec-feature"><i class="fas fa-check"></i> 암 수술비 500만원</div>
+          </div>
+        </div>
+        <div class="rec-card">
+          <span class="rec-tag">추천</span>
+          <div class="rec-company">현대해상</div>
+          <div class="rec-product">무배당 굿앤굿 건강보험</div>
+          <div class="rec-price">28,700원 <span>/월</span></div>
+          <div class="rec-features">
+            <div class="rec-feature"><i class="fas fa-check"></i> 3대질병 진단금 2,000만원</div>
+            <div class="rec-feature"><i class="fas fa-check"></i> 입원일당 5만원</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-brand">PRIME ASSET</div>
+      <div class="footer-text">
+        본 제안서는 고객님의 보장 현황을 분석하여<br>
+        최적의 보험 설계를 제안드리기 위해 작성되었습니다.
+      </div>
+    </div>
+
+    <!-- Floating Bottom Actions -->
+    <div class="floating-actions">
+      <a href="#" class="float-btn secondary"><i class="fas fa-id-card"></i> 온라인명함</a>
+      <a href="#" class="float-btn primary"><i class="fas fa-phone"></i> 상담 신청</a>
+    </div>
+  </div>
+</body>
+</html>
