@@ -2,6 +2,107 @@
 const DashboardPage = {
   _dashData: null,
 
+  onRendered() {
+    if (API.getAgent()?.login_id === 'admin') {
+      this._loadCalendarWidget();
+    }
+  },
+
+  async _loadCalendarWidget() {
+    const container = document.getElementById('dash-calendar-widget');
+    if (!container) return;
+
+    try {
+      const data = await API.getCalendarUpcoming();
+      const { todayEvents, weekEvents, todayTodos, overdueTodos } = data;
+
+      const colorMap = {
+        blue: '#3B82F6', green: '#22C55E', red: '#EF4444',
+        orange: '#F97316', purple: '#8B5CF6', pink: '#EC4899'
+      };
+
+      let eventsHTML = todayEvents.length > 0
+        ? todayEvents.map(e => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+            <div style="width:4px;height:32px;border-radius:2px;background:${colorMap[e.color]||colorMap.blue};flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;color:var(--foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.escapeHtml(e.title)}</div>
+              <div style="font-size:11px;color:var(--muted-foreground);">${e.start_time||'종일'}${e.Customer ? ' · '+Utils.escapeHtml(e.Customer.name) : ''}</div>
+            </div>
+            ${e.customer_id ? `<div style="display:flex;gap:4px;"><button class="btn btn-sm" style="padding:3px 8px;font-size:10px;border-radius:6px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;" onclick="App.navigate('consultation',{customerId:${e.customer_id}})">제안서</button><button class="btn btn-sm" style="padding:3px 8px;font-size:10px;border-radius:6px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;" onclick="App.navigate('messages',{customerId:${e.customer_id},templateType:'일정'})">알림톡</button></div>` : ''}
+          </div>
+        `).join('')
+        : '<div style="text-align:center;padding:12px 0;font-size:12px;color:var(--muted-foreground);">오늘 일정이 없습니다</div>';
+
+      let todosHTML = todayTodos.length > 0
+        ? todayTodos.map(t => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;">
+            <input type="checkbox" ${t.is_completed?'checked':''} onchange="DashboardPage._toggleWidgetTodo(${t.id})" style="width:15px;height:15px;accent-color:var(--primary);cursor:pointer;">
+            <span style="font-size:12px;${t.is_completed?'text-decoration:line-through;color:var(--muted-foreground);':'color:var(--foreground);'}">${Utils.escapeHtml(t.title)}</span>
+          </div>
+        `).join('')
+        : '';
+
+      let overdueHTML = overdueTodos.length > 0
+        ? `<div style="margin-top:8px;padding:8px 10px;background:#FEF2F2;border-radius:8px;border:1px solid #FECACA;">
+            <div style="font-size:11px;font-weight:600;color:#DC2626;margin-bottom:4px;">지연된 할 일 (${overdueTodos.length})</div>
+            ${overdueTodos.map(t => `<div style="font-size:11px;color:#B91C1C;padding:2px 0;">${Utils.escapeHtml(t.title)} <span style="color:#EF4444;font-size:10px;">(${t.due_date})</span></div>`).join('')}
+          </div>`
+        : '';
+
+      // 이번 주 일정 미리보기
+      const futureWeek = weekEvents.filter(e => e.start_date > new Date().toISOString().split('T')[0]);
+      let weekHTML = futureWeek.length > 0
+        ? futureWeek.slice(0, 5).map(e => {
+            const d = new Date(e.start_date+'T00:00:00');
+            const dayNames = ['일','월','화','수','목','금','토'];
+            return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;">
+              <span style="color:var(--muted-foreground);font-weight:500;min-width:50px;">${d.getMonth()+1}/${d.getDate()}(${dayNames[d.getDay()]})</span>
+              <span style="width:6px;height:6px;border-radius:50%;background:${colorMap[e.color]||colorMap.blue};flex-shrink:0;"></span>
+              <span style="color:var(--foreground);">${Utils.escapeHtml(e.title)}</span>
+            </div>`;
+          }).join('')
+        : '<div style="font-size:12px;color:var(--muted-foreground);text-align:center;padding:8px 0;">이번 주 예정된 일정이 없습니다</div>';
+
+      container.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+          <div class="card" style="padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h4 style="font-size:14px;font-weight:700;color:var(--foreground);margin:0;display:flex;align-items:center;gap:6px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                오늘 일정
+                <span style="background:#EEF2FF;color:#4338CA;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">${todayEvents.length}</span>
+              </h4>
+              <button class="btn btn-sm" style="font-size:11px;padding:4px 10px;" onclick="App.navigate('calendar')">캘린더</button>
+            </div>
+            ${eventsHTML}
+            ${todosHTML ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);"><div style="font-size:11px;font-weight:600;color:var(--muted-foreground);margin-bottom:6px;">오늘 할 일</div>'+todosHTML+'</div>' : ''}
+            ${overdueHTML}
+          </div>
+          <div class="card" style="padding:18px;">
+            <h4 style="font-size:14px;font-weight:700;color:var(--foreground);margin:0 0 12px 0;display:flex;align-items:center;gap:6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18"/><rect width="18" height="18" x="3" y="4" rx="2"/></svg>
+              이번 주 예정
+              <span style="background:#FFF7ED;color:#C2410C;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">${futureWeek.length}</span>
+            </h4>
+            ${weekHTML}
+          </div>
+        </div>
+      `;
+    } catch (err) {
+      container.innerHTML = '';
+    }
+  },
+
+  async _toggleWidgetTodo(id) {
+    try {
+      await API.toggleCalendarTodo(id);
+      this._loadCalendarWidget();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
   async render() {
     try {
       const data = await API.getDashboard();
@@ -56,6 +157,9 @@ const DashboardPage = {
             <div class="summary-card-sub">전체 ${summary.totalCustomers}명</div>
           </div>
         </div>
+
+        <!-- 오늘 일정 위젯 (test 계정 전용) -->
+        ${API.getAgent()?.login_id === 'admin' ? '<div id="dash-calendar-widget"><div style="padding:16px;text-align:center;color:var(--muted-foreground);font-size:13px;">일정 로딩중...</div></div>' : ''}
 
         <!-- 최근 고객 + 사이드바 -->
         <div class="dashboard-grid">
@@ -123,7 +227,7 @@ const DashboardPage = {
             <strong style="font-size:13px;cursor:pointer;color:var(--blue);" onclick="DashboardPage.showCustomerDetail(${c.id})">${Utils.escapeHtml(c.name)}</strong>
             <span class="status-badge ${Utils.getStatusClass(c.status)}" style="font-size:10px;padding:1px 6px;cursor:pointer;" onclick="DashboardPage.cycleStatus(${c.id}, '${c.status}')">${c.status}</span>
           </div>
-          <div style="font-size:11px;color:var(--gray-400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${Utils.formatPhone(c.phone)} ${c.birth_date ? '· ' + Utils.formatDate(c.birth_date) : ''}${c.address ? ' · ' + (c.address.split('|')[0].match(/^.*?[시군구]/)?.[0] || '') : ''}${c.consult_date ? ' · <span style="color:#6366f1;">' + Utils.escapeHtml(c.consult_date) + '</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--gray-400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${Utils.formatPhone(c.phone)} ${c.birth_date ? '· ' + Utils.formatDate(c.birth_date) : ''}${c.address ? ' · ' + (c.address.split('|')[0].match(/^.*?[시군구]/)?.[0] || '') : ''}${c.consult_schedule ? ' · <span style="color:#6366f1;">상담 ' + Utils.escapeHtml(c.consult_schedule) + '</span>' : ''}</div>
         </div>
         <div class="dashboard-recent-item-actions">
           <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;border-radius:6px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;" onclick="DashboardPage.openProposal(${c.id})" title="제안서">제안서</button>
@@ -218,6 +322,7 @@ const DashboardPage = {
             <th>생년월일</th>
             <th>지역</th>
             <th>상태</th>
+            <th>상담 예정일</th>
             <th>상담내용</th>
             <th>등록일</th>
             <th>최근수정일</th>
@@ -234,6 +339,7 @@ const DashboardPage = {
               <td>
                 <span class="status-badge ${Utils.getStatusClass(c.status)}" style="cursor:pointer;" onclick="DashboardPage.cycleStatus(${c.id}, '${c.status}')">${c.status}</span>
               </td>
+              <td style="font-size:12px;color:#6366f1;font-weight:500;white-space:nowrap;">${c.consult_schedule ? Utils.escapeHtml(c.consult_schedule) : '<span style="color:var(--gray-300);">-</span>'}</td>
               <td style="font-size:12px;color:var(--gray-600);max-width:150px;">${c.consult_date ? Utils.escapeHtml(c.consult_date) + ' ' : ''}<span style="opacity:0.35;font-size:13px;cursor:pointer;" onclick="DashboardPage.inlineEditMemo(this.parentElement, ${c.id}, 'consult_date')" title="클릭하여 수정">\u270E</span></td>
               <td>${Utils.formatDate(c.createdAt)}</td>
               <td>${Utils.formatDate(c.updatedAt)}</td>
@@ -409,6 +515,11 @@ const DashboardPage = {
           </select>
         </div>
         <div class="form-group">
+          <label class="form-label">상담 예정일</label>
+          <input type="text" class="form-input" name="consult_schedule" placeholder="20260415" maxlength="10" oninput="Utils.formatBirthInput(this)">
+          <div style="font-size:11px;color:var(--muted-foreground);margin-top:4px;">입력 시 캘린더에 자동 등록됩니다</div>
+        </div>
+        <div class="form-group">
           <label class="form-label">상담 내용</label>
           <textarea class="form-input" name="consult_date" rows="3" style="resize:vertical;" placeholder="상담 내용"></textarea>
         </div>
@@ -503,6 +614,11 @@ const DashboardPage = {
               <option value="청약완료" ${customer.status==='청약완료'?'selected':''}>청약완료</option>
               <option value="상담완료" ${customer.status==='상담완료'?'selected':''}>상담완료</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">상담 예정일</label>
+            <input type="text" class="form-input" name="consult_schedule" value="${Utils.escapeHtml(customer.consult_schedule || '')}" placeholder="20260415" maxlength="10" oninput="Utils.formatBirthInput(this)">
+            <div style="font-size:11px;color:var(--muted-foreground);margin-top:4px;">입력 시 캘린더에 자동 등록됩니다</div>
           </div>
           <div class="form-group">
             <label class="form-label">상담 내용</label>

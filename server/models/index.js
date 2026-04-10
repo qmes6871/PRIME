@@ -22,6 +22,8 @@ const SurveyResponse = require('./SurveyResponse')(sequelize);
 const AgentSetting = require('./AgentSetting')(sequelize);
 const ConsultationHistory = require('./ConsultationHistory')(sequelize);
 const DesignConsent = require('./DesignConsent')(sequelize);
+const CalendarEvent = require('./CalendarEvent')(sequelize);
+const CalendarTodo = require('./CalendarTodo')(sequelize);
 
 // Associations
 Agent.hasMany(Customer, { foreignKey: 'agent_id' });
@@ -78,6 +80,16 @@ DesignConsent.belongsTo(Customer, { foreignKey: 'customer_id' });
 Agent.hasMany(DesignConsent, { foreignKey: 'agent_id' });
 DesignConsent.belongsTo(Agent, { foreignKey: 'agent_id' });
 
+Agent.hasMany(CalendarEvent, { foreignKey: 'agent_id' });
+CalendarEvent.belongsTo(Agent, { foreignKey: 'agent_id' });
+Customer.hasMany(CalendarEvent, { foreignKey: 'customer_id' });
+CalendarEvent.belongsTo(Customer, { foreignKey: 'customer_id' });
+
+Agent.hasMany(CalendarTodo, { foreignKey: 'agent_id' });
+CalendarTodo.belongsTo(Agent, { foreignKey: 'agent_id' });
+Customer.hasMany(CalendarTodo, { foreignKey: 'customer_id' });
+CalendarTodo.belongsTo(Customer, { foreignKey: 'customer_id' });
+
 module.exports = {
   sequelize,
   Agent,
@@ -93,5 +105,7 @@ module.exports = {
   SurveyResponse,
   AgentSetting,
   ConsultationHistory,
-  DesignConsent
+  DesignConsent,
+  CalendarEvent,
+  CalendarTodo
 };

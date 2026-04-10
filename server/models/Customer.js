@@ -51,7 +51,12 @@ module.exports = (sequelize) => {
     },
     consult_date: {
       type: DataTypes.TEXT,
-      comment: '상담 예정일시'
+      comment: '상담 내용'
+    },
+    consult_schedule: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      comment: '상담 예정일시 (YYYY-MM-DD HH:mm)'
     }
   }, {
     tableName: 'customers'

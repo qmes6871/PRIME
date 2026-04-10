@@ -198,6 +198,28 @@ const API = {
   getDesignConsents(customerId) { return this.get(`/customers/${customerId}/design-consent`); },
   deleteDesignConsent(consentId) { return this.delete(`/customers/design-consent/${consentId}`); },
 
+  // Calendar
+  getCalendarEvents(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.get('/calendar/events' + (query ? '?' + query : ''));
+  },
+  createCalendarEvent(data) { return this.post('/calendar/events', data); },
+  updateCalendarEvent(id, data) { return this.put(`/calendar/events/${id}`, data); },
+  moveCalendarEvent(id, data) { return this.patch(`/calendar/events/${id}/move`, data); },
+  deleteCalendarEvent(id) { return this.delete(`/calendar/events/${id}`); },
+
+  getCalendarTodos(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.get('/calendar/todos' + (query ? '?' + query : ''));
+  },
+  createCalendarTodo(data) { return this.post('/calendar/todos', data); },
+  updateCalendarTodo(id, data) { return this.put(`/calendar/todos/${id}`, data); },
+  toggleCalendarTodo(id) { return this.patch(`/calendar/todos/${id}/toggle`); },
+  moveCalendarTodo(id, data) { return this.patch(`/calendar/todos/${id}/move`, data); },
+  deleteCalendarTodo(id) { return this.delete(`/calendar/todos/${id}`); },
+
+  getCalendarUpcoming() { return this.get('/calendar/upcoming'); },
+
   // Admin
   getAgents() { return this.get('/admin/agents'); },
   createAgent(data) { return this.post('/admin/agents', data); },

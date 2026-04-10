@@ -1,8 +1,46 @@
 const express = require('express');
 const router = express.Router();
-const { Customer, Consultation, CustomerCoverage, DesignConsent, MessageLog } = require('../models');
+const { Customer, Consultation, CustomerCoverage, DesignConsent, MessageLog, CalendarEvent } = require('../models');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
+
+// Helper: consult_schedule → 캘린더 일정 동기화
+async function syncConsultScheduleToCalendar(customer, agentId) {
+  const schedule = customer.consult_schedule;
+  const sourceId = `customer_${customer.id}`;
+
+  // 기존 연동 일정 삭제
+  await CalendarEvent.destroy({
+    where: { agent_id: agentId, source: 'consult_schedule', source_id: sourceId }
+  });
+
+  // 새 consult_schedule이 있으면 일정 생성
+  if (schedule && schedule.trim()) {
+    let startDate = null;
+    let startTime = null;
+
+    // "2026-04-15 14:00" or "2026-04-15"
+    const dtMatch = schedule.trim().match(/^(\d{4}-\d{2}-\d{2})\s*(\d{2}:\d{2})?/);
+    if (dtMatch) {
+      startDate = dtMatch[1];
+      startTime = dtMatch[2] || null;
+    }
+
+    if (startDate) {
+      await CalendarEvent.create({
+        agent_id: agentId,
+        customer_id: customer.id,
+        title: `${customer.name} 고객 상담`,
+        start_date: startDate,
+        start_time: startTime,
+        color: 'blue',
+        category: '상담',
+        source: 'consult_schedule',
+        source_id: sourceId
+      });
+    }
+  }
+}
 
 // GET /api/v1/customers
 router.get('/', async (req, res, next) => {
@@ -61,6 +99,12 @@ router.post('/', async (req, res, next) => {
       ...req.body,
       agent_id: req.agent.id
     });
+
+    // consult_schedule → 캘린더 동기화
+    if (req.body.consult_schedule) {
+      await syncConsultScheduleToCalendar(customer, req.agent.id);
+    }
+
     res.status(201).json({ customer });
   } catch (err) {
     next(err);
@@ -76,6 +120,12 @@ router.put('/:id', async (req, res, next) => {
     if (!customer) return res.status(404).json({ error: '고객을 찾을 수 없습니다.' });
 
     await customer.update(req.body);
+
+    // consult_schedule 변경 시 캘린더 동기화
+    if (req.body.consult_schedule !== undefined) {
+      await syncConsultScheduleToCalendar(customer, req.agent.id);
+    }
+
     res.json({ customer });
   } catch (err) {
     next(err);
@@ -104,6 +154,11 @@ router.delete('/:id', async (req, res, next) => {
       where: { id: req.params.id, agent_id: req.agent.id }
     });
     if (!customer) return res.status(404).json({ error: '고객을 찾을 수 없습니다.' });
+
+    // 관련 캘린더 일정 삭제
+    await CalendarEvent.destroy({
+      where: { agent_id: req.agent.id, source: 'consult_schedule', source_id: `customer_${customer.id}` }
+    });
 
     await customer.destroy();
     res.json({ message: '삭제되었습니다.' });

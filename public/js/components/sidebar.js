@@ -2,6 +2,7 @@
 const Sidebar = {
   // Lucide SVG icons
   icons: {
+    calendar: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>',
     dashboard: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>',
     customers: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     consultation: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>',
@@ -60,6 +61,16 @@ const Sidebar = {
 
   _appendAdminMenu(items) {
     const agent = API.getAgent();
+    // 캘린더 메뉴: test 계정에만 표시
+    if (agent?.login_id === 'admin' && !items.find(i => i.id === 'calendar')) {
+      const settingsIdx = items.findIndex(i => i.id === 'settings');
+      const calItem = { id: 'calendar', icon: 'calendar', label: '캘린더' };
+      if (settingsIdx >= 0) {
+        items = [...items.slice(0, settingsIdx), calItem, ...items.slice(settingsIdx)];
+      } else {
+        items = [...items, calItem];
+      }
+    }
     if (agent?.is_admin && !items.find(i => i.id === 'admin')) {
       return [...items, { id: 'admin', icon: 'admin', label: '관리자' }];
     }

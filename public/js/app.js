@@ -81,6 +81,7 @@ const App = {
 
       switch (page) {
         case 'dashboard':
+          pageObj = DashboardPage;
           content = await DashboardPage.render();
           break;
         case 'customers':
@@ -114,6 +115,10 @@ const App = {
           break;
         case 'settings':
           content = await SettingsPage.render();
+          break;
+        case 'calendar':
+          pageObj = CalendarPage;
+          content = await CalendarPage.render();
           break;
         case 'admin':
           content = await AdminPage.render();
