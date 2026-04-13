@@ -22,7 +22,7 @@ module.exports = (sequelize) => {
     },
     due_date: {
       type: DataTypes.DATEONLY,
-      allowNull: false
+      allowNull: true
     },
     is_completed: {
       type: DataTypes.BOOLEAN,

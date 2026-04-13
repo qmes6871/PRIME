@@ -13,8 +13,12 @@ const DashboardPage = {
     if (!container) return;
 
     try {
-      const data = await API.getCalendarUpcoming();
+      const [data, undatedRes] = await Promise.all([
+        API.getCalendarUpcoming(),
+        API.getCalendarTodos({ undated: 'true' })
+      ]);
       const { todayEvents, weekEvents, todayTodos, overdueTodos } = data;
+      const undatedTodos = undatedRes.todos || [];
 
       const colorMap = {
         blue: '#3B82F6', green: '#22C55E', red: '#EF4444',
@@ -64,9 +68,25 @@ const DashboardPage = {
           }).join('')
         : '<div style="font-size:12px;color:var(--muted-foreground);text-align:center;padding:8px 0;">이번 주 예정된 일정이 없습니다</div>';
 
+      const undatedIncomplete = undatedTodos.filter(t => !t.is_completed);
+      const undatedCompleted = undatedTodos.filter(t => t.is_completed);
+      const undatedAll = [...undatedIncomplete, ...undatedCompleted];
+
+      let undatedHTML = undatedAll.length > 0
+        ? undatedAll.map(t => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;${t.is_completed ? '' : 'border-bottom:1px solid var(--border);'}">
+            <input type="checkbox" ${t.is_completed?'checked':''} onchange="DashboardPage._toggleWidgetTodo(${t.id})" style="width:15px;height:15px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;">
+            <span style="flex:1;font-size:13px;${t.is_completed?'text-decoration:line-through;color:var(--muted-foreground);':'color:var(--foreground);'}">${Utils.escapeHtml(t.title)}</span>
+            <button onclick="DashboardPage._deleteWidgetTodo(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted-foreground);padding:2px;line-height:1;opacity:0.5;" onmouseover="this.style.opacity='1';this.style.color='#EF4444'" onmouseout="this.style.opacity='0.5';this.style.color='var(--muted-foreground)'">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+        `).join('')
+        : '<div style="text-align:center;padding:12px 0;font-size:12px;color:var(--muted-foreground);">등록된 할 일이 없습니다</div>';
+
       container.innerHTML = `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-          <div class="card" style="padding:18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;">
+          <div class="card" style="padding:18px;margin-bottom:0;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
               <h4 style="font-size:14px;font-weight:700;color:var(--foreground);margin:0;display:flex;align-items:center;gap:6px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
@@ -79,13 +99,27 @@ const DashboardPage = {
             ${todosHTML ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);"><div style="font-size:11px;font-weight:600;color:var(--muted-foreground);margin-bottom:6px;">오늘 할 일</div>'+todosHTML+'</div>' : ''}
             ${overdueHTML}
           </div>
-          <div class="card" style="padding:18px;">
+          <div class="card" style="padding:18px;margin-bottom:0;">
             <h4 style="font-size:14px;font-weight:700;color:var(--foreground);margin:0 0 12px 0;display:flex;align-items:center;gap:6px;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18"/><rect width="18" height="18" x="3" y="4" rx="2"/></svg>
               이번 주 예정
               <span style="background:#FFF7ED;color:#C2410C;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">${futureWeek.length}</span>
             </h4>
             ${weekHTML}
+          </div>
+          <div class="card" style="padding:18px;margin-bottom:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h4 style="font-size:14px;font-weight:700;color:var(--foreground);margin:0;display:flex;align-items:center;gap:6px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                할 일 메모
+                <span style="background:#F0FDF4;color:#16A34A;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">${undatedIncomplete.length}</span>
+              </h4>
+            </div>
+            ${undatedHTML}
+            <div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+              <input type="text" id="dash-undated-input" placeholder="할 일 입력..." style="flex:1;min-width:0;border:1px dashed var(--border);border-radius:8px;padding:8px 12px;font-size:13px;background:var(--muted);outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();DashboardPage._addWidgetTodo()}" onfocus="this.style.borderColor='var(--primary)';this.style.borderStyle='solid';this.style.background='var(--card)'" onblur="this.style.borderColor='var(--border)';this.style.borderStyle='dashed';this.style.background='var(--muted)'">
+              <button class="btn btn-primary btn-sm" style="padding:6px 10px;white-space:nowrap;" onclick="DashboardPage._addWidgetTodo()">추가</button>
+            </div>
           </div>
         </div>
       `;
@@ -101,6 +135,65 @@ const DashboardPage = {
     } catch (err) {
       showToast(err.message, 'error');
     }
+  },
+
+  async _addWidgetTodo() {
+    const input = document.getElementById('dash-undated-input');
+    const title = input?.value.trim();
+    if (!title) return;
+    try {
+      await API.createCalendarTodo({ title, due_date: null, priority: 'medium' });
+      showToast('할 일이 추가되었습니다.', 'success');
+      this._loadCalendarWidget();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
+  async _deleteWidgetTodo(id) {
+    try {
+      await API.deleteCalendarTodo(id);
+      showToast('삭제되었습니다.', 'success');
+      this._loadCalendarWidget();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
+  async showQuickProposal() {
+    try {
+      const res = await API.getCustomers({ limit: 500 });
+      const customers = res.customers || [];
+      const options = customers.map(c =>
+        `<option value="${c.id}">${Utils.escapeHtml(c.name)}${c.phone ? ' ('+c.phone+')' : ''}</option>`
+      ).join('');
+
+      const body = `
+        <div class="form-group">
+          <label class="form-label">고객 선택</label>
+          <select class="form-input" id="quick-proposal-customer">
+            <option value="">고객을 선택하세요</option>
+            ${options}
+          </select>
+        </div>
+      `;
+      const footer = `
+        <div style="display:flex;gap:8px;margin-left:auto;">
+          <button class="btn btn-secondary" onclick="Modal.close()">취소</button>
+          <button class="btn btn-primary" onclick="DashboardPage._goProposal()">제안서 작성</button>
+        </div>
+      `;
+      Modal.show('빠른 제안서 생성', body, footer);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
+  _goProposal() {
+    const customerId = document.getElementById('quick-proposal-customer')?.value;
+    if (!customerId) { showToast('고객을 선택하세요.', 'error'); return; }
+    Modal.close();
+    App.navigate('consultation', { customerId: parseInt(customerId) });
   },
 
   async render() {
@@ -156,6 +249,33 @@ const DashboardPage = {
             <div class="summary-card-value">${sc['상담중'] || 0}</div>
             <div class="summary-card-sub">전체 ${summary.totalCustomers}명</div>
           </div>
+          <div class="summary-card" style="display:flex;flex-direction:column;justify-content:center;">
+            <h4 style="font-size:13px;font-weight:700;color:var(--foreground);margin-bottom:12px;">상담 현황</h4>
+            ${[
+              { label: '상담 전', count: sc['상담전'] || 0, color: '#f59e0b', bg: '#fef3c7' },
+              { label: '상담 중', count: sc['상담중'] || 0, color: '#f97316', bg: '#ffedd5' },
+              { label: '청약 완료', count: sc['청약완료'] || 0, color: '#3b82f6', bg: '#dbeafe' },
+              { label: '상담 완료', count: sc['상담완료'] || 0, color: '#22c55e', bg: '#dcfce7' }
+            ].map(s => `
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <div style="width:7px;height:7px;border-radius:50%;background:${s.color};flex-shrink:0;"></div>
+                <span style="flex:1;font-size:12px;color:var(--muted-foreground);">${s.label}</span>
+                <div style="background:${s.bg};color:${s.color};padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;">${s.count}명</div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="background:linear-gradient(135deg,#4f46e5,#6366f1);border-radius:12px;padding:14px;color:white;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" onclick="DashboardPage.showQuickProposal()">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <div style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;">
+                  <svg width="14" height="14" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+                </div>
+                <span style="font-size:13px;font-weight:700;">빠른 제안서 생성</span>
+              </div>
+              <p style="font-size:11px;color:rgba(255,255,255,0.8);line-height:1.4;margin-bottom:10px;">고객 선택 후 바로 제안서를 작성하세요.</p>
+            </div>
+            <div style="background:rgba(255,255,255,0.95);color:#4f46e5;text-align:center;padding:8px;border-radius:8px;font-size:12px;font-weight:700;">지금 시작하기</div>
+          </div>
         </div>
 
         <!-- 오늘 일정 위젯 (test 계정 전용) -->
@@ -176,36 +296,6 @@ const DashboardPage = {
             </div>
           </div>
 
-          <div style="display:flex;flex-direction:column;gap:16px;">
-            <!-- 상담 현황 -->
-            <div class="card" style="padding:18px;">
-              <h4 style="font-size:14px;font-weight:700;color:var(--gray-800);margin-bottom:14px;">상담 현황</h4>
-              ${[
-                { label: '상담 전', count: sc['상담전'] || 0, color: '#f59e0b', bg: '#fef3c7' },
-                { label: '상담 중', count: sc['상담중'] || 0, color: '#f97316', bg: '#ffedd5' },
-                { label: '청약 완료', count: sc['청약완료'] || 0, color: '#3b82f6', bg: '#dbeafe' },
-                { label: '상담 완료', count: sc['상담완료'] || 0, color: '#22c55e', bg: '#dcfce7' }
-              ].map(s => `
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-                  <div style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0;"></div>
-                  <span style="flex:1;font-size:13px;color:var(--gray-600);">${s.label}</span>
-                  <div style="background:${s.bg};color:${s.color};padding:2px 10px;border-radius:12px;font-size:12px;font-weight:700;">${s.count}명</div>
-                </div>
-              `).join('')}
-            </div>
-
-            <!-- 빠른 제안서 생성 -->
-            <div style="background:linear-gradient(135deg,#4f46e5,#6366f1);border-radius:14px;padding:22px 20px;color:white;cursor:pointer;" onclick="DashboardPage.quickProposal()">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;">
-                  <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                </div>
-                <span style="font-size:15px;font-weight:700;">빠른 제안서 생성</span>
-              </div>
-              <p style="font-size:12px;color:rgba(255,255,255,0.8);line-height:1.5;margin-bottom:14px;">고객 정보 입력 후 실시간으로 프라임형 제안서를 만드세요.</p>
-              <div style="background:rgba(255,255,255,0.95);color:#4f46e5;text-align:center;padding:10px;border-radius:10px;font-size:13px;font-weight:700;">지금 시작하기</div>
-            </div>
-          </div>
         </div>
       `;
     } catch (err) {
@@ -269,10 +359,112 @@ const DashboardPage = {
   },
 
   // ==================== 고객목록 페이지 (별도) ====================
+  _customerSort: { field: null, dir: 'asc' },
+
+  sortCustomers(customers) {
+    const { field, dir } = this._customerSort;
+    if (!field) return customers;
+    const sorted = [...customers].sort((a, b) => {
+      let valA, valB;
+      if (field === 'name') {
+        valA = (a.name || '').toLowerCase();
+        valB = (b.name || '').toLowerCase();
+        return valA < valB ? -1 : valA > valB ? 1 : 0;
+      } else if (field === 'updatedAt') {
+        valA = new Date(a.updatedAt || 0).getTime();
+        valB = new Date(b.updatedAt || 0).getTime();
+        return valA - valB;
+      }
+      return 0;
+    });
+    return dir === 'desc' ? sorted.reverse() : sorted;
+  },
+
+  toggleSort(field) {
+    if (this._customerSort.field === field) {
+      this._customerSort.dir = this._customerSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this._customerSort.field = field;
+      this._customerSort.dir = field === 'updatedAt' ? 'desc' : 'asc';
+    }
+    this._refreshCustomerTable();
+  },
+
+  _refreshCustomerTable() {
+    const search = document.getElementById('customer-search')?.value || '';
+    const status = document.getElementById('status-filter')?.value || '';
+    const familyFilter = document.getElementById('family-filter')?.value || '';
+    let customers = this._allCustomers || [];
+    if (search) {
+      const q = search.toLowerCase();
+      customers = customers.filter(c => (c.name || '').toLowerCase().includes(q) || (c.phone || '').includes(q));
+    }
+    if (status) {
+      customers = customers.filter(c => c.status === status);
+    }
+    if (familyFilter === 'none') {
+      customers = customers.filter(c => !c.family_group_id);
+    } else if (familyFilter) {
+      customers = customers.filter(c => c.family_group_id == familyFilter);
+    }
+    customers = this.sortCustomers(customers);
+    if (this._isBetaUser()) {
+      customers = this._groupByFamily(customers);
+    }
+    const container = document.getElementById('customer-table-container');
+    if (container) container.innerHTML = this.renderCustomerTable(customers);
+  },
+
+  _groupByFamily(customers) {
+    const ungrouped = [];
+    const groupOrder = [];     // 그룹 등장 순서 유지
+    const familyMap = {};
+
+    customers.forEach(c => {
+      const gid = c.family_group_id;
+      if (gid) {
+        if (!familyMap[gid]) {
+          familyMap[gid] = [];
+          groupOrder.push(gid);
+        }
+        familyMap[gid].push(c);
+      } else {
+        ungrouped.push(c);
+      }
+    });
+
+    const result = [];
+    groupOrder.forEach(gid => {
+      // 그룹 내: 주선자 먼저, 나머지 이름순
+      familyMap[gid].sort((a, b) => {
+        if (a.is_referrer && !b.is_referrer) return -1;
+        if (!a.is_referrer && b.is_referrer) return 1;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+      result.push(...familyMap[gid]);
+    });
+
+    return [...result, ...ungrouped];
+  },
+
+  _sortIcon(field) {
+    if (this._customerSort.field !== field) return ' <span style="opacity:0.3;font-size:11px;">⇅</span>';
+    return this._customerSort.dir === 'asc' ? ' <span style="font-size:11px;">↑</span>' : ' <span style="font-size:11px;">↓</span>';
+  },
+
+  _isBetaUser() {
+    return API.getAgent()?.login_id === 'admin';
+  },
+
   async renderCustomerListPage() {
     try {
-      const data = await API.getCustomers({ limit: 200 });
+      const isBeta = this._isBetaUser();
+      const promises = [API.getCustomers({ limit: 200 })];
+      if (isBeta) promises.push(API.getFamilyGroups());
+      const [data, fgData] = await Promise.all(promises);
       this._allCustomers = data.customers;
+      this._familyGroups = isBeta ? (fgData?.familyGroups || []) : [];
+      this._familyColorMap = {};
 
       return `
         <div class="page-header">
@@ -294,9 +486,17 @@ const DashboardPage = {
               <option value="청약완료">청약완료</option>
               <option value="상담완료">상담완료</option>
             </select>
+            ${isBeta ? `
+            <select class="form-input" style="width:auto;" id="family-filter" onchange="DashboardPage._refreshCustomerTable()">
+              <option value="">전체 가족그룹</option>
+              ${this._familyGroups.map(g => `<option value="${g.id}">${Utils.escapeHtml(g.name)}</option>`).join('')}
+              <option value="none">그룹 미지정</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="DashboardPage.manageFamilyGroups()" style="white-space:nowrap;">가족그룹 관리</button>
+            ` : ''}
           </div>
           <div id="customer-table-container">
-            ${this.renderCustomerTable(data.customers)}
+            ${this.renderCustomerTable(isBeta ? this._groupByFamily(data.customers) : data.customers)}
           </div>
         </div>
       `;
@@ -304,6 +504,26 @@ const DashboardPage = {
       showToast(err.message, 'error');
       return '<div class="empty-state"><div class="empty-state-text">데이터를 불러오는 중 오류가 발생했습니다.</div></div>';
     }
+  },
+
+  _familyColors: ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316','#14b8a6','#a855f7'],
+  _familyColorMap: {},
+
+  _getFamilyColor(groupId) {
+    if (!groupId) return '';
+    if (!this._familyColorMap[groupId]) {
+      const idx = Object.keys(this._familyColorMap).length % this._familyColors.length;
+      this._familyColorMap[groupId] = this._familyColors[idx];
+    }
+    return this._familyColorMap[groupId];
+  },
+
+  _familyBadge(c) {
+    const fg = c.FamilyGroup;
+    if (!fg) return '';
+    const color = this._getFamilyColor(fg.id);
+    const label = Utils.escapeHtml(fg.name) + (c.is_referrer ? '(주선자)' : '');
+    return `<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:9px;color:#fff;background:${color};margin-left:4px;vertical-align:middle;white-space:nowrap;">${label}</span>`;
   },
 
   renderCustomerTable(customers) {
@@ -317,7 +537,8 @@ const DashboardPage = {
       <table class="data-table">
         <thead>
           <tr>
-            <th>이름</th>
+            <th style="cursor:pointer;user-select:none;" onclick="DashboardPage.toggleSort('name')">이름${this._sortIcon('name')}</th>
+            ${this._isBetaUser() ? '<th>가족그룹</th>' : ''}
             <th>연락처</th>
             <th>생년월일</th>
             <th>지역</th>
@@ -325,7 +546,7 @@ const DashboardPage = {
             <th>상담 예정일</th>
             <th>상담내용</th>
             <th>등록일</th>
-            <th>최근수정일</th>
+            <th style="cursor:pointer;user-select:none;" onclick="DashboardPage.toggleSort('updatedAt')">최근수정일${this._sortIcon('updatedAt')}</th>
             <th>관리</th>
           </tr>
         </thead>
@@ -333,6 +554,7 @@ const DashboardPage = {
           ${customers.map(c => `
             <tr>
               <td><strong style="cursor:pointer;color:var(--blue)" onclick="DashboardPage.showCustomerDetail(${c.id})">${Utils.escapeHtml(c.name)}</strong></td>
+              ${this._isBetaUser() ? `<td>${this._familyBadge(c)}</td>` : ''}
               <td>${Utils.formatPhone(c.phone)}</td>
               <td>${Utils.formatDate(c.birth_date)}</td>
               <td style="font-size:12px;color:var(--gray-500);">${c.address ? (c.address.split('|')[0].match(/^.*?[시군구]/)?.[0] || '') : ''}</td>
@@ -367,7 +589,7 @@ const DashboardPage = {
             <div class="customer-card-top">
               <div class="customer-card-avatar">${Utils.escapeHtml((c.name || '?')[0])}</div>
               <div class="customer-card-info">
-                <div class="customer-card-name">${Utils.escapeHtml(c.name)}</div>
+                <div class="customer-card-name">${Utils.escapeHtml(c.name)}${this._isBetaUser() ? this._familyBadge(c) : ''}</div>
                 <div class="customer-card-phone">${Utils.formatPhone(c.phone)}</div>
               </div>
               <span class="status-badge ${Utils.getStatusClass(c.status)}" style="cursor:pointer;align-self:flex-start;" onclick="event.stopPropagation(); DashboardPage.cycleStatus(${c.id}, '${c.status}')">${c.status}</span>
@@ -390,30 +612,108 @@ const DashboardPage = {
     return tableView + cardView;
   },
 
-  async searchCustomers(query) {
+  searchCustomers(query) {
     clearTimeout(this._searchTimer);
-    this._searchTimer = setTimeout(async () => {
-      try {
-        const status = document.getElementById('status-filter')?.value;
-        const params = {};
-        if (query) params.search = query;
-        if (status) params.status = status;
-        const data = await API.getCustomers(params);
-        document.getElementById('customer-table-container').innerHTML = this.renderCustomerTable(data.customers);
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
+    this._searchTimer = setTimeout(() => {
+      this._refreshCustomerTable();
     }, 300);
   },
 
-  async filterByStatus(status) {
-    const search = document.getElementById('customer-search')?.value;
-    const params = {};
-    if (search) params.search = search;
-    if (status) params.status = status;
+  filterByStatus(status) {
+    this._refreshCustomerTable();
+  },
+
+  async quickAddFamilyGroup(formType) {
+    const name = prompt('새 가족그룹 이름을 입력하세요 (예: 김씨 가족)');
+    if (!name || !name.trim()) return;
     try {
-      const data = await API.getCustomers(params);
-      document.getElementById('customer-table-container').innerHTML = this.renderCustomerTable(data.customers);
+      const { familyGroup } = await API.createFamilyGroup({ name: name.trim() });
+      if (!this._familyGroups) this._familyGroups = [];
+      this._familyGroups.push(familyGroup);
+      const select = document.getElementById(formType + '-family-group');
+      if (select) {
+        const opt = document.createElement('option');
+        opt.value = familyGroup.id;
+        opt.textContent = familyGroup.name;
+        opt.selected = true;
+        select.insertBefore(opt, select.lastElementChild || null);
+      }
+      showToast('가족그룹이 생성되었습니다.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
+  async manageFamilyGroups() {
+    try {
+      const { familyGroups } = await API.getFamilyGroups();
+      this._familyGroups = familyGroups;
+
+      const rows = familyGroups.length === 0
+        ? '<div style="text-align:center;padding:20px;color:var(--gray-400);">등록된 가족그룹이 없습니다</div>'
+        : familyGroups.map(g => {
+          const members = (g.Customers || []);
+          const referrer = members.find(m => m.is_referrer);
+          const memberNames = members.map(m => Utils.escapeHtml(m.name) + (m.is_referrer ? '(주선자)' : '')).join(', ');
+          return `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--gray-100);">
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:14px;">${Utils.escapeHtml(g.name)}</div>
+                <div style="font-size:12px;color:var(--gray-500);margin-top:2px;">${memberNames || '멤버 없음'} (${members.length}명)</div>
+              </div>
+              <div style="display:flex;gap:4px;">
+                <button class="btn btn-secondary btn-sm" onclick="DashboardPage.renameFamilyGroup(${g.id}, '${Utils.escapeHtml(g.name)}')">이름변경</button>
+                <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;" onclick="DashboardPage.deleteFamilyGroup(${g.id}, '${Utils.escapeHtml(g.name)}')">삭제</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      Modal.show('가족그룹 관리', `
+        <div style="margin-bottom:12px;">
+          <button class="btn btn-primary btn-sm" onclick="DashboardPage.quickAddFamilyGroupFromManage()">+ 새 가족그룹</button>
+        </div>
+        <div id="family-group-list" style="border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">
+          ${rows}
+        </div>
+      `, `
+        <button class="btn btn-secondary" onclick="Modal.close(); App.navigate('customers');">닫기</button>
+      `);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
+  async quickAddFamilyGroupFromManage() {
+    const name = prompt('새 가족그룹 이름을 입력하세요');
+    if (!name || !name.trim()) return;
+    try {
+      await API.createFamilyGroup({ name: name.trim() });
+      showToast('가족그룹이 생성되었습니다.', 'success');
+      this.manageFamilyGroups();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
+  async renameFamilyGroup(id, currentName) {
+    const name = prompt('새 이름을 입력하세요', currentName);
+    if (!name || !name.trim() || name.trim() === currentName) return;
+    try {
+      await API.updateFamilyGroup(id, { name: name.trim() });
+      showToast('이름이 변경되었습니다.', 'success');
+      this.manageFamilyGroups();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  },
+
+  async deleteFamilyGroup(id, name) {
+    if (!confirm(`"${name}" 그룹을 삭제하시겠습니까?\n소속 고객의 그룹 지정이 해제됩니다.`)) return;
+    try {
+      await API.deleteFamilyGroup(id);
+      showToast('삭제되었습니다.', 'success');
+      this.manageFamilyGroups();
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -514,6 +814,21 @@ const DashboardPage = {
             <option value="상담완료">상담완료</option>
           </select>
         </div>
+        ${this._isBetaUser() ? `
+        <div class="form-group">
+          <label class="form-label">가족그룹</label>
+          <div style="display:flex;gap:6px;">
+            <select class="form-input" name="family_group_id" id="add-family-group" style="flex:1;">
+              <option value="">없음</option>
+              ${(this._familyGroups || []).map(g => `<option value="${g.id}">${Utils.escapeHtml(g.name)}</option>`).join('')}
+            </select>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="DashboardPage.quickAddFamilyGroup('add')" style="white-space:nowrap;height:38px;">+ 새 그룹</button>
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" name="is_referrer" value="1"> 주선자(소개자)
+          </label>
+        </div>
+        ` : ''}
         <div class="form-group">
           <label class="form-label">상담 예정일</label>
           <input type="text" class="form-input" name="consult_schedule" placeholder="20260415" maxlength="10" oninput="Utils.formatBirthInput(this)">
@@ -544,6 +859,10 @@ const DashboardPage = {
       data.address = (data.address || '') + '|' + data.address_detail;
     }
     delete data.address_detail;
+
+    // 가족그룹 처리
+    data.family_group_id = data.family_group_id || null;
+    data.is_referrer = form.querySelector('input[name="is_referrer"]')?.checked ? true : false;
 
     if (!data.name) {
       showToast('이름을 입력하세요.', 'error');
@@ -615,6 +934,21 @@ const DashboardPage = {
               <option value="상담완료" ${customer.status==='상담완료'?'selected':''}>상담완료</option>
             </select>
           </div>
+          ${this._isBetaUser() ? `
+          <div class="form-group">
+            <label class="form-label">가족그룹</label>
+            <div style="display:flex;gap:6px;">
+              <select class="form-input" name="family_group_id" id="edit-family-group" style="flex:1;">
+                <option value="">없음</option>
+                ${(this._familyGroups || []).map(g => `<option value="${g.id}" ${customer.family_group_id==g.id?'selected':''}>${Utils.escapeHtml(g.name)}</option>`).join('')}
+              </select>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="DashboardPage.quickAddFamilyGroup('edit')" style="white-space:nowrap;height:38px;">+ 새 그룹</button>
+            </div>
+            <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" name="is_referrer" value="1" ${customer.is_referrer?'checked':''}> 주선자(소개자)
+            </label>
+          </div>
+          ` : ''}
           <div class="form-group">
             <label class="form-label">상담 예정일</label>
             <input type="text" class="form-input" name="consult_schedule" value="${Utils.escapeHtml(customer.consult_schedule || '')}" placeholder="20260415" maxlength="10" oninput="Utils.formatBirthInput(this)">
@@ -645,6 +979,10 @@ const DashboardPage = {
     const formData = new FormData(form);
     const data = {};
     formData.forEach((v, k) => { data[k] = v || null; });
+
+    // 가족그룹 처리
+    data.family_group_id = data.family_group_id || null;
+    data.is_referrer = form.querySelector('input[name="is_referrer"]')?.checked ? true : false;
 
     if (data.address_detail) {
       data.address = (data.address || '') + '|' + data.address_detail;

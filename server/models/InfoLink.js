@@ -48,6 +48,11 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(100),
       comment: '카테고리'
     },
+    is_shared: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      comment: '다른 설계사에게 공유 여부'
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true

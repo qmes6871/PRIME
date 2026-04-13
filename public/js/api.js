@@ -96,6 +96,12 @@ const API = {
   deleteCustomer(id) { return this.delete(`/customers/${id}`); },
   updateCustomerStatus(id, status) { return this.patch(`/customers/${id}/status`, { status }); },
 
+  // Family Groups
+  getFamilyGroups() { return this.get('/family-groups'); },
+  createFamilyGroup(data) { return this.post('/family-groups', data); },
+  updateFamilyGroup(id, data) { return this.put(`/family-groups/${id}`, data); },
+  deleteFamilyGroup(id) { return this.delete(`/family-groups/${id}`); },
+
   // Consultations
   getConsultations(params = {}) {
     const query = new URLSearchParams(params).toString();
@@ -147,6 +153,7 @@ const API = {
   createInfoLink(data) { return this.post('/info-links', data); },
   updateInfoLink(id, data) { return this.put(`/info-links/${id}`, data); },
   deleteInfoLink(id) { return this.delete(`/info-links/${id}`); },
+  shareCategory(category, is_shared) { return this.patch('/info-links/share-category', { category, is_shared }); },
 
   // Insurance Companies
   getInsuranceCompanies(type) {

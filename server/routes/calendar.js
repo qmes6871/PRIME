@@ -105,7 +105,11 @@ router.get('/todos', async (req, res, next) => {
     const { date, year, month, start, end } = req.query;
     const where = { agent_id: req.agent.id };
 
-    if (date) {
+    const undated = req.query.undated === 'true';
+
+    if (undated) {
+      where.due_date = null;
+    } else if (date) {
       where.due_date = date;
     } else if (start && end) {
       where.due_date = { [Op.between]: [start, end] };

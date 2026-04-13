@@ -400,9 +400,14 @@ body {
   margin-bottom: 16px;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .summary-cards {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 1200px) {
+  .summary-cards {
+    grid-template-columns: repeat(6, 1fr);
   }
 }
 
@@ -1215,7 +1220,7 @@ a:hover {
 /* === Layout helper classes === */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr;
   gap: 20px;
   align-items: start;
 }
@@ -1648,6 +1653,102 @@ a:hover {
 }
 
 /* Card View */
+/* Category horizontal scroll sections */
+.infopage-cat-section {
+  margin-bottom: 24px;
+}
+.infopage-cat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.infopage-cat-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+}
+.infopage-cat-more {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background .15s;
+}
+.infopage-cat-more:hover {
+  background: var(--primary-light);
+}
+.infopage-hscroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 4px;
+}
+.infopage-hscroll-wrap::-webkit-scrollbar {
+  height: 4px;
+}
+.infopage-hscroll-wrap::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.infopage-hscroll {
+  display: flex;
+  gap: 14px;
+}
+.infopage-hscroll-card {
+  flex-shrink: 0;
+  width: 200px;
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform .2s, box-shadow .2s;
+  overflow: hidden;
+}
+.infopage-hscroll-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
+}
+.infopage-hscroll-thumb {
+  width: 100%;
+  height: 112px;
+  overflow: hidden;
+  background: var(--muted);
+}
+.infopage-hscroll-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.infopage-hscroll-thumb-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+.infopage-hscroll-title {
+  padding: 10px 12px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.infopage-hscroll-desc {
+  padding: 0 12px 10px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .infopage-card-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -1982,18 +2083,49 @@ a:hover {
   border-radius: 0 0 8px 8px;
   border-color: #e2e8f0;
   font-family: 'Pretendard Variable', sans-serif;
-  font-size: 16px;
+  font-size: 16.5px;
+  background: #d1d5db;
 }
 .ql-editor {
-  min-height: 400px;
-  line-height: 1.8;
-  padding: 20px 24px;
+  min-height: 600px;
+  line-height: 1.6;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+  background: #fff;
+  box-shadow: 0 0 20px rgba(0,0,0,0.04);
+}
+.ql-editor p {
+  margin-bottom: 10px;
+}
+.ql-editor h1 {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 36px 0 16px;
+}
+.ql-editor h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 32px 0 14px;
+}
+.ql-editor h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 28px 0 12px;
 }
 .ql-editor img {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
-  margin: 12px 0;
+  border-radius: 12px;
+  margin: 24px 0;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+}
+.ql-editor blockquote {
+  border-left: 4px solid #6366f1;
+  background: #f0f0ff;
+  margin: 20px 0;
+  padding: 18px 22px;
+  border-radius: 0 8px 8px 0;
 }
 
 /* === 블로그 글 보기 스타일 === */
@@ -2059,7 +2191,7 @@ a:hover {
 /* ============ CALENDAR ============ */
 .cal-layout {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 400px;
   gap: 20px;
   align-items: start;
 }
@@ -2206,7 +2338,8 @@ a:hover {
 }
 
 /* Calendar sidebar panel */
-.cal-date-panel { position: sticky; top: 80px; }
+.cal-sidebar { position: sticky; top: 80px; }
+.cal-date-panel { }
 .cal-panel-header {
   padding: 16px 20px 12px;
   border-bottom: 1px solid var(--border);
@@ -2353,11 +2486,13 @@ a:hover {
 /* Quick todo input */
 .cal-quick-todo {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
 }
 .cal-quick-input {
   flex: 1;
+  min-width: 0;
   border: 1px dashed var(--border);
   border-radius: 8px;
   padding: 8px 12px;
@@ -2413,7 +2548,7 @@ a:hover {
   .cal-layout {
     grid-template-columns: 1fr;
   }
-  .cal-date-panel { position: static; }
+  .cal-sidebar { position: static; }
   .cal-cell { min-height: 70px; }
   .cal-items-container { display: none; }
   .cal-dot { display: block; }

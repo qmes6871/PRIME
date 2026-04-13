@@ -76,6 +76,9 @@ const InfoPagePage = {
         </div>
         ` : ''}
 
+        ${!this._selectedCategory ? this._renderCategorySections() : ''}
+
+        <h3 class="infopage-cat-title" style="margin-bottom:12px;">${this._selectedCategory ? Utils.escapeHtml(this._selectedCategory) : '전체'}</h3>
         <div id="info-links-container">
           ${this._renderLinks()}
         </div>
@@ -94,6 +97,44 @@ const InfoPagePage = {
   filterCategory(cat) {
     this._selectedCategory = cat;
     App.navigate('infopage');
+  },
+
+  _renderCategorySections() {
+    const categories = this._getCategories();
+    if (categories.length === 0) return '';
+
+    return categories.map(cat => {
+      const catLinks = this._links.filter(l => l.category === cat);
+      if (catLinks.length === 0) return '';
+
+      const cards = catLinks.map(link => `
+        <div class="infopage-hscroll-card" ${link.type === 'article' ? `onclick="App.navigate('article-view', {id:${link.id}})"` : ''}>
+          ${link.imageUrl ? `
+            <div class="infopage-hscroll-thumb">
+              <img src="${Utils.escapeHtml(link.imageUrl)}" alt="">
+            </div>
+          ` : `
+            <div class="infopage-hscroll-thumb infopage-hscroll-thumb-empty">
+              <span>${link.type === 'article' ? '📝' : Utils.escapeHtml(link.icon || '🔗')}</span>
+            </div>
+          `}
+          <div class="infopage-hscroll-title">${Utils.escapeHtml(link.title || '(제목없음)')}</div>
+          ${link.description ? `<div class="infopage-hscroll-desc">${Utils.escapeHtml(link.description)}</div>` : ''}
+        </div>
+      `).join('');
+
+      return `
+        <div class="infopage-cat-section">
+          <div class="infopage-cat-header">
+            <h3 class="infopage-cat-title">${Utils.escapeHtml(cat)}</h3>
+            <button class="infopage-cat-more" onclick="InfoPagePage.filterCategory('${Utils.escapeHtml(cat)}')">전체보기 →</button>
+          </div>
+          <div class="infopage-hscroll-wrap">
+            <div class="infopage-hscroll">${cards}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
   },
 
   _renderLinks() {
@@ -117,9 +158,12 @@ const InfoPagePage = {
   },
 
   _renderCardView(links) {
+    const myId = API.getAgent()?.id;
     return `
       <div class="infopage-card-grid">
-        ${links.map(link => `
+        ${links.map(link => {
+          const isMine = link.agent_id === myId;
+          return `
           <div class="infopage-card" ${link.type === 'article' ? `style="cursor:pointer;" onclick="App.navigate('article-view', {id:${link.id}})"` : ''}>
             ${link.imageUrl ? `
               <div class="infopage-card-thumb">
@@ -134,6 +178,7 @@ const InfoPagePage = {
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                 ${link.type === 'article' ? '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;">블로그</span>' : ''}
                 ${this._renderCategoryBadge(link.category)}
+                ${!isMine ? '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd;">공유</span>' : ''}
               </div>
               <div class="infopage-card-title">${Utils.escapeHtml(link.title || '(제목없음)')}</div>
               ${link.description ? `<div class="infopage-card-desc">${Utils.escapeHtml(link.description)}</div>` : ''}
@@ -147,6 +192,7 @@ const InfoPagePage = {
                   <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                   링크 열기
                 </a>` : '<span></span>'}
+                ${isMine ? `
                 <div class="infopage-card-btns" onclick="event.stopPropagation();">
                   ${link.type === 'article' ? `
                     <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;border-radius:6px;" onclick="App.navigate('article-write', {id:${link.id}})">수정</button>
@@ -155,22 +201,26 @@ const InfoPagePage = {
                   `}
                   <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;" onclick="InfoPagePage.deleteLink(${link.id})">삭제</button>
                 </div>
+                ` : ''}
               </div>
             </div>
-          </div>
-        `).join('')}
+          </div>`;
+        }).join('')}
       </div>
     `;
   },
 
   _renderListView(links) {
+    const myId = API.getAgent()?.id;
     return `
       <div class="infopage-list">
         <div class="infopage-list-header">
           <svg width="16" height="16" fill="none" stroke="#3b82f6" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
           <span style="font-size:14px;font-weight:700;color:#1e293b;">${this._selectedCategory ? Utils.escapeHtml(this._selectedCategory) + ' ' : '전체 '}${links.length}건</span>
         </div>
-        ${links.map((link, i) => `
+        ${links.map((link, i) => {
+          const isMine = link.agent_id === myId;
+          return `
           <div class="infopage-list-item${i < links.length - 1 ? '' : ' last'}" ${link.type === 'article' ? `style="cursor:pointer;" onclick="App.navigate('article-view', {id:${link.id}})"` : ''}>
             ${link.imageUrl ? `
               <div class="infopage-list-thumb">
@@ -185,22 +235,27 @@ const InfoPagePage = {
               <div style="display:flex;align-items:center;gap:6px;">
                 ${link.type === 'article' ? '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;">블로그</span>' : ''}
                 ${this._renderCategoryBadge(link.category)}
+                ${!isMine ? '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd;">공유</span>' : ''}
                 <div class="infopage-list-title">${Utils.escapeHtml(link.title || '(제목없음)')}</div>
               </div>
               ${link.description ? `<div class="infopage-list-desc">${Utils.escapeHtml(link.description)}</div>` : ''}
             </div>
             <div class="infopage-list-actions" onclick="event.stopPropagation();">
-              ${link.type === 'article' ? `
-                <span style="font-size:11px;color:#94a3b8;">${new Date(link.createdAt || link.created_at).toLocaleDateString('ko-KR')}</span>
-                <button class="btn btn-sm" style="padding:5px 10px;font-size:11px;background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;border-radius:8px;" onclick="App.navigate('article-write', {id:${link.id}})">수정</button>
+              ${isMine ? `
+                ${link.type === 'article' ? `
+                  <span style="font-size:11px;color:#94a3b8;">${new Date(link.createdAt || link.created_at).toLocaleDateString('ko-KR')}</span>
+                  <button class="btn btn-sm" style="padding:5px 10px;font-size:11px;background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;border-radius:8px;" onclick="App.navigate('article-write', {id:${link.id}})">수정</button>
+                ` : `
+                  ${link.url ? '<a href="' + Utils.escapeHtml(link.url) + '" target="_blank" class="infopage-list-link">열기</a>' : ''}
+                  <button class="btn btn-sm" style="padding:5px 10px;font-size:11px;background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;border-radius:8px;" onclick="InfoPagePage.editLink(${link.id})">수정</button>
+                `}
+                <button class="btn btn-sm" style="padding:5px 10px;font-size:11px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;" onclick="InfoPagePage.deleteLink(${link.id})">삭제</button>
               ` : `
-                ${link.url ? '<a href="' + Utils.escapeHtml(link.url) + '" target="_blank" class="infopage-list-link">열기</a>' : ''}
-                <button class="btn btn-sm" style="padding:5px 10px;font-size:11px;background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;border-radius:8px;" onclick="InfoPagePage.editLink(${link.id})">수정</button>
+                <span style="font-size:11px;color:#94a3b8;">${new Date(link.createdAt || link.created_at).toLocaleDateString('ko-KR')}</span>
               `}
-              <button class="btn btn-sm" style="padding:5px 10px;font-size:11px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;" onclick="InfoPagePage.deleteLink(${link.id})">삭제</button>
             </div>
-          </div>
-        `).join('')}
+          </div>`;
+        }).join('')}
       </div>
     `;
   },
@@ -372,14 +427,22 @@ const InfoPagePage = {
 
   showCategoryManager() {
     const categories = this._getCategories();
+    const isAdmin = API.getAgent()?.login_id === 'admin';
+    const myAgentId = API.getAgent()?.id;
     Modal.show('카테고리 관리', `
       <div id="cat-manager-list" style="display:flex;flex-direction:column;gap:8px;">
         ${categories.map(cat => {
-          const count = this._links.filter(l => l.category === cat).length;
+          const catLinks = this._links.filter(l => l.category === cat);
+          const count = catLinks.length;
+          const myLinks = catLinks.filter(l => l.agent_id === myAgentId);
+          const isShared = myLinks.length > 0 && myLinks.every(l => l.is_shared);
           return `
           <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;">
             <span style="font-size:13px;color:#64748b;min-width:24px;text-align:center;">${count}건</span>
             <span style="flex:1;font-size:14px;font-weight:600;color:#1e293b;">${Utils.escapeHtml(cat)}</span>
+            ${isAdmin ? `
+              <button class="btn btn-sm" style="padding:4px 10px;font-size:11px;background:${isShared ? '#eef2ff' : 'white'};color:${isShared ? '#4338ca' : '#64748b'};border:1px solid ${isShared ? '#c7d2fe' : '#e2e8f0'};border-radius:6px;" onclick="InfoPagePage.toggleShareCategory('${Utils.escapeHtml(cat)}', ${!isShared})">${isShared ? '공유중' : '공유'}</button>
+            ` : ''}
             <button class="btn btn-sm" style="padding:4px 10px;font-size:11px;background:white;color:#3b82f6;border:1px solid #bfdbfe;border-radius:6px;" onclick="InfoPagePage.renameCategory('${Utils.escapeHtml(cat)}')">이름변경</button>
             <button class="btn btn-sm" style="padding:4px 10px;font-size:11px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;" onclick="InfoPagePage.deleteCategory('${Utils.escapeHtml(cat)}')">삭제</button>
           </div>`;
@@ -389,10 +452,22 @@ const InfoPagePage = {
       <div style="margin-top:12px;font-size:12px;color:var(--gray-400);line-height:1.6;">
         * 이름변경: 해당 카테고리의 모든 글에 반영됩니다<br>
         * 삭제: 글은 유지되고 카테고리만 해제됩니다
+        ${isAdmin ? '<br>* 공유: 해당 카테고리의 글이 모든 직원에게 보입니다' : ''}
       </div>
     `, `
       <button class="btn btn-secondary" onclick="Modal.close()">닫기</button>
     `);
+  },
+
+  async toggleShareCategory(category, share) {
+    try {
+      await API.shareCategory(category, share);
+      showToast(share ? `"${category}" 카테고리가 직원들에게 공유됩니다.` : `"${category}" 공유가 해제되었습니다.`, 'success');
+      Modal.close();
+      App.navigate('infopage');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   },
 
   async renameCategory(oldName) {
@@ -443,10 +518,8 @@ const InfoPagePage = {
     });
   },
 
-  // === 블로그 글 작성 기능 (개발자 계정 전용) ===
   _isArticleEnabled() {
-    const agent = API.getAgent();
-    return agent && agent.id === 11;
+    return !!API.getAgent();
   },
 
   _quill: null,
@@ -500,8 +573,17 @@ const InfoPagePage = {
                 </div>
               </div>
               <input type="hidden" id="article-thumb-url" value="${article && article.imageUrl ? Utils.escapeHtml(article.imageUrl) : ''}">
-              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('article-thumb-input').click()">썸네일 업로드</button>
-              <input type="file" id="article-thumb-input" accept="image/*" style="display:none;" onchange="InfoPagePage.handleArticleThumbUpload(this)">
+              <div id="article-thumb-dropzone" style="padding:24px 16px;border:2px dashed var(--gray-300);border-radius:12px;text-align:center;color:var(--gray-400);transition:all 0.2s;cursor:pointer;"
+                ondragover="event.preventDefault();this.style.borderColor='var(--primary)';this.style.background='var(--primary-light)'"
+                ondragleave="this.style.borderColor='var(--gray-300)';this.style.background=''"
+                ondrop="event.preventDefault();this.style.borderColor='var(--gray-300)';this.style.background='';InfoPagePage.handleThumbDrop(event)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px;opacity:0.5;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
+                <div style="font-size:12px;margin-bottom:8px;">드래그, 붙여넣기(Ctrl+V) 또는</div>
+                <label style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--primary);background:white;transition:all 0.15s;" onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background='white'">
+                  파일 선택
+                  <input type="file" id="article-thumb-input" accept="image/*" style="display:none;" onchange="InfoPagePage.handleArticleThumbUpload(this)">
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -513,7 +595,7 @@ const InfoPagePage = {
 
         <div class="form-group">
           <label class="form-label">본문</label>
-          <div id="article-editor" style="height:450px;background:white;border-radius:0 0 8px 8px;"></div>
+          <div id="article-editor" style="background:white;border-radius:0 0 8px 8px;"></div>
         </div>
       </div>
     `;
@@ -522,6 +604,9 @@ const InfoPagePage = {
   onRendered() {
     if (App.currentPage === 'article-write') {
       this._initQuill();
+      this._initThumbPaste();
+    } else {
+      this._destroyThumbPaste();
     }
   },
 
@@ -531,7 +616,7 @@ const InfoPagePage = {
 
     this._quill = new Quill('#article-editor', {
       theme: 'snow',
-      placeholder: '내용을 작성하세요...',
+      placeholder: '',
       modules: {
         toolbar: {
           container: [
@@ -586,18 +671,57 @@ const InfoPagePage = {
     input.click();
   },
 
-  async handleArticleThumbUpload(input) {
-    const file = input.files[0];
-    if (!file) return;
+  async _uploadThumbFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      showToast('이미지 파일만 업로드 가능합니다.', 'error');
+      return;
+    }
     try {
       const result = await API.uploadPolicyImage(file);
       document.getElementById('article-thumb-url').value = result.url;
       document.getElementById('article-thumb-img').src = result.url;
       document.getElementById('article-thumb-preview').style.display = '';
+      showToast('썸네일이 등록되었습니다.', 'success');
     } catch (e) {
       showToast('이미지 업로드 실패: ' + e.message, 'error');
     }
+  },
+
+  async handleArticleThumbUpload(input) {
+    await this._uploadThumbFile(input.files[0]);
     input.value = '';
+  },
+
+  async handleThumbDrop(e) {
+    const file = e.dataTransfer.files[0];
+    await this._uploadThumbFile(file);
+  },
+
+  _initThumbPaste() {
+    this._thumbPasteHandler = (e) => {
+      const dropzone = document.getElementById('article-thumb-dropzone');
+      if (!dropzone) return;
+      // Quill 에디터 내부에서 붙여넣기 시에는 무시 (Quill이 처리)
+      const active = document.activeElement;
+      if (active && active.closest('.ql-editor')) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          this._uploadThumbFile(item.getAsFile());
+          return;
+        }
+      }
+    };
+    document.addEventListener('paste', this._thumbPasteHandler);
+  },
+
+  _destroyThumbPaste() {
+    if (this._thumbPasteHandler) {
+      document.removeEventListener('paste', this._thumbPasteHandler);
+      this._thumbPasteHandler = null;
+    }
   },
 
   removeArticleThumb() {
@@ -676,7 +800,7 @@ const InfoPagePage = {
             </div>
           </div>
 
-          <div class="article-content" style="font-size:16px;line-height:1.9;color:#333;word-break:keep-all;">
+          <div class="article-content" style="font-size:16px;line-height:1.6;color:#333;word-break:keep-all;">
             ${article.content || ''}
           </div>
 

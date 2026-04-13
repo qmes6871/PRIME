@@ -4,6 +4,7 @@ const CalendarPage = {
   currentMonth: new Date().getMonth() + 1,
   events: [],
   todos: [],
+  undatedTodos: [],
   selectedDate: null,
   dragItem: null,
   dragType: null,
@@ -32,13 +33,15 @@ const CalendarPage = {
 
   async loadData() {
     try {
-      const [evtRes, todoRes, custRes] = await Promise.all([
+      const [evtRes, todoRes, undatedRes, custRes] = await Promise.all([
         API.getCalendarEvents({ year: this.currentYear, month: this.currentMonth }),
         API.getCalendarTodos({ year: this.currentYear, month: this.currentMonth }),
+        API.getCalendarTodos({ undated: 'true' }),
         API.getCustomers({ limit: 500 })
       ]);
       this.events = evtRes.events || [];
       this.todos = todoRes.todos || [];
+      this.undatedTodos = undatedRes.todos || [];
       this.customers = custRes.customers || [];
     } catch (err) {
       console.error('Calendar data load error:', err);
@@ -141,12 +144,6 @@ const CalendarPage = {
           <h1 class="page-title">캘린더</h1>
           <p class="page-subtitle">일정 관리 & 할 일</p>
         </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-primary" onclick="CalendarPage.showEventModal()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-            일정 추가
-          </button>
-        </div>
       </div>
 
       <div class="cal-layout">
@@ -180,6 +177,12 @@ const CalendarPage = {
           </div>
         </div>
         <div class="cal-sidebar" id="cal-sidebar">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+            <button class="btn btn-primary btn-sm" onclick="CalendarPage.showEventModal()" style="background:linear-gradient(135deg,#3b82f6,#6366f1);border:none;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              일정 추가
+            </button>
+          </div>
           ${panelHTML || this.buildTodayPanel()}
         </div>
       </div>
@@ -197,48 +200,23 @@ const CalendarPage = {
     const dayNames = ['일','월','화','수','목','금','토'];
     const dateLabel = `${d.getMonth()+1}월 ${d.getDate()}일 (${dayNames[d.getDay()]})`;
     const dayEvents = this.events.filter(e => e.start_date === dateStr);
-    const dayTodos = this.todos.filter(t => t.due_date === dateStr);
-
     let eventsHTML = '';
     if (dayEvents.length > 0) {
       eventsHTML = dayEvents.map(e => {
         const c = this.colorMap[e.color] || this.colorMap.blue;
-        const custName = e.Customer ? e.Customer.name : '';
         return `
           <div class="cal-panel-event" style="border-left:3px solid ${c.border};background:${c.bg}" onclick="CalendarPage.showEventDetail(${e.id})">
-            <div class="cal-panel-event-top">
-              <span class="cal-panel-event-cat" style="color:${c.text}">${e.category}</span>
-              ${e.start_time ? `<span class="cal-panel-event-time">${e.start_time}${e.end_time ? ' ~ '+e.end_time : ''}</span>` : ''}
-            </div>
             <div class="cal-panel-event-title">${Utils.escapeHtml(e.title)}</div>
-            ${custName ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
-              <div class="cal-panel-event-customer">${Utils.escapeHtml(custName)}</div>
-              <div style="display:flex;gap:4px;">
-                <button class="btn btn-sm" style="padding:5px 12px;font-size:12px;font-weight:600;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;border-radius:6px;" onclick="event.stopPropagation();App.navigate('consultation',{customerId:${e.customer_id}})">제안서</button>
-                <button class="btn btn-sm" style="padding:5px 12px;font-size:12px;font-weight:600;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:6px;" onclick="event.stopPropagation();CalendarPage.sendAlimtalkTo(${e.customer_id})">알림톡</button>
-              </div>
+            ${e.start_time ? `<span class="cal-panel-event-time">${e.start_time}${e.end_time ? ' ~ '+e.end_time : ''}</span>` : ''}
+            ${e.customer_id ? `<div style="display:flex;gap:4px;margin-top:4px;">
+              <button class="btn btn-sm" style="padding:5px 12px;font-size:12px;font-weight:600;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;border-radius:6px;" onclick="event.stopPropagation();App.navigate('consultation',{customerId:${e.customer_id}})">제안서</button>
+              <button class="btn btn-sm" style="padding:5px 12px;font-size:12px;font-weight:600;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:6px;" onclick="event.stopPropagation();CalendarPage.sendAlimtalkTo(${e.customer_id})">알림톡</button>
             </div>` : ''}
           </div>`;
       }).join('');
     } else {
       eventsHTML = '<div class="cal-panel-empty">등록된 일정이 없습니다</div>';
     }
-
-    let todosHTML = dayTodos.map(t => {
-      const priorityIcon = t.priority === 'high' ? '!' : t.priority === 'low' ? '' : '';
-      return `
-        <div class="cal-panel-todo ${t.is_completed ? 'completed' : ''}">
-          <label class="cal-todo-label">
-            <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="CalendarPage.toggleTodo(${t.id})">
-            <span class="cal-todo-checkbox"></span>
-            <span class="cal-todo-text">${Utils.escapeHtml(t.title)}</span>
-            ${priorityIcon ? `<span class="cal-todo-priority ${t.priority}">${priorityIcon}</span>` : ''}
-          </label>
-          <button class="cal-todo-del" onclick="CalendarPage.deleteTodo(${t.id})" title="삭제">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          </button>
-        </div>`;
-    }).join('');
 
     return `
       <div class="card cal-date-panel">
@@ -254,30 +232,53 @@ const CalendarPage = {
           ${eventsHTML}
         </div>
 
+      </div>
+      ${this.buildUndatedTodosPanel()}
+    `;
+  },
+
+  buildUndatedTodosPanel() {
+    const todos = this.undatedTodos || [];
+    const incomplete = todos.filter(t => !t.is_completed);
+    const completed = todos.filter(t => t.is_completed);
+
+    let todosHTML = '';
+    if (incomplete.length === 0 && completed.length === 0) {
+      todosHTML = '<div class="cal-panel-empty">등록된 할 일이 없습니다</div>';
+    } else {
+      todosHTML = [...incomplete, ...completed].map(t => {
+        const priorityIcon = t.priority === 'high' ? '!' : t.priority === 'low' ? '' : '';
+        return `
+          <div class="cal-panel-todo ${t.is_completed ? 'completed' : ''}">
+            <label class="cal-todo-label">
+              <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="CalendarPage.toggleTodo(${t.id})">
+              <span class="cal-todo-checkbox"></span>
+              <span class="cal-todo-text">${Utils.escapeHtml(t.title)}</span>
+              ${priorityIcon ? `<span class="cal-todo-priority ${t.priority}">${priorityIcon}</span>` : ''}
+            </label>
+            <button class="cal-todo-del" onclick="CalendarPage.deleteTodo(${t.id})" title="삭제">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>`;
+      }).join('');
+    }
+
+    return `
+      <div class="card cal-date-panel cal-undated-panel" style="margin-top:12px;">
+        <div class="cal-panel-header">
+          <h3 class="cal-panel-date" style="display:flex;align-items:center;gap:6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            할 일 메모 <span class="cal-panel-count">${incomplete.length}</span>
+          </h3>
+        </div>
         <div class="cal-panel-section">
-          <div class="cal-panel-section-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-            할 일 <span class="cal-panel-count">${dayTodos.length}</span>
-          </div>
           ${todosHTML}
           <div class="cal-quick-todo">
-            <input type="text" class="cal-quick-input" id="cal-quick-todo-input"
-              placeholder="할 일 추가..."
-              onkeydown="if(event.key==='Enter'){event.preventDefault();CalendarPage.quickAddTodo('${dateStr}')}">
-            <select class="cal-quick-priority" id="cal-quick-todo-priority">
-              <option value="medium">보통</option>
-              <option value="high">높음</option>
-              <option value="low">낮음</option>
-            </select>
-            <button class="btn btn-primary btn-sm" style="padding:6px 10px;white-space:nowrap;" onclick="CalendarPage.quickAddTodo('${dateStr}')">추가</button>
+            <input type="text" class="cal-quick-input" id="cal-quick-undated-input"
+              placeholder="할 일 입력..."
+              onkeydown="if(event.key==='Enter'){event.preventDefault();CalendarPage.quickAddUndatedTodo()}">
+            <button class="btn btn-primary btn-sm" style="padding:6px 10px;white-space:nowrap;background:linear-gradient(135deg,#3b82f6,#6366f1);border:none;" onclick="CalendarPage.quickAddUndatedTodo()">추가</button>
           </div>
-        </div>
-
-        <div class="cal-panel-actions">
-          <button class="btn btn-primary btn-sm" onclick="CalendarPage.showEventModal('${dateStr}')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-            일정 추가
-          </button>
         </div>
       </div>
     `;
@@ -434,7 +435,7 @@ const CalendarPage = {
         ${isEdit ? `<button class="btn btn-danger" onclick="CalendarPage.deleteEvent(${eventData.id})">삭제</button>` : ''}
         <div style="display:flex;gap:8px;margin-left:auto;">
           <button class="btn btn-secondary" onclick="Modal.close()">취소</button>
-          <button class="btn btn-primary" onclick="CalendarPage.saveEvent(${eventData?.id || 'null'})">${isEdit ? '수정' : '추가'}</button>
+          <button class="btn btn-primary" onclick="CalendarPage.saveEvent(${eventData?.id || 'null'})" style="background:linear-gradient(135deg,#3b82f6,#6366f1);border:none;">${isEdit ? '수정' : '추가'}</button>
         </div>
     `;
 
@@ -498,23 +499,22 @@ const CalendarPage = {
 
   // =========== TODO CRUD ===========
 
-  _addingTodo: false,
-  async quickAddTodo(dateStr) {
-    if (this._addingTodo) return;
-    const input = document.getElementById('cal-quick-todo-input');
-    const priority = document.getElementById('cal-quick-todo-priority');
+  _addingUndated: false,
+  async quickAddUndatedTodo() {
+    if (this._addingUndated) return;
+    const input = document.getElementById('cal-quick-undated-input');
     const title = input.value.trim();
     if (!title) return;
 
-    this._addingTodo = true;
+    this._addingUndated = true;
     try {
-      await API.createCalendarTodo({ title, due_date: dateStr, priority: priority.value });
+      await API.createCalendarTodo({ title, due_date: null, priority: 'medium' });
       showToast('할 일이 추가되었습니다.', 'success');
-      await this._reloadAndRefresh(dateStr);
+      await this._reloadAndRefresh(this.selectedDate);
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
-      this._addingTodo = false;
+      this._addingUndated = false;
     }
   },
 
@@ -539,12 +539,14 @@ const CalendarPage = {
 
   async _reloadAndRefresh(keepDate) {
     const date = keepDate || this.selectedDate;
-    const [evtRes, todoRes] = await Promise.all([
+    const [evtRes, todoRes, undatedRes] = await Promise.all([
       API.getCalendarEvents({ year: this.currentYear, month: this.currentMonth }),
-      API.getCalendarTodos({ year: this.currentYear, month: this.currentMonth })
+      API.getCalendarTodos({ year: this.currentYear, month: this.currentMonth }),
+      API.getCalendarTodos({ undated: 'true' })
     ]);
     this.events = evtRes.events || [];
     this.todos = todoRes.todos || [];
+    this.undatedTodos = undatedRes.todos || [];
     this.selectedDate = date;
     const main = document.querySelector('.main-content');
     if (main) main.innerHTML = this.buildHTML();

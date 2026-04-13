@@ -1,12 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const { InfoLink } = require('../models');
+const { Op } = require('sequelize');
 
 // GET /api/v1/info-links
 router.get('/', async (req, res, next) => {
   try {
     const links = await InfoLink.findAll({
-      where: { agent_id: req.agent.id, is_active: true },
+      where: {
+        is_active: true,
+        [Op.or]: [
+          { agent_id: req.agent.id },
+          { is_shared: true }
+        ]
+      },
       order: [['sort_order', 'ASC']]
     });
     res.json({ links });
@@ -66,6 +73,22 @@ router.delete('/:id', async (req, res, next) => {
 
     await link.update({ is_active: false });
     res.json({ message: '삭제되었습니다.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/v1/info-links/share-category - 카테고리 전체 공유/해제
+router.patch('/share-category', async (req, res, next) => {
+  try {
+    const { category, is_shared } = req.body;
+    if (!category) return res.status(400).json({ error: '카테고리를 지정하세요.' });
+
+    await InfoLink.update(
+      { is_shared: !!is_shared },
+      { where: { agent_id: req.agent.id, category, is_active: true } }
+    );
+    res.json({ message: is_shared ? '공유되었습니다.' : '공유가 해제되었습니다.' });
   } catch (err) {
     next(err);
   }

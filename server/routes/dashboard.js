@@ -68,22 +68,25 @@ router.get('/', async (req, res, next) => {
       return diff >= 0 && diff <= 30;
     });
 
-    // 상령일 알림
+    // 상령일 알림 (생일 + 6개월 = 보험나이 올라가는 날)
     const anniversaryCustomers = await Customer.findAll({
       where: {
         agent_id: agentId,
-        policy_anniversary: { [Op.ne]: null }
+        birth_date: { [Op.ne]: null }
       },
-      attributes: ['id', 'name', 'phone', 'policy_anniversary', 'status'],
+      attributes: ['id', 'name', 'phone', 'birth_date', 'status'],
       raw: true
     });
 
     const upcomingAnniversaries = anniversaryCustomers.filter(c => {
-      if (!c.policy_anniversary) return false;
-      const pa = new Date(c.policy_anniversary);
-      const thisYearPa = new Date(today.getFullYear(), pa.getMonth(), pa.getDate());
-      if (thisYearPa < today) thisYearPa.setFullYear(today.getFullYear() + 1);
-      const diff = (thisYearPa - today) / (1000 * 60 * 60 * 24);
+      if (!c.birth_date) return false;
+      const bd = new Date(c.birth_date);
+      // 상령일 = 생일 + 6개월
+      const sangMonth = bd.getMonth() + 6;
+      const sangDay = bd.getDate();
+      const thisYearSang = new Date(today.getFullYear(), sangMonth, sangDay);
+      if (thisYearSang < today) thisYearSang.setFullYear(today.getFullYear() + 1);
+      const diff = (thisYearSang - today) / (1000 * 60 * 60 * 24);
       return diff >= 0 && diff <= 30;
     });
 
